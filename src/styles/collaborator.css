@@ -1,0 +1,42 @@
+.collaborator-dock { width: 365px; flex: 0 0 365px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+.collaborator-dock > header { display: flex; align-items: center; justify-content: space-between; padding: 23px 18px; border-bottom: 1px solid var(--border); }
+.collaborator-dock > header > div { display: flex; gap: 10px; align-items: center; }
+.collaborator-dock h2 { font-size: 1.0625rem; }
+.side-workspace { display: flex; flex-direction: column; min-height: 0; flex: 1; overflow: hidden; }
+.side-thread-picker { display: flex; gap: 5px; padding: 12px 15px; border-bottom: 1px solid var(--border); }
+.side-thread-picker select { min-width: 0; width: 100%; padding: 9px; font-size: 0.6875rem; text-overflow: ellipsis; }
+.side-welcome { padding: 45px 25px; text-align: center; }
+.side-welcome > svg { color: var(--accent); margin-bottom: 20px; }
+.side-welcome h3 { font-size: 1.3125rem; }
+.side-welcome p { margin: 16px 0 25px; color: var(--muted); font-size: 0.75rem; line-height: 1.8; }
+.side-context-badge { padding: 12px 18px; font-size: 0.625rem; color: var(--accent); border-bottom: 1px solid var(--border); line-height: 1.5; }
+.side-context-badge small { display: block; margin-top: 5px; color: var(--muted); font-size: 0.625rem; }
+.side-transcript { flex: 1; min-height: 100px; overflow-y: auto; overscroll-behavior: contain; padding: 18px; }
+.side-turn { margin-bottom: 30px; overflow-wrap: anywhere; }
+.side-question { background: var(--accent-tint); border-radius: 9px 9px 2px 9px; padding: 13px; font-size: 0.8125rem; white-space: pre-wrap; line-height: 1.65; }
+.side-source-label { font-size: 0.5625rem; color: var(--faint); margin: 9px 0 20px; line-height: 1.6; }
+.side-answer > .eyebrow { font-size: 0.5625rem; letter-spacing: .5px; }
+.side-prose { font-size: 0.8125rem; line-height: 1.8; white-space: pre-wrap; margin: 10px 0; }
+.side-turn > select { width: 100%; padding: 8px; font-size: 0.6875rem; margin-bottom: 16px; }
+.side-reply-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 17px 0; }
+.side-reply-actions .subtle { font-size: 0.625rem; }
+.side-coverage, .side-sources { font-size: 0.625rem; color: var(--muted); margin-top: 16px; }
+.side-coverage summary, .side-sources summary { cursor: pointer; padding-block: 7px; line-height: 1.6; }
+.side-coverage p { line-height: 1.7; margin: 12px 0; }
+.side-coverage pre, .side-sources pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.625rem; line-height: 1.7; max-height: 240px; overflow-y: auto; background: var(--canvas); padding: 10px; border-radius: 7px; }
+.side-sources input { width: 100%; padding: 9px; margin: 10px 0; font-size: 0.6875rem; }
+.side-sources small { font: 9px/1.5 'IBM Plex Mono',monospace; overflow-wrap: anywhere; }
+.side-composer { border-top: 1px solid var(--border); padding: 14px 15px; }
+.side-composer > textarea { width: 100%; padding: 12px; font-size: 0.75rem; min-height: 80px; max-height: 180px; }
+.side-send { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
+.side-send .subtle { font-size: 0.5625rem; }
+.side-send .send-button { width: 34px; height: 34px; }
+.side-options { margin-top: 12px; font-size: 0.6875rem; color: var(--muted); max-height: 270px; overflow-y: auto; }
+.side-options summary { cursor: pointer; padding: 5px 0; }
+.side-options .field { margin: 17px 0; }
+.side-options .check-row { padding: 7px 0; font-size: 0.6875rem; line-height: 1.6; }
+.side-profile-choices { padding: 8px; border: 1px solid var(--border); border-radius: 7px; }
+.side-options .subtle { font-size: 0.625rem; line-height: 1.7; }
+.dialog-content > .side-workspace { min-height: 0; height: 70dvh; }
+@media (max-width: 1200px) and (min-width: 1051px) { .collaborator-dock { width: 330px; flex-basis: 330px; } }
+@media (max-width: 560px) { .header-actions { flex-shrink: 0; } .chat-heading h1 { max-width: 156px; } .side-transcript { padding-inline: 14px; } .dialog-content > .side-workspace { height: 74dvh; } }

@@ -1,0 +1,12 @@
+@import '@fontsource/arimo/latin-400.css';
+@import '@fontsource/arimo/latin-400-italic.css';
+@import '@fontsource/atkinson-hyperlegible/latin-400.css';
+@import '@fontsource/atkinson-hyperlegible/latin-400-italic.css';
+@import '@fontsource/lora/latin-400.css';
+@import '@fontsource/lora/latin-400-italic.css';
+@import '@fontsource/source-serif-4/latin-400.css';
+@import '@fontsource/source-serif-4/latin-400-italic.css';
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 400; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-Italic.woff2') format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 700; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-BoldItalic.woff2') format('woff2'); }

@@ -1,0 +1,52 @@
+.composer-caption { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.composer-caption button { display: inline-flex; gap: 5px; align-items: center; color: var(--muted); padding: 4px; font-size: 0.625rem; }
+.composer-caption button:hover { color: var(--accent); }
+.mechanics-panel > .tabs { margin: -12px 0 26px; flex-wrap: wrap; }
+.mechanics-content h3 { font-size: 1.125rem; margin-bottom: 9px; }
+.mechanics-content h3 small { color: var(--muted); font-size: 0.75rem; font-family: var(--interface-font, 'IBM Plex Sans'), sans-serif; }
+.mechanic-master { border: 1px solid var(--border); padding: 19px; border-radius: 9px; background: var(--raised); }
+.mechanic-master > span { font-size: 0.875rem; }
+.mechanic-master small { margin-top: 7px; }
+.mechanic-options { display: grid; gap: 14px; margin-top: 12px; }
+.mechanic-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 18px; }
+.background-characters { min-width: 0; display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; }
+.background-characters legend { padding-inline: 6px; font-size: 0.8125rem; }
+.preset-buttons { display: flex; flex-wrap: wrap; gap: 9px; }
+.mechanics-advanced { border-top: 1px solid var(--border); padding-top: 17px; }
+.mechanics-advanced > summary { cursor: pointer; color: var(--muted); font-size: 0.75rem; line-height: 1.7; }
+.mechanics-advanced > div { margin-top: 24px; }
+.mechanics-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.mechanics-footer > p { max-width: 470px; }
+.private-detail { display: grid; gap: 8px; overflow-wrap: anywhere; }
+.private-detail h3 { margin: 0 0 8px; }
+.private-detail h4 { margin: 8px 0 0; color: var(--muted); font-size: 0.75rem; }
+.private-detail p { margin: 0; line-height: 1.65; }
+.private-detail blockquote { margin: 12px 0; padding-left: 12px; border-left: 2px solid var(--border); }
+.private-detail blockquote small { display: block; margin-top: 6px; }
+.odds-list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.odds-row { display: flex; align-items: center; gap: 13px; padding: 13px; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+.odds-row:last-child { border-bottom: 0; }
+.odds-row > input { accent-color: var(--accent); }
+.odds-row small { display: block; color: var(--muted); margin-top: 5px; font-size: 0.625rem; }
+.odds-row strong { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; font-weight: 400; }
+.prepared-card { border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--raised); }
+.prepared-card h3 { font-size: 1.25rem; line-height: 1.6; margin: 9px 0; }
+.prepared-choice { margin: 8px 0 12px; color: var(--muted); font-size: 0.6875rem; }
+.roll-history-row { display: flex; text-align: left; justify-content: space-between; align-items: center; gap: 18px; padding: 17px; border: 1px solid var(--border); border-radius: 7px; font-size: 0.8125rem; }
+.roll-history-row small { color: var(--muted); font-size: 0.6875rem; }
+.outcome-summary h3 { font-size: 1.125rem; margin-bottom: 12px; }
+.outcome-summary h3 span { font-family: var(--interface-font, 'IBM Plex Sans'), sans-serif; font-size: 0.6875rem; color: var(--muted); margin-left: 9px; }
+.outcome-summary p { font-size: 0.8125rem; color: var(--muted); line-height: 1.8; margin-bottom: 10px; }
+.roll-draws > div { display: flex; justify-content: space-between; gap: 20px; padding: 10px 0; font-size: 0.6875rem; border-bottom: 1px solid var(--border); }
+.roll-draws strong { font-weight: 400; font-family: 'IBM Plex Mono', monospace; }
+.table-reading-list > div { display: flex; align-items: baseline; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.table-reading-list > div > span { width: 42px; flex-shrink: 0; color: var(--faint); font-size: 0.6875rem; font-family: 'IBM Plex Mono', monospace; }
+.table-reading-list p { font-size: 0.75rem; color: var(--muted); line-height: 1.8; }
+.table-reading-list strong { color: var(--text); font-weight: 500; }
+.table-reading-list small { display: block; font-size: 0.625rem; color: var(--faint); margin-top: 8px; }
+.table-editor-rows { display: flex; flex-direction: column; gap: 8px; }
+.table-row-editor { border: 1px solid var(--border); border-radius: 8px; }
+.table-row-editor > summary { padding: 14px; font-size: 0.75rem; cursor: pointer; line-height: 1.6; }
+.table-row-editor > summary > span { display: inline-block; min-width: 56px; margin-inline: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; }
+.table-row-editor > div { padding: 8px 18px 20px; }
+@media (max-width: 560px) { .mechanics-footer { align-items: stretch; flex-direction: column; gap: 16px; } .mechanics-panel > .tabs { gap: 1px; } .mechanics-panel > .tabs button { font-size: 0.6875rem; padding-inline: 8px; } .roll-history-row { flex-direction: column; align-items: flex-start; } }

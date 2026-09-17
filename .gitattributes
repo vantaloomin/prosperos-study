@@ -1,0 +1,7 @@
+# Consistent source files; Windows launchers use native line endings.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Preserve the upstream font license verbatim, including its whitespace.
+public/fonts/opendyslexic/OFL.txt -whitespace

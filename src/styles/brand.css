@@ -1,0 +1,32 @@
+/* The mark is static: motion belongs to the work, not the masthead. */
+.study-mark { display: block; flex-shrink: 0; user-select: none; }
+.study-home { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; margin-bottom: 15px; border-radius: 10px; text-decoration: none; }
+.study-signature { display: flex; flex-direction: column; gap: 8px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+.study-signature > span { font-family: var(--interface-heading-font, 'Literata'), Georgia, serif; font-size: 1.0625rem; letter-spacing: -.35px; color: var(--text); }
+.study-signature > small { color: var(--faint); font-size: 0.6875rem; line-height: 1.6; }
+.welcome { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; overflow-y: auto; }
+.welcome-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 33px 40px; border-bottom: 1px solid var(--border); }
+.welcome-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 56px 24px 64px; }
+.welcome-body > .study-mark { margin-bottom: 30px; }
+.welcome-body > .eyebrow { color: var(--accent); font-size: 0.625rem; letter-spacing: 1.8px; line-height: 1.7; }
+.welcome-name { font-size: clamp(2rem, 3.8vw, 3rem); line-height: 1.25; letter-spacing: -1.5px; margin-top: 14px; text-wrap: balance; }
+.welcome-lede { color: var(--muted); font-size: 0.9375rem; line-height: 1.9; margin-top: 24px; }
+.welcome-body > .primary { margin-top: 32px; padding: 12px 20px; }
+.welcome-note { color: var(--faint); font-size: 0.75rem; line-height: 1.7; margin-top: 17px; }
+.welcome-footnote { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 0 20px 25px; color: var(--faint); font-size: 0.6875rem; line-height: 1.7; }
+.welcome-footnote > span { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .study-home:hover { background: var(--raised); }
+}
+@media (max-width: 560px) {
+  .study-home { width: 40px; height: 40px; margin: 0; }
+  .study-home > .study-mark { width: 34px; height: 34px; }
+  .welcome-top { padding: 19px 20px; gap: 12px; }
+  .welcome-top > .subtle { font-size: 0.6875rem; }
+  .welcome-top > .eyebrow { font-size: 0.5625rem; letter-spacing: 1px; }
+  .welcome-body { padding: 36px 20px 42px; }
+  .welcome-body > .study-mark { width: 80px; height: 80px; margin-bottom: 25px; }
+  .welcome-name { letter-spacing: -.9px; }
+  .welcome-lede { font-size: 0.875rem; margin-top: 20px; }
+  .welcome-footnote { font-size: 0.625rem; gap: 10px; padding-bottom: 20px; }
+}

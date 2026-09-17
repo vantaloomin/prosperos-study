@@ -1,0 +1,9 @@
+.export-range { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.export-range .field { min-width: 0; }
+.export-range select { width: 100%; text-overflow: ellipsis; }
+.export-preview { border-top: 1px solid var(--border); padding-top: 24px; }
+.export-preview pre { max-height: 330px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); font: 12px/1.75 'IBM Plex Mono', monospace; margin: 0; }
+.export-preview a { text-decoration: none; }
+.export-action[aria-disabled="true"] { opacity: .45; cursor: default; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 650px) { .export-range { grid-template-columns: 1fr; } }

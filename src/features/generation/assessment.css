@@ -1,0 +1,5 @@
+.assessment-report { display: grid; gap: 12px; min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 10px; }
+.assessment-report p { margin: 0; line-height: 1.6; }
+.assessment-report blockquote { margin: 0; padding: 8px 16px; border-left: 2px solid var(--border); line-height: 1.7; overflow-wrap: anywhere; }
+.assessment-report summary { cursor: pointer; color: var(--muted); font-size: 0.75rem; }
+.assessment-report .raw-json { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--canvas); padding: 12px; border-radius: 8px; font: 11px/1.7 'IBM Plex Mono', monospace; }

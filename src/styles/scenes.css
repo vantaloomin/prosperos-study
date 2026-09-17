@@ -1,0 +1,39 @@
+.scene-workspace { border-top: 1px solid var(--border); padding-top: 24px; }
+.scene-workspace p, .scene-workspace li { white-space: pre-wrap; line-height: 1.75; overflow-wrap: anywhere; }
+.scene-workspace h3, .scene-workspace h4 { overflow-wrap: anywhere; }
+.scene-direction { font: 15px/1.8 'Literata',serif; margin-top: 16px; white-space: pre-wrap; }
+.scene-summary { font-size: 0.875rem; }
+.scene-stage-nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.scene-stage-nav > button { display: flex; flex-direction: column; gap: 7px; text-align: left; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.scene-stage-nav small { color: var(--muted); font-size: 0.625rem; }
+.scene-stage-nav strong { font-size: 0.75rem; }
+.scene-stage-nav [aria-pressed="true"] { background: var(--accent-tint); border-color: var(--accent); }
+.scene-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.scene-option { border: 1px solid var(--border); border-radius: 9px; padding: 18px; }
+.scene-option[data-chosen="true"] { background: var(--accent-tint); border-color: var(--accent); }
+.scene-option p { font-size: 0.8125rem; }
+.scene-option .button { margin-top: auto; }
+.scene-notice, .scene-gate { border: 1px solid var(--border); border-radius: 9px; background: var(--accent-tint); padding: 20px; font-size: 0.8125rem; }
+.scene-beats { padding-left: 24px; display: flex; flex-direction: column; gap: 20px; }
+.scene-beats li::marker { color: var(--accent); font: 12px 'IBM Plex Mono',monospace; }
+.scene-beats p { margin-top: 9px; font-size: 0.8125rem; }
+.scene-request, .scene-edited { border-top: 1px solid var(--border); padding-top: 18px; }
+.scene-profiles summary { cursor: pointer; font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+.scene-profiles > p, .scene-profiles > label { margin-top: 14px; }
+.scene-beat-editor { border: 1px solid var(--border); border-radius: 9px; padding: 18px; min-width: 0; }
+.scene-beat-editor legend { padding: 0 8px; color: var(--muted); font-size: 0.75rem; }
+.scene-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.scene-stream { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font: 12px/1.7 'IBM Plex Mono',monospace; }
+.scene-workspace select { width: 100%; text-overflow: ellipsis; }
+@media (max-width: 650px) { .scene-options { grid-template-columns: minmax(0,1fr); } .scene-stage-nav > button { padding: 10px; } .scene-stage-nav strong { font-size: 0.6875rem; } .scene-notice, .scene-gate { padding: 16px; } }
+.scene-prose { display: grid; gap: 18px; padding-block: 14px; }
+.scene-prose .prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+.scene-dialogue-slot { padding: 16px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface); }
+.scene-dialogue-slot p { margin-block: 8px; }
+.scene-dialogue-slot small { color: var(--muted); }
+.scene-spoken-line { border-left: 2px solid var(--border); padding-left: 18px; }
+.scene-spoken-line h4 { margin-bottom: 10px; }
+.scene-proposed-facts { border-top: 1px solid var(--border); padding-top: 16px; }
+.scene-proposed-facts ul { padding-left: 22px; }
+.scene-selected-draft { border-top: 1px solid var(--border); padding-top: 18px; }
+.scene-reviews { border-top: 1px solid var(--border); padding-top: 24px; }
