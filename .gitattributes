@@ -2,6 +2,7 @@
 * text=auto eol=lf
 *.bat text eol=crlf
 *.ps1 text eol=crlf
+*.sh text eol=lf
 
 # Preserve the upstream font license verbatim, including its whitespace.
 public/fonts/opendyslexic/OFL.txt -whitespace

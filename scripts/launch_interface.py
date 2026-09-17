@@ -103,7 +103,8 @@ def main():
         parser.error('Choose a port between 1024 and 65535.')
     os.chdir(ROOT)
     if not (ROOT / 'dist' / 'index.html').is_file():
-        print('The interface is not built. Run install.bat first.', flush=True)
+        installer = 'install.bat' if os.name == 'nt' else 'bash install.sh'
+        print(f'The interface is not built. Run {installer} first.', flush=True)
         return 1
     url = f'http://{HOST}:{args.port}/'
     listener = reserve_port(args.port)

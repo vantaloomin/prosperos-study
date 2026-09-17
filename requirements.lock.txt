@@ -22,7 +22,7 @@ pydantic==2.13.5
 pydantic_core==2.46.5
 Pygments==2.21.0
 pytest==9.1.1
-pywin32-ctypes==0.2.3
+pywin32-ctypes==0.2.3; sys_platform == "win32"
 ruff==0.16.7
 starlette==1.6.0
 typing-inspection==0.4.4

@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.5 - early preview** · [Get started](#get-started-on-windows) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.5 - early preview** Â· [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) Â· [Choose your models](#bring-your-own-writing-partner) Â· [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -93,7 +93,26 @@ Provider usage, pricing, and access depend on your chosen service. Models and AP
 
 A second launch reuses the existing app. To update, stop the app, update the source files while keeping your `data/` folder, rerun `install.bat`, and launch again. Save a workspace backup before updating.
 
-If WinGet is unavailable, install Python and Node.js yourself and rerun the installer. Windows is the supported guided setup for this preview; other operating systems do not yet have the same launcher experience.
+If WinGet is unavailable, install Python and Node.js yourself and rerun the installer.
+
+## Get started on macOS
+
+Download and extract the project, or clone this repository. In Terminal, change to the project folder and run:
+
+```bash
+cd "/path/to/prosperos-study"
+bash install.sh
+bash launch.sh
+```
+
+[install.sh](install.sh) creates the local Python environment, installs the pinned dependencies, and builds the interface. It uses an existing Python 3.12+ and Node.js 22.12+ installation when available. If either is missing, it can install it through [Homebrew](https://docs.brew.sh/Installation), using [Python 3.12](https://formulae.brew.sh/formula/python@3.12) and [Node.js 24](https://formulae.brew.sh/formula/node@24). Both standard Apple Silicon and Intel Homebrew locations are checked; Homebrew support depends on your macOS version and hardware. If Homebrew is not installed, the script explains how to install it or supply the runtimes yourself.
+
+[launch.sh](launch.sh) opens `http://127.0.0.1:8765` and runs the app in the same terminal. Keep it open while writing; press **Ctrl+C** to stop. Launching again reuses a healthy running instance. It does not reinstall dependencies or start a hidden server.
+
+Use `bash install.sh --check-only` to check an existing installation, or `bash launch.sh --no-browser --port 8765` to control launch options. After updating, stop the app, save a backup, rerun `bash install.sh`, and launch again. Keep your `data/` folder. If transferring the project between Windows and Mac, create a fresh `.venv` on the destination; Python environments are platform-specific.
+
+The shell workflow has automated tests; installation, browser opening, and Keychain access still need a native macOS smoke test for this preview.
+
 
 ## Your work stays yours
 
