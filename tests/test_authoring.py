@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.authoring.context import parse_authoring
 from server.authoring.models import AuthoringPreview, AuthoringStart
@@ -157,7 +158,7 @@ def test_archive_recovers_unsaved_runs_sources_outputs_and_rejects_tampering(cli
     unsaved = start(client, request())
     client.put('/api/authoring/defaults', json={'step': 'authoring-tighten', 'profile_id': profile['profile_id']})
     file, document = backup(client)
-    assert document['version'] == 19 and len(document['data']['authoring_runs']) == 2
+    assert document['version'] == ARCHIVE_VERSION and len(document['data']['authoring_runs']) == 2
     assert document['authoring_profiles'] == {'authoring-tighten': profile['profile_id']}
     _, mapping = restore(client, file)
     restored = client.get(f"/api/authoring/{mapping[saved['id']]}").json()
@@ -186,7 +187,7 @@ def test_legacy_upgrade_empty_history_and_source_kind_and_capacity_checks(client
     remove_authoring(document)
     document['version'] = 15
     upgraded = parse_archive(json.dumps(document))
-    assert upgraded['version'] == 19 and upgraded['data']['authoring_runs'] == []
+    assert upgraded['version'] == ARCHIVE_VERSION and upgraded['data']['authoring_runs'] == []
     assert client.post('/api/authoring/preview', json=request(book, kind='character')).status_code == 400
     assert client.post('/api/authoring/preview', json=request(book, profile_ids=[profile['profile_id']]*2)).status_code == 400
     assert client.post('/api/authoring/preview', json=request(book, text='x'*100000)).status_code == 409

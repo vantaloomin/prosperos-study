@@ -1,6 +1,5 @@
 """Independent reviews of proposed prose without inserting it into Story history."""
 from server.agent_switches import agent_enabled
-from server.branches import path_nodes
 from server.database import encode, one
 from server.errors import require
 from server.lore.scene import planned_sources
@@ -10,7 +9,7 @@ from server.scenes.drafts import coverage_passes
 from server.scenes.state import reviewed_state, run_record, selected_result
 from server.stories import check_revision
 from server.workflow.catalog import ROLE_MAP
-from server.workflow.context import job_snapshot, message_source
+from server.workflow.context import job_snapshot
 
 
 def review_target(connection, branch_id, body):
@@ -32,16 +31,17 @@ def draft_source(run, draft):
 
 
 def scoped_scene_sources(connection, role, run, draft):
-    nodes = path_nodes(connection, run["snapshot"]["branch"]["head_id"])
-    prior = [node for node in nodes if node["role"] != "ooc"]
+    # Frozen source identities survive archive restoration and match the frozen retrieval aids.
+    nodes = [source for source in run["snapshot"]["sources"] if source["kind"] == "accepted"]
+    prior = [source for source in nodes if source["title"] != "ooc contribution"]
     sources = [draft_source(run, draft)]
     if role["scope"] == "blind":
-        return sources + [message_source(node, "previous") for node in prior[-2:]]
-    sources.extend(message_source(node, "previous") for node in prior)
+        return sources + [{**source, "kind": "previous"} for source in prior[-2:]]
+    sources.extend({**source, "kind": "previous"} for source in prior)
     sources.extend(source for source in run["snapshot"]["sources"] if source["kind"] == "reference")
     if role["scope"] == "rules":
         sources.extend(chance_sources(run))
-        sources.extend(message_source(node, "guidance") for node in nodes if node["role"] == "ooc")
+        sources.extend({**source, "kind": "guidance"} for source in nodes if source["title"] == "ooc contribution")
         sources.append({"id": "story:constraints", "kind": "constraints", "title": "Frozen Story constraints",
                         "text": encode(run["snapshot"]["story_context"])})
         sources.append({"id": "scene:approved-plan", "kind": "plan", "title": "Approved direction · proposed events, not canon",
@@ -64,7 +64,11 @@ def scene_review_snapshot(connection, branch_id, body):
         context = {"task": "Review only the proposed draft. Its events and details are not accepted Story facts.",
                    "role": role["name"], "scope": role["scope"],
                    "sources": scoped_scene_sources(connection, role, run, draft)}
-        jobs.extend(job_snapshot(connection, story, step, context))
+        if run['snapshot'].get('author_memory') and role['scope'] != 'blind':
+            context['author_memory'] = run['snapshot']['author_memory']
+        jobs.extend(job_snapshot(connection, story, step, context, memory_policy=run['snapshot'].get('memory_policy'),
+                                 summary_aids=run['snapshot'].get('summary_aids'), manifest_id=run['snapshot']['branch']['manifest_id'],
+                                 summary_bindings=run['snapshot'].get('summary_aid_links')))
     require(bool(jobs), "All selected reviewers are disabled. Enable a reviewer before requesting a review.", 409)
     return {"branch": branch, "story_revision": story["revision"], "from_node_id": None, "through_node_id": None,
             "draft_messages": 1, "scene": {"id": run["id"], "title": run["title"], "revision": run["revision"], "state": reviewed_state(run["state"])},

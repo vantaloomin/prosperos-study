@@ -1,0 +1,17 @@
+.plan-form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.plan-form > .dialog-footer { flex-shrink: 0; }
+.plan-manager { margin-bottom: 1.5rem; gap: 12px; }
+.plan-manager .section-heading { flex-direction: column; align-items: flex-start; gap: .375rem; margin: 0; }
+.plan-manager .section-heading h3 { font-size: 1.125rem; margin: 0; }
+.plan-manager .section-heading button { white-space: nowrap; }
+.plan-manager .form-stack { gap: 12px; }
+.plan-manager p, .plan-manager .context-asset { margin: 0; }
+.plan-manager .context-asset > .form-stack { padding-top: 12px; }
+.plan-fields, .plan-evidence, .plan-participants { border: 0; padding: 0; min-width: 0; }
+.plan-evidence, .plan-participants { padding-top: 1rem; border-top: 1px solid var(--border); }
+.plan-evidence legend, .plan-participants legend { font-weight: 600; padding: 0 .5rem 0 0; }
+.plan-participant, .plan-timing { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.plan-details ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.plan-details li { display: flex; justify-content: space-between; gap: 1rem; }
+.plan-details small { color: var(--muted); }
+@media (max-width: 560px) { .plan-participant, .plan-timing { grid-template-columns: 1fr; gap: .75rem; } }

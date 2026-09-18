@@ -1,3 +1,5 @@
+import type { ActorRequest } from './CharacterDialogue'
+import type { SourceMemoryReceipt } from '../workflow/SourceMemoryCoverage'
 import type { ModelProfile } from '../models/types'
 import type { RevisionPlan, TriageItem, Evidence } from './revisionTypes'
 import type { PatchEdit, PatchResolution, PassageCheck, PatchView, patchSteps } from './patchTypes'
@@ -26,7 +28,7 @@ export interface SceneResult {
 export interface SceneJob {
   id: string; step: SceneKey; status: string; output: string; error: string; attempt: number; current_inputs: boolean
   usage: Record<string, unknown>; result: SceneResult | null
-  snapshot: { profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number; item_id?: string | null }
+  snapshot: { dialogue_actors?: ActorRequest[]; source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number; item_id?: string | null }
 }
 export interface SceneRun {
   id: string; branch_id: string; title: string; revision: number; stale: boolean; next_step: SceneKey | null; created_at: string
@@ -42,7 +44,7 @@ export interface SceneRun {
 }
 export interface StagePreview {
   preview_hash: string; request_count: number
-  jobs: { step: string; name: string; profile_name: string; model: string; estimated_input_tokens: number; prompt_version: number; source_count: number }[]
+  jobs: { dialogue_actors?: ActorRequest[]; step: string; name: string; profile_name: string; model: string; estimated_input_tokens: number; prompt_version: number; source_count: number; source_memory?: SourceMemoryReceipt | null }[]
 }
 export const sceneWorking = (job: SceneJob) => ['queued', 'running'].includes(job.status)
 export const planningStep = (key: SceneKey) => ['scene-options', 'scene-beats', 'scene-brief'].includes(key)

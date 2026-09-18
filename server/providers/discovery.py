@@ -1,6 +1,8 @@
 """Normalize provider-reported model metadata; absent limits are never guessed."""
 from server.errors import DomainError, require
 from server.providers.discovery_errors import address_hint, fetch_model_page, response_problem
+from server.providers.lmstudio import native_local
+from server.providers.lmstudio_models import native_models
 from server.providers.requests import headers_for
 
 
@@ -44,6 +46,12 @@ def rows_for(provider, data):
 
 
 async def discover_models(client, config, key):
+    if native_local(config):
+        response, data = await fetch_model_page(client, config, headers_for(config, key), {})
+        try:
+            return native_models(data)
+        except DomainError as error:
+            raise response_problem(config, response, error.message, address_hint(config)) from error
     provider = config['provider']
     params = {'pageSize': 1000} if provider == 'google' else {}
     models = {}

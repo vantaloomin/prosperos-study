@@ -1,6 +1,7 @@
 from server.database import decode, many, one
 from server.errors import require
 from server.lore.scene import planned_sources
+from server.memory.source_evidence import carry_evidence, cited_ids
 from server.scenes.chance import chance_sources
 from server.scenes.drafts import assemble_draft, coverage_passes
 from server.scenes.state import reviewed_state, selected_result
@@ -31,7 +32,15 @@ def triage_inputs(connection, run, job_ids):
     require(job_ids and len(job_ids) == len(set(job_ids)), 'Choose completed reports for triage, without duplicates.')
     reports = [review_report(connection, run, job_id, f'r{index + 1}') for index, job_id in enumerate(job_ids)]
     require(len({report['role'] for report in reports}) == len(reports), 'Choose one comparison result per reviewer role.')
-    return {'stage': 'scene-triage', 'sources': revision_sources(connection, run), 'reports': reports,
+    sources = revision_sources(connection, run)
+    available = []
+    for job_id in job_ids:
+        job = one(connection, 'SELECT snapshot FROM review_jobs WHERE id=?', (job_id,))
+        snapshot = decode(job['snapshot'])
+        if snapshot.get('source_memory'):
+            available.extend(decode(snapshot['content'])['sources'])
+    sources = carry_evidence(sources, cited_ids(reports), available)
+    return {'stage': 'scene-triage', 'sources': sources, 'reports': reports,
             'findings': [finding for report in reports for finding in report['findings']],
             'approved_beats': selected_result(connection, run, 'scene-beats')}
 

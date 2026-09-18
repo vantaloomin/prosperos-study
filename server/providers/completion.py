@@ -10,15 +10,20 @@ class StreamCompletion:
     has_text: bool = False
     has_reasoning: bool = False
     finish_reason: str | None = None
+    output_limit_uncertain: bool = False
 
     def observe(self, event: ProviderEvent):
         self.completed = self.completed or event.done
         self.has_text = self.has_text or bool(event.text.strip())
         self.has_reasoning = self.has_reasoning or bool(event.usage.get("reasoning_received"))
         self.finish_reason = event.usage.get("finish_reason") or self.finish_reason
+        self.output_limit_uncertain |= bool(event.usage.get("output_limit_uncertain"))
 
     def validate(self, config: dict):
         require(self.completed, "The connection ended before the service completed its response.", 502)
+        if self.output_limit_uncertain:
+            raise DomainError(f"LM Studio used the entire {config['max_output_tokens']:,}-token output allowance without reporting a stop reason. "
+                              "The response may be incomplete. Any text is preserved; increase the allowance for a new request.", 502)
         if self.finish_reason == "length":
             raise DomainError(self.limit_message(config), 502)
         failures = {

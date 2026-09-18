@@ -17,6 +17,10 @@ import type { AssessmentChoice, WritingResult } from './assessmentTypes'
 import { AssessmentOptionsDialog } from './AssessmentOptionsDialog'
 import { AssessmentHistory } from './AssessmentHistory'
 import { ContextPreviewButton } from './ContextPreviewButton'
+import { SummaryLauncher } from '../storyMemory/SummaryLauncher'
+import { useReviewedContext } from './useReviewedContext'
+const KnowledgeChoice = lazy(() => import('./KnowledgeChoice').then(module => ({ default: module.KnowledgeChoice })))
+import { characterRequest } from './knowledgeRequest'
 const AssessmentPanel = lazy(() => import('./AssessmentPanel'))
 const ComparisonSetup = lazy(() => import('./ComparisonSetup'))
 
@@ -26,6 +30,7 @@ export function GenerationControls({ branch, onBranch, open, onClose, children }
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles })
   const history = useQuery({ queryKey: ['generations', branch.id], queryFn: () => api<GenerationSummary[]>(`/branches/${branch.id}/generations`) })
   const [override, setOverride] = useState('')
+  const [knowledge, setKnowledge] = useState('')
   const current = useRef(true)
   useEffect(() => { current.current = true; return () => { current.current = false } }, [])
   const [comparing, setComparing] = useState(false)
@@ -37,13 +42,16 @@ export function GenerationControls({ branch, onBranch, open, onClose, children }
   const openWriter = (id: string) => { setAssessment({ id: '', follow: false }); setRunId(id) }
   const { prepared, usePrepared, setSkippedBeat } = usePreparedBeat(branch)
   const action = useAction()
+  const changeKnowledge = (subject: string) => { setKnowledge(subject); action.clearError() }
   const availableProfiles = profiles.data?.profiles ?? []
-  const contextRequest = writerRequest(branch, override, usePrepared, assessmentChoice)
+  const contextRequest = characterRequest(writerRequest(branch, override, usePrepared, assessmentChoice), knowledge)
+  const preview = useReviewedContext(branch.id, contextRequest)
   const generate = () => action.run(async () => {
-    const result = await api<WritingResult>(`/branches/${branch.id}/generations`, { operation_id: operationId(), ...contextRequest })
+    const result = await api<WritingResult>(`/branches/${branch.id}/generations`, { operation_id: operationId(), ...contextRequest, ...preview.input })
     receive(result)
   })
   const onSubmitted = (receipt: MessageReceipt) => action.run(async () => {
+    if (knowledge) throw new Error('Your contribution was saved. Update this character\'s evidence in Story memory, then preview and continue. New prose is not automatically granted to a character.')
     const next = await api<Branch>(`/branches/${receipt.branch_id}`)
     if (!current.current) return
     const request = continuationRequest(next, receipt, override, usePrepared, assessmentChoice)
@@ -53,13 +61,15 @@ export function GenerationControls({ branch, onBranch, open, onClose, children }
   return <WritingContext.Provider value={{ onSubmitted, busy: action.busy, error: action.error, canGenerate: !!availableProfiles.length }}>{children}{open && <aside className="context-dock writing-dock" aria-label="Writing tools"><header><h2>Writing tools</h2><button className="icon-button" aria-label="Close writing tools" onClick={onClose}><X size={18} /></button></header><div className="dock-content generation-controls"><div className="writer-toolbar"><WriterChoice profiles={availableProfiles} value={override} onChange={setOverride} />
     <button className="text-button" onClick={() => setComparing(true)} disabled={availableProfiles.length < 2}><GitCompareArrows size={15} />Compare</button>
     <ContinueButton busy={action.busy} available={availableProfiles.length} assessments={assessmentChoice.assessment_profile_ids.length} onClick={generate} />
-  </div><PreparedChoice prepared={prepared} selected={usePrepared} onSkip={setSkippedBeat} /><ErrorNotice message={action.error || profiles.error?.message} />
-    <ContextPreviewButton key={branch.id} branchId={branch.id} request={contextRequest} />
-    <AssessmentLinks branch={branch} choice={assessmentChoice} onOptions={() => setAssessmentOptions(true)} onSaved={(id) => setAssessment({ id, follow: false })} />
+  </div><div hidden={Boolean(knowledge)}><PreparedChoice prepared={prepared} selected={usePrepared} onSkip={setSkippedBeat} /></div><ErrorNotice message={action.error || profiles.error?.message} />
+    <Suspense fallback={<p role="status">Opening knowledge views...</p>}><KnowledgeChoice branchId={branch.id} value={knowledge} onChange={changeKnowledge} /></Suspense>
+    <ContextPreviewButton key={branch.id} branchId={branch.id} request={contextRequest} onReviewed={preview.onReviewed} />{preview.notice}
+    <div hidden={Boolean(knowledge)}><AssessmentLinks branch={branch} choice={assessmentChoice} onOptions={() => setAssessmentOptions(true)} onSaved={(id) => setAssessment({ id, follow: false })} /></div>
+    <SummaryLauncher branch={branch} />
     <DraftHistory history={history.data ?? []} onSelect={setRunId} />
     <AssessmentHistory branchId={branch.id} onSelect={(id) => setAssessment({ id, follow: false })} />
     </div></aside>}
-    {comparing && <Suspense fallback={<p role="status">Opening comparison...</p>}><ComparisonSetup branch={branch} profiles={availableProfiles} usePrepared={usePrepared} onClose={() => setComparing(false)} assessmentChoice={assessmentChoice} onCreated={receive} /></Suspense>}
+    {comparing && <Suspense fallback={<p role="status">Opening comparison...</p>}><ComparisonSetup branch={branch} profiles={availableProfiles} knowledge={knowledge} usePrepared={usePrepared} onClose={() => setComparing(false)} assessmentChoice={assessmentChoice} onCreated={receive} /></Suspense>}
     <AssessmentOptionsDialog open={assessmentOptions} profiles={availableProfiles} value={assessmentChoice} onChange={setAssessmentChoice} onClose={() => setAssessmentOptions(false)} />
     {assessment.id && <Suspense fallback={<p role="status">Opening assessment...</p>}><AssessmentPanel id={assessment.id} followWriter={assessment.follow} onClose={() => setAssessment({ id: '', follow: false })} onWriter={openWriter} /></Suspense>}
     {runId && <Suspense fallback={<p role="status">Opening drafts…</p>}><GenerationReview id={runId} onClose={() => setRunId('')} onBranch={onBranch} /></Suspense>}

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from server.models import Input
 from server.scenes.chance_models import ChanceBoundary
@@ -15,10 +15,24 @@ class SceneCreate(Input):
     dialogue_split: bool = False
 
 
+class DialogueActor(Input):
+    character_id: str | None = Field(default=None, min_length=1, max_length=100)
+    subject: str | None = Field(default=None, min_length=1, max_length=160)
+    slot_ids: list[str] = Field(min_length=1, max_length=200)
+    briefing: str = Field(min_length=1, max_length=12000)
+
+    @model_validator(mode='after')
+    def identity(self):
+        if bool(self.character_id) == bool(self.subject):
+            raise ValueError('Choose exactly one Character identity or name-only viewpoint.')
+        return self
+
+
 class SceneStep(Input):
     expected_revision: int
     key: Literal["scene-options", "scene-beats", "scene-brief", "scene-draft", "scene-dialogue", "scene-coverage",
                  "scene-triage", "scene-verify", "scene-patch", "scene-dialogue-patch", "scene-patch-check", "scene-continuity"]
+    dialogue_actors: list[DialogueActor] = Field(default_factory=list, min_length=1, max_length=8, exclude_if=lambda value: not value)
     profile_ids: list[str] = Field(default_factory=list, max_length=4)
     review_job_ids: list[str] = Field(default_factory=list, max_length=10)
     item_id: str | None = None

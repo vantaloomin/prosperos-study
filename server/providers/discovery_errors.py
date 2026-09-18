@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from server.errors import DomainError
+from server.providers.lmstudio import native_local
 
 
 def model_endpoint(config):
@@ -14,6 +15,8 @@ def model_endpoint(config):
 
 def address_hint(config):
     base = config['base_url'].rstrip('/')
+    if native_local(config):
+        return 'Use an LM Studio version with the native /api/v1 API, normally http://127.0.0.1:1234/api/v1, or choose OpenAI-compatible protocol.'
     if config['provider'] == 'local':
         if not urlsplit(base).path:
             return f'For LM Studio, set Server address to {base}/v1 and test again (include /v1).'

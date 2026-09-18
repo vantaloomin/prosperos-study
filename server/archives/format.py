@@ -6,6 +6,7 @@ from pydantic import Field, StringConstraints
 
 from server.models import Input
 
+ARCHIVE_VERSION = 30
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 V1_TABLES = (
     "stories", "assets", "asset_versions", "manifests", "branches", "nodes", "adoptions",
@@ -26,8 +27,22 @@ IMPORT_TABLES = ('library_imports', 'asset_import_origins')
 V15_TABLES = V12_TABLES + IMPORT_TABLES
 AUTHORING_TABLES = ('authoring_runs', 'authoring_jobs', 'authoring_attempts')
 V17_TABLES = V15_TABLES + AUTHORING_TABLES
-TABLES = V17_TABLES + ('library_media',)
+V20_TABLES = V17_TABLES + ('library_media',)
+SUMMARY_TABLES = ('summary_runs', 'summary_jobs', 'summary_attempts', 'summary_versions')
+V21_TABLES = V20_TABLES + SUMMARY_TABLES
+MAINTENANCE_TABLES = ('summary_pending', 'summary_wakeups', 'summary_batches', 'summary_batch_runs')
+V22_TABLES = V21_TABLES + MAINTENANCE_TABLES
+CONTROL_TABLES = ('memory_control_versions', 'branch_memory_controls')
+V27_TABLES = V22_TABLES + CONTROL_TABLES
+V29_TABLES = V27_TABLES + ('archive_identities',)
+PLAN_TABLES = ('continuity_edits', 'branch_continuity_edits')
+TABLES = V29_TABLES + PLAN_TABLES
 JSON_FIELDS = {
+    'continuity_edits': ('changes',),
+    'memory_control_versions': ('payload',),
+    'summary_batches': ('snapshot',),
+    'summary_runs': ('snapshot',), 'summary_jobs': ('snapshot', 'result', 'usage'),
+    'summary_attempts': ('result', 'usage'), 'summary_versions': ('result',),
     'authoring_runs': ('snapshot',), 'authoring_jobs': ('snapshot', 'result', 'usage'),
     'authoring_attempts': ('result', 'usage'),
     'library_imports': ('conversion',),
@@ -51,7 +66,7 @@ JSON_FIELDS = {
 
 class ArchiveDocument(Input):
     format: Literal["roleplay-archive"] = "roleplay-archive"
-    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] = 19
+    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30] = ARCHIVE_VERSION
     scope: Literal["story", "workspace"]
     title: str = Field(min_length=1, max_length=200)
     created_at: str
@@ -96,4 +111,4 @@ def summary(document):
                         for story in data["stories"]],
             "counts": {key: len(rows) for key, rows in data.items()}, "selection": document["selection"],
             "running_jobs": sum(row["status"] in {"running", "queued"}
-                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs') for row in data[key])}
+                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs', 'summary_jobs') for row in data[key])}

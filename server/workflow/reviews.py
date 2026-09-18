@@ -32,17 +32,8 @@ class Reviews:
                 return cached
             snapshot = prepare_snapshot(connection, branch_id, body)
             require(body.preview_hash == snapshot_hash(snapshot), "The review inputs changed. Preview the requests again.", 409)
-            run_id = identifier()
-            jobs = snapshot.pop("jobs")
-            connection.execute("INSERT INTO review_runs (id,branch_id,snapshot,created_at) VALUES (?,?,?,?)",
-                               (run_id, branch_id, encode(snapshot), now()))
-            job_ids = []
-            for job in jobs:
-                job_id = identifier()
-                connection.execute("INSERT INTO review_jobs (id,run_id,step,snapshot,status,updated_at) VALUES (?,?,?,?,'queued',?)",
-                                   (job_id, run_id, job["step"], encode(job), now()))
-                job_ids.append(job_id)
-            return remember(connection, body.operation_id, "review", payload, {"id": run_id, "job_ids": job_ids})
+            result = record_review(connection, branch_id, snapshot)
+            return remember(connection, body.operation_id, "review", payload, result)
 
     def detail(self, run_id):
         with self.database.connect() as connection:
@@ -59,6 +50,7 @@ class Reviews:
             values = (branch_id, scene_id) if scene_id is not None else (branch_id,)
             rows = many(connection, "SELECT id,created_at,json_extract(snapshot,'$.scene.id') AS scene_id,"
                         "json_extract(snapshot,'$.scene.title') AS scene_title FROM review_runs WHERE branch_id=?"
+                        + " AND COALESCE(json_extract(snapshot,'$.purpose'),'') != 'planned-continuity-v1'"
                         + condition + " ORDER BY created_at DESC", values)
             return [{"id": row["id"], "created_at": row["created_at"],
                      "scene": {"id": row["scene_id"], "title": row["scene_title"]} if row["scene_id"] else None} for row in rows]
@@ -76,3 +68,17 @@ class Reviews:
         with self.database.connect() as connection:
             rows = many(connection, "SELECT * FROM review_attempts WHERE job_id=? ORDER BY attempt DESC", (job_id,))
             return [{**row, "result": decode(row["result"]), "usage": decode(row["usage"])} for row in rows]
+
+
+def record_review(connection, branch_id, snapshot):
+    run_id = identifier()
+    jobs = snapshot.pop('jobs')
+    connection.execute('INSERT INTO review_runs (id,branch_id,snapshot,created_at) VALUES (?,?,?,?)',
+                       (run_id, branch_id, encode(snapshot), now()))
+    job_ids = []
+    for job in jobs:
+        job_id = identifier()
+        connection.execute("INSERT INTO review_jobs (id,run_id,step,snapshot,status,updated_at) VALUES (?,?,?,?,'queued',?)",
+                           (job_id, run_id, job['step'], encode(job), now()))
+        job_ids.append(job_id)
+    return {'id': run_id, 'job_ids': job_ids}

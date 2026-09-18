@@ -32,3 +32,8 @@ def download_archive(file_id: str, request: Request):
 @router.post("/{file_id}/restore")
 def restore_archive(file_id: str, body: ArchiveRestore, request: Request):
     return Archives(request.app.state.database).apply(file_id, body)
+
+
+@router.get("/{file_id}/review")
+def review_archive(file_id: str, request: Request):
+    return Archives(request.app.state.database).review(file_id)

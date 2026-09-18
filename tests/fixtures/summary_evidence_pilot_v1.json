@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "authorship": "Assistant-authored prospective diagnostic sources and checks, frozen before inference; not independent human holdout. Earlier XML fixtures remain a separate development stratum.",
+  "batches": [
+    {
+      "id": "fresh-gallery",
+      "genre": "mystery",
+      "texts": [
+        "Leda unlocked the west gallery at eight. A blue cloth covered the landscape above the fireplace; the rope below it still carried a tag saying that varnish was drying. Finn, who had swept the room at ten to eight, said he remembered a gilt rectangle there. He had left the electric lights off. Leda put his arrival time in the visitor book, hung her wet coat by the door and went to open the desk. The windows behind the cloth were shut.",
+        "At a quarter past eight the curator forwarded a photograph of the uncovered landscape. The message reached Leda that morning; the date printed in the picture's lower corner was the previous afternoon. A porter rolled in a crate described on its docket as a mirror for the east stair. When Leda asked whether he had moved the painting, he shook his head and tapped the destination on the docket. She let the crate pass without opening it.",
+        "The gallery's owner called Finn while he was buying bread. She asked him to describe the gilt rectangle, and he said the cloth had hidden everything except its outer edge. The owner wrote \"seen at 07:50\" in her notebook beside the painting's title. Finn could not see what she wrote. Back at the gallery Leda found the cloth caught behind one corner of the frame. A coach stopped outside, bringing the first visitors of the day.",
+        "At nine Leda lifted the cloth for the curator. The frame held a pale backing board and four retaining clips; the landscape was gone. Leda closed the gallery door and asked the porter to stay. He parked the unopened mirror crate in the corridor. The curator telephoned the owner, but her call went to voicemail. Finn was still at the bakery with his phone in his pocket. Leda photographed the clips before touching them."
+      ],
+      "review_checks": [
+        "The cloth and visible frame edge do not establish that Finn saw the painting at 07:50.",
+        "The photograph arrived today but depicts yesterday; the crate label is not verification of its contents.",
+        "Owner wrote her interpretation; Finn has not seen that note.",
+        "Missing painting confirmed at09:00; removal time and culprit unknown; owner and Finn not yet shown to know the discovery."
+      ]
+    },
+    {
+      "id": "fresh-station",
+      "genre": "contemporary relationship",
+      "texts": [
+        "On Tuesday, Em told Jules she would come to the flat on Friday after work. Jules asked her to bring the blue folder containing their lease papers; she put it beside her travel bag. They had left the previous Sunday with an argument unfinished. Em's brother Arun texted her that Jules was probably leaving town, having seen a stack of boxes through the window. Em read his message twice and put her phone face down without answering.",
+        "On Thursday Jules sent a short message: \"The meeting is off.\" The earlier message above it in the thread concerned a residents' meeting in the basement. Em replied with a thumbs-up and finished packing. Arun, looking over her shoulder, said he supposed Friday was canceled too. Em was already crossing the room to collect the folder and did not reply. Jules put two mugs on the kitchen counter and went out to buy bread.",
+        "Friday's station board showed a forty-minute delay. Em sent Jules a picture of it and wrote, \"I am taking the next one.\" The folder was in her bag. Her phone displayed one gray tick beside the message before losing its signal. Jules, underground on the way home, looked at the saved Tuesday exchange and checked the time. Arun called Em; she let it ring while the platform announcement repeated the revised departure time.",
+        "At seven the delayed train reached the station nearest Jules's flat. Em stepped onto the platform and noticed a tear in the folder's paper cover, which she pressed flat with her palm. Her phone found a signal and the earlier message gained a second tick. In the flat, Jules took the bread out of its bag and left the second mug where it was. Em opened a new message, typed \"Nearly there,\" and paused before pressing send."
+      ],
+      "review_checks": [
+        "Friday visit and lease-folder promise remain distinct from the unfinished relationship argument.",
+        "Canceled meeting refers to residents meeting; Arun infers Friday cancellation without confirmation.",
+        "Delay message initially pending and later delivered; delivery does not establish that Jules read it.",
+        "Em reaches nearby station, not flat; folder has not been handed over; final new message remains unsent."
+      ]
+    },
+    {
+      "id": "fresh-envoys",
+      "genre": "political fantasy",
+      "texts": [
+        "Nyra met the bridge captain alone behind the counting house. He agreed to open the river crossing for market carts after a sealed deposit of thirty silver marks reached his desk. Nyra counted her delegation's coins twice and found twenty-eight. She asked him to wait until sunset. Outside, Olek was speaking to a fruit seller about the view from the bridge. When Nyra rejoined him, she said only that the captain had offered terms.",
+        "Olek carried a message from the delegation's interpreter to the camp: \"The crossing may open at sunset.\" Rain had soaked the lower half of the paper. At the camp he laid it by the fire and told the quartermaster, \"We have our crossing tonight.\" The quartermaster ordered the wagon teams fed. Nyra was still at the counting house, asking a money changer to lend the missing two marks against her ring.",
+        "An injured carter reached the bridge before dusk. The captain raised one barrier and waved the healer's little carriage through. The waiting market wagons stayed behind the other barrier. From the hill Olek saw a carriage cross and ran back toward camp. Nyra came out of the money changer's shop holding a sealed purse. She had given him the ring, but the purse was still hanging from her own belt.",
+        "The captain sent a runner after Nyra with a note reminding her that he needed the deposit on his desk. At camp Olek began dictating a correction to the quartermaster's clerk, then stopped to ask which road the healer had used. The clerk left the unfinished sheet beside an unlit sealing candle. The market teamsters were harnessing their animals. Nyra walked toward the bridge while the sky over the river turned orange."
+      ],
+      "review_checks": [
+        "Deposit must reach captain; Olek was absent from private terms and initially hears only that terms exist.",
+        "Interpreter says may open; Olek upgrades this to certainty, which remains his claim.",
+        "Healer carriage passes while market wagons wait; exception is not general opening.",
+        "Nyra has purse but has not delivered it; Olek correction remains unfinished/unsealed; general crossing unresolved."
+      ]
+    },
+    {
+      "id": "fresh-garden",
+      "genre": "community drama",
+      "texts": [
+        "Ivo promised Noor the scarlet tin of climbing-pea seeds before the garden club's Saturday stall opened. He set it beside the greenhouse sink while he washed his hands. Ada arrived with a second scarlet tin, formerly used for the same brand of tea, and put it on the dry shelf. Hers held chalk stubs for writing labels. Noor had already gone to the square to unfold the stall tables.",
+        "Ada asked Ivo to carry her cardboard signs outside. He tucked them under one arm, picked up the tin from the dry shelf and set it in the delivery basket. The tin beside the sink stayed behind a watering jug. A shower began, and Ada pulled the greenhouse door closed after them. Neither lid had been lifted while they were gathering the signs. Ivo wheeled the basket toward the square, carefully keeping the cardboard under his coat.",
+        "At the stall Ivo put the scarlet tin next to Noor's empty seed trays. She was helping a neighboring seller tie down an awning and did not turn around. Ivo waved to her back, then returned to the greenhouse for the label stakes. A volunteer opened the tin at the stall and tipped three chalk stubs into his palm. He asked the neighboring seller where Noor had gone; she pointed toward the shelter at the far end of the square.",
+        "Ivo moved the watering jug and found a scarlet tin beside the sink. When he opened it, peas rattled against the metal. He closed it and looked at the delivery basket's wet wheel marks on the path. His call to Noor rang until voicemail answered. He put the tin in his coat pocket, collected the stakes and turned back toward the square. At the stall the volunteer was using Ada's chalk to write the opening time on a board."
+      ],
+      "review_checks": [
+        "Two identical-looking tins have different contents and locations; promise concerns seeds.",
+        "Ivo takes Ada tin from dry shelf, leaving seed tin behind jug; he does not check contents then.",
+        "Chalk delivered to stall, not promised seeds; Noor facing away not established to notice substitution.",
+        "Ivo finds actual seeds and starts back; delivery remains incomplete and voicemail does not establish Noor knows."
+      ]
+    }
+  ]
+}

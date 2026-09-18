@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from server.assessment.models import AssessmentOutput
 from server.database import decode
 from server.errors import DomainError, require
+from server.generation_models import semantic_request
 from server.mechanics.config import configured_tables, read_settings
 from server.mechanics.state import node_state
 from server.workflow.context import job_snapshot
@@ -26,7 +27,7 @@ def assessment_needed(story, snapshot, body):
             and not snapshot['opportunity_id'] and eligible_head(snapshot) is not None)
 
 
-def assessment_snapshot(connection, story, writer, profiles, body):
+def assessment_plan(connection, story, writer, profiles, body):
     settings = read_settings(story)
     tables = configured_tables(connection, settings)
     settings.table_versions = {key: value['id'] for key, value in tables.items()}
@@ -34,9 +35,17 @@ def assessment_snapshot(connection, story, writer, profiles, body):
     context = assessment_input(writer, before, settings)
     selection = ReviewStep(key='beat-assessment', profile_ids=body.assessment_profile_ids)
     return {'branch': writer['branch'], 'story_revision': story['revision'], 'settings': settings.model_dump(),
-            'seed': secrets.token_hex(16), 'tables': tables, 'before': before, 'writer_snapshot': writer, 'writer_profiles': profiles,
-            'request': body.model_dump(exclude={'operation_id'}),
+            'tables': tables, 'before': before, 'writer_snapshot': writer, 'writer_profiles': profiles,
+            'request': semantic_request(body),
             'jobs': job_snapshot(connection, story, selection, context)}
+
+
+def assessment_snapshot(connection, story, writer, profiles, body):
+    return seed_assessment(assessment_plan(connection, story, writer, profiles, body))
+
+
+def seed_assessment(plan):
+    return {**plan, 'seed': secrets.token_hex(16)}
 
 
 def assessment_input(writer, before, settings):

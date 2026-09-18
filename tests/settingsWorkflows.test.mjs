@@ -50,3 +50,61 @@ test('continuation uses refreshed revision, selected writer, and stable operatio
   assert.throws(() => continuationRequest({ ...branch, head_id: 'other-node' }, receipt, '', true, choice), /path changed/)
   assert.throws(() => continuationRequest({ ...branch, id: 'other-branch' }, receipt, '', true, choice), /path changed/)
 })
+
+test('reviewed previews cannot follow a branch, direction, comparison or assessment selection change', async () => {
+  const { contextRequestKey, reviewedInput } = await import('../src/features/generation/reviewedContext.ts')
+  const request = { expected_revision: 7, profile_ids: ['primary'], use_prepared_beat: true,
+    assess_beat: true, assessment_profile_ids: [], direction: 'Follow the missing key.' }
+  const reviewed = { key: contextRequestKey('original', request), fingerprint: 'verified-inputs' }
+  assert.deepEqual(reviewedInput('original', { ...request }, reviewed), { reviewed_fingerprint: 'verified-inputs' })
+  for (const changed of [{ expected_revision: 8 }, { direction: 'Move to the next scene.' },
+    { profile_ids: ['primary', 'comparison'] }, { use_prepared_beat: false },
+    { assess_beat: false }, { assessment_profile_ids: ['other-assessor'] }, { knowledge_subject: 'Elin' }, { knowledge_character_id: 'character-id' }]) {
+    assert.deepEqual(reviewedInput('original', { ...request, ...changed }, reviewed), {})
+  }
+  assert.deepEqual(reviewedInput('fork', request, reviewed), {})
+  assert.deepEqual(reviewedInput('original', request, null), {})
+})
+
+test('character requests explicitly exclude chance without changing author-view defaults', async () => {
+  const { characterRequest } = await import('../src/features/generation/knowledgeRequest.ts')
+  const original = { expected_revision: 3, profile_ids: ['writer'], use_prepared_beat: true, assess_beat: true, assessment_profile_ids: ['assessor'] }
+  assert.strictEqual(characterRequest(original, ''), original)
+  assert.deepEqual(characterRequest(original, 'Elin'), { ...original, knowledge_subject: 'Elin', use_prepared_beat: false, assess_beat: false, assessment_profile_ids: [] })
+  assert.equal(original.assess_beat, true)
+})
+
+test('Character identity requests do not depend on display names', async () => {
+  const { characterRequest } = await import('../src/features/generation/knowledgeRequest.ts')
+  const request = { expected_revision: 7, profile_ids: [] }
+  assert.deepEqual(characterRequest(request, 'character:stable-id'), { ...request, knowledge_character_id: 'stable-id', use_prepared_beat: false, assess_beat: false, assessment_profile_ids: [] })
+  assert.equal(characterRequest(request, 'name:character:Elin').knowledge_subject, 'character:Elin')
+  assert.deepEqual(request, { expected_revision: 7, profile_ids: [] })
+})
+
+
+test('scene character briefings keep identity and deliberately empty assignments for validation', async () => {
+  const { actorInputs } = await import('../src/features/scenes/characterDialogueRequest.ts')
+  const actors = [
+    { view: 'character:stable-id', slot_ids: ['s1'], briefing: 'Visible first situation.' },
+    { view: 'name:character:Elin', slot_ids: ['s2'], briefing: 'Visible second situation.' },
+  ]
+  assert.deepEqual(actorInputs({ enabled: false, actors }), [])
+  assert.deepEqual(actorInputs({ enabled: true, actors }), [
+    { character_id: 'stable-id', slot_ids: ['s1'], briefing: 'Visible first situation.' },
+    { subject: 'character:Elin', slot_ids: ['s2'], briefing: 'Visible second situation.' },
+  ])
+  assert.deepEqual(actorInputs({ enabled: true, actors: [] }), [])
+  assert.equal(actorInputs({ enabled: true, actors: [{ view: '', slot_ids: [], briefing: '' }] })[0].subject, '')
+  assert.equal(actors[1].view, 'name:character:Elin')
+})
+
+
+test('rehearsal snapshots become earlier results after branch, edition or decision changes', async () => {
+  const { sameRehearsalBoundary, viewpointLabel } = await import('../src/features/storyMemory/rehearsalTypes.ts')
+  const boundary = { branch_id: 'branch', head_id: 'head', revision: 3, manifest_id: 'edition', version_id: 'decisions' }
+  assert.equal(sameRehearsalBoundary(boundary, { ...boundary }), true)
+  for (const field of Object.keys(boundary)) assert.equal(sameRehearsalBoundary(boundary, { ...boundary, [field]: 'changed' }), false)
+  assert.notEqual(viewpointLabel({ key: 'a', subject: 'Elin', character_id: '12345678long' }), viewpointLabel({ key: 'b', subject: 'Elin', character_id: '87654321long' }))
+  assert.match(viewpointLabel({ key: 'name:elin', subject: 'Elin', character_id: null }), /name-only/)
+})

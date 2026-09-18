@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from server.mechanics.engine import resolve_beat
 from server.mechanics.models import Beat, RngSettings
@@ -108,7 +109,7 @@ def test_scene_chance_is_reused_through_acceptance_and_archive_recovery(client, 
         'expected_revision': after['revision'], 'node_id': before['head_id'], 'name': 'Before the scheduled scene'}).json()
     assert client.get(f"/api/branches/{fork['branch_id']}").json()['mechanics']['state'] == schedule['before']
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     restored = get_plan(client, mapping[run_id])
     assert restored['state']['gate_a']['mechanics']['after'] == schedule['after']

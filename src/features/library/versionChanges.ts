@@ -25,7 +25,7 @@ function canonical(value: unknown): unknown {
 }
 
 const labels: Record<string, string> = { artwork_sha256: 'Artwork', text: 'Details', voice: 'Voice & manner', address: 'Form of address', pronouns: 'Pronouns', lorebook_versions: 'Linked Canon collections',
-  behavior_rules: 'Behavior & boundaries', scenario: 'Scenario', example_dialogue: 'Example dialogue', author_notes: 'Editor notes', greetings: 'Opening greetings', lore_definition: 'Lore entries and rules', lore_documents: 'Entry Markdown sources' }
+  behavior_rules: 'Behavior & boundaries', scenario: 'Scenario', example_dialogue: 'Example dialogue', author_notes: 'Editor notes', greetings: 'Opening greetings', lore_definition: 'Lore entries and rules', lore_documents: 'Entry Markdown sources', canon_recall: 'Canon recall and search cues' }
 
 export function versionChanges(before: AssetVersion | undefined, after: AssetVersion): FieldChange[] {
   const changes: FieldChange[] = [{ key: 'name', label: 'Name', before: before?.name, after: after.name }]

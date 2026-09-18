@@ -37,7 +37,7 @@ function SetupForm({ draft, draftId, asset, profiles, onStarted }: EditorProps &
   })
   const invalid = !profiles.profiles.length || invalidSelection(compare, selected, step, target)
   return <><label className="field"><span>Passage to work on</span><select autoFocus value={target.key} onChange={(event) => change(() => setKey(event.target.value))}>{targets.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
-    <label className="field"><span>Action</span><select value={step} onChange={(event) => change(() => setStep(event.target.value as AuthoringStep))}>{Object.entries(actions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <label className="field"><span>Action</span><select value={step} onChange={(event) => change(() => setStep(event.target.value as AuthoringStep))}>{Object.entries(actions).filter(([value]) => value !== 'authoring-enrich').map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
     <p className="subtle">Critique returns quoted observations. Draft and Tighten return proposed prose for this field. Existing facts, genre and boundaries remain part of the instructions.</p>
     <TextField label="Your direction (optional)" value={direction} rows={3} maxLength={10000} onChange={(event) => change(() => setDirection(event.target.value))} placeholder="Keep the quiet tone, but make the motive more specific…" />
     <ContextChoices targets={targets} target={target} selected={context} onChange={(next) => change(() => setContext(next))} />
@@ -65,7 +65,7 @@ function ContextChoices({ targets, target, selected, onChange }: { targets: Targ
   </div></details>
 }
 
-function RequestPreview({ preview, busy, onStart }: { preview: Preview; busy: boolean; onStart: () => void }) {
+export function RequestPreview({ preview, busy, onStart }: { preview: Preview; busy: boolean; onStart: () => void }) {
   const heading = useRef<HTMLHeadingElement>(null)
   useLayoutEffect(() => { heading.current?.focus() }, [])
   return <section className="form-stack"><h3 ref={heading} tabIndex={-1}>Ready for your review</h3>{preview.jobs.map((job, index) => <div className="prepared-card" key={index}><strong>{job.profile_name}</strong><p className="subtle">{job.model} · instructions v{job.prompt_version} · about {job.estimated_input_tokens.toLocaleString()} input tokens</p><details><summary>Exact request content</summary><pre className="authoring-prose">{job.prompt}</pre><pre className="authoring-prose">{job.content}</pre></details></div>)}

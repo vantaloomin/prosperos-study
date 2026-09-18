@@ -1,0 +1,37 @@
+{
+  "retrieved_at": "2026-09-18T03:29:44.663585+00:00",
+  "files": [
+    {
+      "id": 1661,
+      "file": "pg1661.txt",
+      "url": "https://www.gutenberg.org/cache/epub/1661/pg1661.txt",
+      "catalogue": "https://www.gutenberg.org/ebooks/1661",
+      "sha256": "922e2a12ccb43a4c9544c260b2166c6ad2097aeb5957faeee113f173bb857cd0",
+      "bytes": 607606
+    },
+    {
+      "id": 2542,
+      "file": "pg2542.txt",
+      "url": "https://www.gutenberg.org/cache/epub/2542/pg2542.txt",
+      "catalogue": "https://www.gutenberg.org/ebooks/2542",
+      "sha256": "d72a481b08ca7ace73e8ca2087b2baec29fc00e0d6e493f5e877b12116bccf4f",
+      "bytes": 169080
+    },
+    {
+      "id": 72890,
+      "file": "pg72890.txt",
+      "url": "https://www.gutenberg.org/cache/epub/72890/pg72890.txt",
+      "catalogue": "https://www.gutenberg.org/ebooks/72890",
+      "sha256": "8460ef6ebccc633d718ae02bd2bec0515471f2b3e50fb8ad132132d3eb1063f5",
+      "bytes": 233651
+    },
+    {
+      "id": 2429,
+      "file": "pg2429.txt",
+      "url": "https://www.gutenberg.org/cache/epub/2429/pg2429.txt",
+      "catalogue": "https://www.gutenberg.org/ebooks/2429",
+      "sha256": "1ffdf4b6e733fca15f7c4c57c409a6db4eb33129e8ff9a8f3dcc2867836b8c7d",
+      "bytes": 252864
+    }
+  ]
+}

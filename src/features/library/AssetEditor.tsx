@@ -9,6 +9,7 @@ import type { AssetKind, AssetVersion } from '../../types'
 import { AdoptionDialog } from './AdoptionDialog'
 import { AssetHistory, AssetUsage } from './AssetHistory'
 import { CharacterFields } from './CharacterFields'
+import { CanonMemory } from './CanonMemory'
 import { assetLabel, libraryKind } from './kinds'
 import { MarkdownSource } from './MarkdownSource'
 import { ImportedSources } from './ImportSources'
@@ -54,7 +55,7 @@ export function AssetEditor({ asset, initialKind, onClose, onSaved }: { asset?: 
       {!asset && <label className="field"><span>Type</span><select value={draft.kind} onChange={(e) => setDraft(changeAssetKind(draft, e.target.value as AssetKind))}><option value="character">Character</option><option value="lorebook">Canon collection</option></select></label>}
       <Field label="Name" value={draft.name} onChange={(e) => patch({ name: e.target.value })} maxLength={120} autoFocus />
       <EditorArtwork draft={draft} onChange={contentPatch} onCard={setCard} onBusy={setArtworkBusy} />
-      <AssetFields draft={draft} versionId={asset?.id} onChange={contentPatch} />
+      <AssetFields draft={draft} asset={asset} versionId={asset?.id} onChange={contentPatch} />
       <AuthoringLauncher draft={draft} draftId={asset ? draftKey : newDraftId} asset={asset} onChange={setDraft} />
       <BookSources asset={asset} draft={draft} onChange={(change) => { action.clearError(); patch(change) }} />
       <Field label="Version note" value={draft.note} onChange={(e) => patch({ note: e.target.value })} placeholder="What changed? (optional)" />
@@ -73,10 +74,10 @@ function EditorArtwork({ draft, onChange, onCard, onBusy }: { draft: AssetDraft;
   return <ArtworkField key={draft.kind} value={draft.content.artwork_sha256} onChange={(artwork_sha256) => onChange({ artwork_sha256 })} onCard={draft.kind === 'character' ? onCard : undefined} onBusy={onBusy} />
 }
 
-function AssetFields({ draft, versionId, onChange }: { draft: AssetDraft; versionId?: string; onChange: (change: Partial<AssetDraft['content']>) => void }) {
+function AssetFields({ draft, asset, versionId, onChange }: { draft: AssetDraft; asset?: AssetVersion; versionId?: string; onChange: (change: Partial<AssetDraft['content']>) => void }) {
   return <><TextField label={{ character: 'Character & background', lorebook: 'World knowledge · Markdown', persona: 'Character & background' }[draft.kind]} hint={draft.kind === 'lorebook' ? 'Headings, lists and ordinary prose. Saving creates a Markdown source file and a preserved version.' : undefined} value={draft.content.text ?? ''} onChange={(e) => onChange({ text: e.target.value })} rows={10} maxLength={100000} placeholder="Details, boundaries, relationships, and things worth remembering…" />
     {draft.kind === 'character' && <CharacterFields content={draft.content} onChange={onChange} />}
-    {draft.kind === 'lorebook' && <LoreEntries content={draft.content} versionId={versionId} onChange={onChange} />}
+    {draft.kind === 'lorebook' && <><LoreEntries content={draft.content} versionId={versionId} onChange={onChange} /><CanonMemory name={draft.name} content={draft.content} asset={asset} onChange={onChange} /></>}
   </>
 }
 

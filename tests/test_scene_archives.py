@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 
-from server.archives.format import SCENE_TABLES
+from server.archives.format import ARCHIVE_VERSION, SCENE_TABLES
 from server.database import decode
 from server.providers.events import ProviderEvent
 from server.scenes.catalog import SCENE_PROMPTS
@@ -22,7 +22,7 @@ def test_scene_archive_roundtrip_keeps_edited_approval_sources_and_old_results(c
     old = get_plan(client, run_id)
     calls = len(provider.calls)
     file, document = backup(client, story)
-    assert document["version"] == 19 and len(document["data"]["scene_jobs"]) == 4
+    assert document["version"] == ARCHIVE_VERSION and len(document["data"]["scene_jobs"]) == 4
     result, mapping = restore(client, file)
     new = get_plan(client, mapping[run_id])
     assert not new["stale"] and new["plan"] == edited and new["revision"] == old["revision"]
@@ -57,7 +57,7 @@ def test_old_v1_archives_upgrade_without_changing_existing_prompt_defaults(clien
     assert set(SCENE_PROMPTS) <= {item["key"] for item in restored}
     for key, template in SCENE_PROMPTS.items():
         assert next(item for item in restored if item["key"] == key)["template"] == template
-    assert response.json()["summary"]["version"] == 19
+    assert response.json()["summary"]["version"] == ARCHIVE_VERSION
 
 
 def test_archive_rejects_missing_decisions_and_fabricated_brief_evidence(client, story):

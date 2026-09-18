@@ -1,4 +1,5 @@
 from server.archives.format import TABLES
+from server.archives.identities import restore_identities
 from server.archives.remap import identities, remap_record
 from server.database import identifier, one
 
@@ -29,6 +30,7 @@ def restore(connection, document):
     import_table_heads(connection, document, mapping)
     for table in TABLES:
         import_group(connection, table, document, mapping)
+    restore_identities(connection, document["data"], mapping)
     selected = document["selection"]
     return {"selection": {key: mapping[value] for key, value in selected.items()},
             "story_ids": [mapping[row["id"]] for row in document["data"]["stories"]],

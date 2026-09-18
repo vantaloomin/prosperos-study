@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from server.errors import DomainError
 from server.providers.events import ProviderEvent
@@ -141,7 +142,7 @@ def test_patch_invalidation_and_explicit_single_correction(client, story):
                            'expected_revision': run['revision'], 'job_id': second['id']})
     assert reselect.status_code == 409 and 'cannot reset' in reselect.text
     archive, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, archive)
     restored = get_plan(client, mapping[run_id])
     assert restored['state']['repair_selections']['scene-patch-check'] == mapping[check['id']]

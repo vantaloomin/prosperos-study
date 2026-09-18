@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.character_content import narrative_asset
 from server.database import decode, encode
@@ -112,7 +113,7 @@ def test_entry_archives_preserve_missing_and_edited_files_and_exact_source(clien
     Path(current[0]['file_path']).write_bytes(b'\nUnpublished Markdown\r\n')
     Path(current[1]['file_path']).unlink()
     archive, exported = backup(client)
-    assert exported['version'] == 19
+    assert exported['version'] == ARCHIVE_VERSION
     assert exported['lore_drafts'][book['id']] == {'harbor': '\nUnpublished Markdown\r\n', 'island': None}
     _result, mapping = restore(client, archive)
     recovered = next(item for item in client.get('/api/library').json() if item['id'] == mapping[book['id']])
@@ -130,7 +131,7 @@ def test_entry_archives_preserve_missing_and_edited_files_and_exact_source(clien
     remove_authoring(legacy)
     legacy['version'] = 13
     legacy.pop('lore_drafts')
-    assert parse_archive(json.dumps(legacy))['version'] == 19
+    assert parse_archive(json.dumps(legacy))['version'] == ARCHIVE_VERSION
 
 
 def test_imported_entry_proposal_is_off_literal_and_bound_to_origin(client):

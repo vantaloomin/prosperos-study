@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from server.agent_switches import require_agent
 from server.database import decode, encode, identifier, now, one
 from server.errors import DomainError, require
+from server.memory.source_evidence import quotation_matches
 from server.workflow.models import ReviewOutput
 
 
@@ -15,10 +16,10 @@ def parse_review(output, content):
         result = ReviewOutput.model_validate(json.loads(output))
     except (ValueError, ValidationError) as error:
         raise DomainError("The reviewer did not return the required structured report. Its text is preserved; check the role prompt or retry.", 502) from error
-    sources = {source["id"]: source["text"] for source in decode(content)["sources"]}
+    sources = {source["id"]: source for source in decode(content)["sources"]}
     for finding in result.findings:
         require(finding.source_id in sources, "The reviewer cited a source outside its permitted inputs. The report is not validated.", 502)
-        require(finding.quote in sources[finding.source_id], "A review quotation does not match its cited source. The report is not validated.", 502)
+        require(quotation_matches(sources[finding.source_id], finding.quote), "A review quotation does not match its cited source. The report is not validated.", 502)
     return result.model_dump()
 
 
@@ -76,6 +77,9 @@ class ReviewRunner:
             self.save(job_id, state, final=True)
 
     def parse_result(self, output, snapshot):
+        if snapshot.get('purpose') == 'planned-continuity-v1':
+            from server.memory.plan_scan_output import parse_plan_scan
+            return parse_plan_scan(output, snapshot)
         return parse_review(output, snapshot["content"])
 
     async def consume(self, job_id, snapshot, state):
@@ -111,7 +115,7 @@ class ReviewRunner:
         with self.database.connect(write=True) as connection:
             job = one(connection, f"SELECT * FROM {self.prefix}_jobs WHERE id=?", (job_id,))
             require(job["status"] in {"error", "cancelled", "interrupted"}, "Retry only an unfinished request.", 409)
-            require_agent(connection, job["step"])
+            require_retry_enabled(connection, job)
             preserve_attempt(connection, job_id, self.prefix)
             connection.execute(f"UPDATE {self.prefix}_jobs SET status='queued',output='',result='null',usage='{{}}',error='' WHERE id=?", (job_id,))
         self.start(job_id)
@@ -122,3 +126,12 @@ class ReviewRunner:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def require_retry_enabled(connection, job):
+    snapshot = decode(job['snapshot'])
+    story = None
+    if snapshot.get('purpose') == 'planned-continuity-v1':
+        story = one(connection, 'SELECT s.* FROM stories s JOIN branches b ON b.story_id=s.id '
+                    'JOIN review_runs r ON r.branch_id=b.id WHERE r.id=?', (job['run_id'],))
+    require_agent(connection, job['step'], story)

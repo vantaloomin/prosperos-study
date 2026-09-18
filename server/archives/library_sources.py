@@ -4,6 +4,7 @@ from server.database import decode
 from server.errors import require
 from server.library_formats.files import SourceFiles, read_markdown, source_io
 from server.library_formats.sources import MAX_MARKDOWN_BYTES, source_record, validate_source
+from server.memory.canon_models import validate_canon
 
 
 def lore_versions(data):
@@ -33,6 +34,8 @@ def validate_sources(document):
     versions = {row['id']: row for row in lore_versions(data)}
     require({row['version_id'] for row in data['asset_sources']} == set(versions),
             'The archive must include Markdown sources for every lorebook version.')
+    for version in versions.values():
+        validate_canon(decode(version['content']))
     for source in data['asset_sources']:
         validate_source(source, versions[source['version_id']])
     for key, text in document['library_drafts'].items():

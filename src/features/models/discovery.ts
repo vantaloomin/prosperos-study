@@ -1,6 +1,6 @@
-import { initialConfig, type ProfileConfig } from './types.ts'
+import { initialConfig, type LocalReasoning, type ProfileConfig } from './types.ts'
 
-export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported' }
+export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; reasoning_options?: LocalReasoning[]; reasoning_default?: LocalReasoning | null }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string }
 
 export function discoveredSettings(model: DiscoveredModel, current: ProfileConfig): Partial<ProfileConfig> {

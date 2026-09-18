@@ -1,3 +1,4 @@
+import type { SourceMemoryReceipt } from './SourceMemoryCoverage'
 import type { ModelProfile } from '../models/types'
 
 export interface WorkflowStep { enabled?: boolean; key: string; name: string; scope: string; focus?: string; effective_profile_id: string | null }
@@ -13,12 +14,12 @@ export interface ReviewHistoryItem { id: string; created_at: string; scene?: { i
 export interface ReviewPreview {
   preview_hash: string; request_count: number; draft_messages: number
   scene?: ReviewScene | null
-  jobs: { step: string; name: string; scope: string; profile_name: string; model: string; estimated_input_tokens: number; prompt_version: number; source_count: number }[]
+  jobs: { step: string; name: string; scope: string; profile_name: string; model: string; estimated_input_tokens: number; prompt_version: number; source_count: number; source_memory?: SourceMemoryReceipt | null }[]
 }
 export interface ReviewFinding { severity: 'hard' | 'soft' | 'cut' | 'hold'; source_id: string; quote: string; explanation: string; suggestion: string }
 export interface ReviewJob {
   id: string; step: string; status: string; output: string; error: string; attempt: number; usage: Record<string, unknown>
-  snapshot: { profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number }
+  snapshot: { source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number }
   result: { summary: string; findings: ReviewFinding[] } | null
 }
 export interface ReviewRun {

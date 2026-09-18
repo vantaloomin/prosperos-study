@@ -1,7 +1,7 @@
 import json
 from uuid import uuid4
 
-from server.archives.format import BACKGROUND_TABLES
+from server.archives.format import ARCHIVE_VERSION, BACKGROUND_TABLES
 from server.background.storage import state_id
 from server.database import decode
 from server.providers.events import ProviderEvent
@@ -94,7 +94,7 @@ def test_version_nine_upgrades_without_fabricating_background(client, story):
         assert document['data'].pop(table) == []
     staged = client.post('/api/archives/imports', json={'content': json.dumps(document)})
     assert staged.status_code == 201, staged.text
-    assert staged.json()['summary']['version'] == 19
+    assert staged.json()['summary']['version'] == ARCHIVE_VERSION
     result, _ = restore(client, staged.json())
     context = client.get(f"/api/branches/{result['selection']['branchId']}/background").json()
     assert context['current'] is None and context['history'] == []

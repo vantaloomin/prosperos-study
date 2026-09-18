@@ -2,9 +2,13 @@ import asyncio
 import json
 import time
 
+from starlette.concurrency import run_in_threadpool
+
 from server.agent_switches import require_agent
 from server.database import decode, encode, many, now, one
 from server.errors import DomainError, require
+from server.memory.side_packet import next_packet, request_receipt
+from server.memory.side_search import SourceArchive, command
 from server.side_context import assemble_context
 from server.side_conversations import SideConversations
 
@@ -67,6 +71,8 @@ class SideRunner:
             self.save(reply_id, state)
 
     async def answer(self, reply_id, profile, snapshot, state):
+        if snapshot.get('retrieval'):
+            return await self.search_answer(reply_id, profile, snapshot, state)
         source_ids = snapshot["initial_source_ids"]
         allowed = {item["id"] for item in snapshot["sources"]}
         for read in range(snapshot["max_reads"] + 1):
@@ -82,13 +88,32 @@ class SideRunner:
             source_ids = list(dict.fromkeys([*source_ids, *requested]))
             state["output"] = ""
 
+    async def search_answer(self, reply_id, profile, snapshot, state):
+        archive = SourceArchive(snapshot)
+        content = snapshot['retrieval']['initial_content']
+        for read in range(snapshot['max_reads'] + 1):
+            output = await self.request(reply_id, profile, snapshot['prompt']['template'], content, state)
+            requested = command(output)
+            if requested is None:
+                require(bool(output.strip()), 'The collaborator returned no answer.', 502)
+                state['output'] = output
+                return
+            require(read < snapshot['max_reads'], 'The archive-reading limit was reached. Inspect coverage, ask a narrower question or increase the limit.', 409)
+            content = await run_in_threadpool(next_packet, snapshot, archive, requested)
+            state['output'] = ""
+
     async def request(self, reply_id, profile, prompt, content, state):
         output = ""
-        usage = {"source_ids": list(state["coverage"]), "reported": {}}
+        context = decode(content)
+        usage = request_receipt(content) if context.get('retrieval_protocol') else {
+            "source_ids": [source["id"] for source in context["sources"]], "reported": {}}
+        state["coverage"] = sorted(set(state["coverage"]) | set(usage["source_ids"]))
         state["usage"].append(usage)
         saved = time.monotonic()
         async for event in self.provider.generate(profile, prompt, content):
             output += event.text
+            if 'content' in usage:
+                usage['output'] = output
             usage["reported"].update(event.usage)
             if event.model:
                 usage["reported"]["actual_model"] = event.model

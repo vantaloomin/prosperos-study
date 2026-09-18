@@ -5,11 +5,12 @@ import { api, operationId } from '../../api'
 import { ErrorNotice, Loading } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
 import type { Selection, Story } from '../../types'
+import { ArchiveVerification, type WriterVerification } from './ArchiveVerification'
 import '../../styles/archives.css'
 
 interface ArchiveFile {
   id: string; kind: 'backup' | 'import'; filename: string; sha256: string; byte_count: number; created_at: string; download_url: string
-  summary: { version?: number; title: string; scope: string; include_sidebar: boolean; counts: Record<string, number>; running_jobs: number; stories: { id: string; title: string; archived: boolean }[] }
+  summary: { writer_verification?: WriterVerification | null; version?: number; title: string; scope: string; include_sidebar: boolean; counts: Record<string, number>; running_jobs: number; stories: { id: string; title: string; archived: boolean }[] }
 }
 interface RestoreResult { receipt_id: string; story_ids: string[]; selection: Selection | Record<string, never> }
 interface Props { story?: Story; selection: Selection; onOpen: (selection: Selection) => void }
@@ -52,19 +53,28 @@ function ArchiveUpload({ onReady }: { onReady: (file: ArchiveFile) => void }) {
   return <div className="archive-upload form-stack"><div><h3>Bring a Story back</h3><p className="subtle">Choose a Prospero’s Study JSON archive (including earlier Roleplay archives). Validation and preview happen before any Story is created. Existing Stories and Library items stay intact.</p></div><label className="archive-file-label"><Upload size={16} /><span>Choose archive file</span><input type="file" accept=".json,application/json" aria-label="Choose archive file" aria-disabled={action.busy} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = '' }} /></label>{action.busy && <Loading label="Validating this archive…" />}<ErrorNotice message={action.error} /></div>
 }
 
+function useArchiveSourceCheck(file: ArchiveFile) {
+  const check = useQuery({ queryKey: ['archive-source-review', file.id, file.sha256], queryFn: () => api<ArchiveFile>(`/archives/${file.id}/review`), enabled: !file.summary.writer_verification, retry: false })
+  const verification = file.summary.writer_verification ?? check.data?.summary.writer_verification
+  return { verification, reviewing: !verification, error: check.error?.message }
+}
+
 function ArchivePreview({ file, onOpen }: { file: ArchiveFile; onOpen: (selection: Selection) => void }) {
   const heading = useRef<HTMLHeadingElement>(null)
   const operation = useRef(operationId())
   const action = useAction()
   const [restored, setRestored] = useState<RestoreResult | null>(null)
+  const { verification, reviewing, error } = useArchiveSourceCheck(file)
   useEffect(() => { heading.current?.focus({ preventScroll: true }); heading.current?.scrollIntoView({ block: 'start' }) }, [])
-  const restore = () => action.run(async () => { setRestored(await api<RestoreResult>(`/archives/${file.id}/restore`, { operation_id: operation.current, sha256: file.sha256 })) })
+  const restore = () => action.run(async () => { if (reviewing) return; setRestored(await api<RestoreResult>(`/archives/${file.id}/restore`, { operation_id: operation.current, sha256: file.sha256 })) })
   return <section className="archive-preview form-stack"><h3 ref={heading} tabIndex={-1}>{file.kind === 'import' ? 'Review this import' : 'Your archive is ready'}</h3><p>{file.summary.title}</p><ArchiveCounts counts={file.summary.counts} /><p className="subtle">{sizeLabel(file.byte_count)} · Format version {file.summary.version ?? 1} · {file.summary.include_sidebar ? 'Includes private sidebar conversations' : 'Sidebar conversations excluded'}</p>
     <ul className="archive-story-list">{file.summary.stories.map((item) => <li key={item.id}>{item.title}{item.archived && ' · archived'}</li>)}</ul>
     <p className="subtle">Restore creates new copies of Stories and Library items, preserving their shared links. Prompts and tables are pinned for the restored Stories; your workspace defaults stay in place. Imported model profiles need their connection credentials configured again.</p>
     <p className="subtle">Saved prose and results return without model calls. {file.summary.running_jobs} unfinished requests will be marked interrupted and require explicit retry. Original prompts, cited passages and recorded results stay available.</p>
+    <ArchiveVerification result={verification} />
+    {reviewing && !error && <Loading label="Checking saved writer sources..." />}<ErrorNotice message={error} />
     <a className="button" href={file.download_url} download={file.filename}><Download size={16} />Download private archive</a><ErrorNotice message={action.error} />
-    {restored ? <RestoreComplete result={restored} onOpen={onOpen} /> : <button className="button primary" aria-disabled={action.busy} onClick={restore}>{action.busy ? 'Restoring saved history…' : 'Restore as new Stories'}</button>}
+    {restored ? <RestoreComplete result={restored} onOpen={onOpen} /> : <button className="button primary" aria-disabled={action.busy || reviewing} onClick={restore}>{action.busy ? 'Restoring saved history…' : 'Restore as new Stories'}</button>}
   </section>
 }
 

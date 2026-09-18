@@ -1,7 +1,9 @@
 from server.archives.revisions import validate_package, validate_verifications
 from server.archives.scenes import selected_jobs
+from server.archives.source_memory import validate_scene_projection
 from server.database import decode, one
 from server.errors import require
+from server.memory.control_packet import with_decisions
 from server.scenes.models import SceneState
 from server.scenes.output import parse_scene
 from server.scenes.patch_catalog import PATCH_KEYS
@@ -19,8 +21,8 @@ def validate_patch_job(connection, job):
     validate_repair(connection, frozen)
     require_step(frozen, job['step'])
     content = decode(snapshot['content'])
-    require(content == patch_inputs(connection, frozen, job['step'], content.get('context_version', 0)),
-            'A patch specialist has altered or foreign frozen inputs.')
+    validate_scene_projection(connection, frozen['snapshot'],
+                              with_decisions(patch_inputs(connection, frozen, job['step'], content.get('context_version', 0)), frozen['snapshot']), snapshot)
     if job['status'] == 'done':
         require(parse_scene(job['output'], snapshot) == decode(job['result']), 'A patch result disagrees with its preserved output.')
 

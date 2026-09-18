@@ -8,6 +8,7 @@ from zipfile import ZipFile
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.character_content import narrative_asset
 from server.database import one
@@ -124,7 +125,7 @@ def test_import_sources_archive_restore_and_tamper_rejection(client):
     versions = publish_import(client, preview).json()['versions']
     stage(client, b'An unpublished draft.', 'draft.md')
     archive, document = backup(client)
-    assert document['version'] == 19 and len(document['data']['library_imports']) == 1
+    assert document['version'] == ARCHIVE_VERSION and len(document['data']['library_imports']) == 1
     _, mapping = restore(client, archive)
     assert client.get(f"/api/library-imports/{mapping[preview['id']]}/original").content == raw
     for version in versions:
@@ -143,7 +144,7 @@ def test_import_sources_archive_restore_and_tamper_rejection(client):
     legacy['version'] = 12
     for key in ('library_imports', 'asset_import_origins'):
         legacy['data'].pop(key)
-    assert parse_archive(json.dumps(legacy))['version'] == 19
+    assert parse_archive(json.dumps(legacy))['version'] == ARCHIVE_VERSION
 
 
 def test_collaborator_can_retrieve_original_and_inactive_entries_without_progression(client):

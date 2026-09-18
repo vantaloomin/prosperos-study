@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.database import decode, encode
 from server.errors import DomainError
@@ -89,7 +90,7 @@ def test_prepared_lore_reused_for_comparison_alternate_acceptance_and_archive(cl
     after = inspect(client, story)['current']
     assert after['after']['clock'] == 1 and not after['draws']
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     restored = {'story_id': mapping[story['story_id']], 'branch_id': mapping[story['branch_id']]}
     assert inspect(client, restored)['current']['after']['entries'][0]['version_id'] == mapping[book['id']]

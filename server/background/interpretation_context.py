@@ -10,6 +10,7 @@ from server.branches import path_nodes
 from server.continuity import continuity_sources, continuity_view
 from server.database import decode, encode, one
 from server.errors import DomainError, require
+from server.memory.plan_state import plan_head
 from server.scenes.context import story_context
 from server.stories import check_revision
 from server.workflow.context import job_snapshot, message_source, reference_sources, snapshot_hash
@@ -26,7 +27,7 @@ def interpretation_snapshot(connection, branch_id, body):
     require(any(targets.values()), 'No enabled background targets remain. Enable a prepared feature or prepare another path.', 409)
     sources = [message_source(node, 'accepted') for node in path_nodes(connection, branch['head_id'])]
     sources.extend(reference_sources(connection, branch['manifest_id']))
-    sources.extend(continuity_sources(continuity_view(connection, branch['head_id'])))
+    sources.extend(continuity_sources(continuity_view(connection, branch['head_id'], plan_head(connection, branch['id']))))
     context = {'authority': AUTHORITY, 'story': story_context(story), 'targets': targets, 'sources': sources,
                'chronology': {'origin': setup['recipe']['origin'], 'day': setup['day']}, 'direction': body.direction}
     return {'branch': branch, 'story_revision': story['revision'], 'background_state_id': setup_id,

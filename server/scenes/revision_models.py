@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from server.memory.source_evidence import quotation_matches
 from server.models import Input
 from server.scenes.models import SceneApproval
 
@@ -52,9 +53,9 @@ class RevisionApproval(SceneApproval):
 def validate_evidence(evidence, sources):
     from server.errors import require
 
-    text = {source['id']: source['text'] for source in sources}
+    text = {source['id']: source for source in sources}
     for item in evidence:
-        require(item['source_id'] in text and item['quote'] in text[item['source_id']],
+        require(item['source_id'] in text and quotation_matches(text[item['source_id']], item['quote']),
                 'Evidence must quote an exact passage from the supplied sources.', 502)
 
 

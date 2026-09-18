@@ -1,6 +1,7 @@
 from server.database import decode, one
 from server.errors import require
 from server.lore.scene import planned_sources
+from server.memory.source_evidence import carry_evidence, cited_ids
 from server.scenes.chance import chance_sources
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
 from server.scenes.drafts import assemble_draft
@@ -52,6 +53,8 @@ def patch_inputs(connection, run, key, version=1):
     if version:
         ids = {ref for item in gate['items'] for ref in item['finding_ids']}
         context.update(context_version=version, approved_findings=[finding for finding in triage_context(connection, run)['findings'] if finding['id'] in ids])
+    if run['snapshot'].get('memory_policy', {}).get('mode') == 'long':
+        context['sources'] = carry_evidence(context['sources'], cited_ids(context), triage_context(connection, run)['sources'])
     if key == 'scene-patch-check':
         view = patch_view(connection, run)
         require(view['complete'] and not view['blocked'], 'Resolve every approved item before checking the patch.', 409)

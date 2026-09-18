@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.database import Database, decode, encode, identifier, now
 from server.errors import DomainError
@@ -137,7 +138,7 @@ def test_archive_restores_exact_sources_and_unpublished_whitespace_without_adopt
     text = '\n  # Unpublished file\r\nKeep the final blank line.\n\n'
     Path(old['file_path']).write_bytes(text.encode('utf-8'))
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     assert document['library_drafts'] == {book['id']: text}
     assert document['data']['asset_sources'][0]['markdown'] == book['content']['text']
     _, mapping = restore(client, file)
@@ -161,7 +162,7 @@ def test_archive_restores_exact_sources_and_unpublished_whitespace_without_adopt
     old_archive['data'].pop('asset_sources')
     old_archive.pop('library_drafts')
     upgraded = parse_archive(json.dumps(old_archive))
-    assert upgraded['version'] == 19 and upgraded['data']['asset_sources'] == document['data']['asset_sources']
+    assert upgraded['version'] == ARCHIVE_VERSION and upgraded['data']['asset_sources'] == document['data']['asset_sources']
 
 
 def test_archive_preserves_a_deliberately_missing_working_file(client):

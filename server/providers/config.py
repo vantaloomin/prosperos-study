@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 
 from server.models import Input
+from server.providers.lmstudio import native_base
 
 Provider = Literal["openai", "anthropic", "openrouter", "local", "kobold", "codex", "google", "compatible"]
 DEFAULT_URLS = {
@@ -73,6 +74,8 @@ class ProfileConfig(Input):
     timeout_seconds: int = Field(default=180, ge=10, le=1800)
     temperature: float | None = Field(default=None, ge=0, le=2)
     reasoning_effort: Literal["minimal", "low", "medium", "high", "xhigh"] | None = None
+    local_protocol: Literal["openai", "lmstudio"] = "openai"
+    local_reasoning: Literal["off", "on", "low", "medium", "high"] | None = None
 
     @model_validator(mode="after")
     def validate_capabilities(self):
@@ -84,7 +87,19 @@ class ProfileConfig(Input):
             raise ValueError("Anthropic temperature must be between 0 and 1.")
         if self.reasoning_effort and self.provider not in {"codex", "openai"}:
             raise ValueError("This adapter does not expose a reasoning-effort setting.")
+        self.validate_local_options()
         return self
+
+    def validate_local_options(self):
+        native = self.provider == 'local' and self.local_protocol == 'lmstudio'
+        if self.local_protocol != 'openai' and self.provider != 'local':
+            raise ValueError('The LM Studio protocol is only available for local profiles.')
+        if self.local_reasoning is not None and not native:
+            raise ValueError('Local reasoning control requires the LM Studio native protocol.')
+        if native:
+            self.base_url = native_base(self.base_url)
+            if self.temperature is not None and self.temperature > 1:
+                raise ValueError('LM Studio native temperature must be between 0 and 1.')
 
 
 class DiscoveryConfig(ProfileConfig):

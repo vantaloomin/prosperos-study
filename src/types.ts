@@ -3,6 +3,7 @@ export type Role = 'user' | 'assistant' | 'narrator' | 'ooc'
 export interface CharacterGreeting { id: string; label: string; text: string }
 export interface OpeningSource { asset_id: string; version_id: string; greeting_id: string }
 export interface AssetContent {
+  canon_recall?: import('./features/library/canonCueTypes').CanonPolicy
   artwork_sha256?: string | null
   text?: string
   voice?: string

@@ -3,7 +3,7 @@ import type { AssetContent, AssetKind, AssetVersion } from '../../types'
 
 export interface ImportDraft { part: AssetKind; kind: AssetKind; name: string; content: AssetContent }
 export interface ImportPreview {
-  id: string; filename: string; source_sha256: string; format: 'card' | 'png-card' | 'markdown'; card_version: string | null
+  id: string; filename: string; source_sha256: string; format: 'card' | 'png-card' | 'markdown' | 'sgc-brain'; card_version: string | null
   issues: { path: string; message: string }[]; files: { path: string; characters: number }[]; drafts: ImportDraft[]
 }
 export interface ImportChoice extends ImportDraft { included: boolean; target?: AssetVersion; sourceHash?: string | null }

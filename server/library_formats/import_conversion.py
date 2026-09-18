@@ -4,6 +4,7 @@ import binascii
 from hashlib import sha256
 from pathlib import PureWindowsPath
 
+from server.library_formats.brain_pack import convert_pack
 from server.library_formats.card_lore import issue
 from server.library_formats.cards import MAX_SOURCE_BYTES, convert_card
 from server.library_formats.markdown import read_document, read_json
@@ -32,8 +33,10 @@ def convert_import(filename, source):
 
 
 def convert_json(source):
-    converted = convert_card(source)
     value = read_json(source.decode('utf-8-sig'))
+    if isinstance(value, dict) and str(value.get('schema', '')).startswith('sgc-brain/'):
+        return convert_pack(value, source)
+    converted = convert_card(source)
     data = value if converted['card_version'] == 'v1' else value['data']
     drafts = card_drafts(data, converted['issues'])
     return {key: value for key, value in converted.items() if key != 'original'} | {'format': 'card', 'drafts': drafts}
@@ -42,6 +45,8 @@ def convert_json(source):
 def convert_png(source):
     embedded, metadata = embedded_card(source)
     converted = convert_json(embedded)
+    if converted['format'] != 'card':
+        raise ValueError('PNG metadata must contain a Character Card. Import SGC packs as JSON files.')
     if metadata['png_payload'] == 'ccv3' and converted['card_version'] != 'v3':
         raise ValueError('The PNG ccv3 payload must contain a V3 Character Card.')
     digest = sha256(source).hexdigest()

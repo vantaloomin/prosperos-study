@@ -1,9 +1,11 @@
 from server.archives.manual_scenes import validate_manual_scene
 from server.archives.patches import validate_repair
 from server.archives.revisions import validate_package, validate_verifications
-from server.continuity import continuity_view
+from server.archives.source_memory import validate_scene_projection
+from server.continuity import continuity_values, continuity_view
 from server.database import decode, many, one
 from server.errors import require
+from server.memory.control_packet import with_decisions
 from server.scenes.acceptance import acceptance_material
 from server.scenes.continuity_context import continuity_inputs
 from server.scenes.continuity_models import SceneAcceptance
@@ -13,7 +15,7 @@ from server.scenes.state import require_step, run_record
 
 
 def entry_values(entries):
-    return [{key: item[key] for key in ('id', 'kind', 'subject', 'text', 'status')} for item in entries]
+    return [continuity_values(item) for item in entries]
 
 
 def validate_proposal_job(connection, job):
@@ -24,7 +26,7 @@ def validate_proposal_job(connection, job):
     validate_package(connection, frozen)
     validate_repair(connection, frozen)
     require_step(frozen, job['step'])
-    require(decode(snapshot['content']) == continuity_inputs(connection, frozen), 'A continuity proposal has altered frozen inputs.')
+    validate_scene_projection(connection, frozen['snapshot'], with_decisions(continuity_inputs(connection, frozen), frozen['snapshot']), snapshot)
     if job['status'] == 'done':
         require(parse_scene(job['output'], snapshot) == decode(job['result']), 'A continuity proposal differs from its preserved output.')
 
@@ -48,7 +50,7 @@ def validate_commit(connection, row):
     require(node['role'] == 'assistant', 'Accepted scene prose must be a narration response.')
     require(decode(node['metadata']) == {'source': 'accepted_scene', 'scene_id': run['id'], 'commit_id': row['id']},
             'Accepted prose has inconsistent scene provenance.')
-    prior = continuity_view(connection, node['parent_id'])
+    prior = continuity_view(connection, node['parent_id'], run['snapshot'].get('continuity_version_id'))
     require(entry_values(prior['entries']) == entry_values(run['snapshot'].get('continuity', {}).get('entries', [])),
             'A scene used continuity outside its original accepted path.')
     validate_receipt_journal(connection, run, row)

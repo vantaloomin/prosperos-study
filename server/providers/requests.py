@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from server.errors import require
+from server.providers.lmstudio import native_local, native_request
 
 
 def headers_for(config: dict, key: str | None) -> dict:
@@ -45,6 +46,10 @@ def chat_request(config: dict, prompt: str, content: str) -> tuple[str, dict]:
     return "/chat/completions", body
 
 
+def local_request(config: dict, prompt: str, content: str) -> tuple[str, dict]:
+    return native_request(config, prompt, content) if native_local(config) else chat_request(config, prompt, content)
+
+
 def kobold_request(config: dict, prompt: str, content: str) -> tuple[str, dict]:
     return "/generate", {"prompt": f"{prompt}\n\n{content}",
                          "max_length": config["max_output_tokens"],
@@ -62,7 +67,7 @@ def google_request(config: dict, prompt: str, content: str) -> tuple[str, dict]:
 
 
 REQUESTS = {"openai": openai_request, "anthropic": anthropic_request,
-            "openrouter": chat_request, "local": chat_request, "kobold": kobold_request,
+            "openrouter": chat_request, "local": local_request, "kobold": kobold_request,
             "compatible": chat_request, "google": google_request}
 
 

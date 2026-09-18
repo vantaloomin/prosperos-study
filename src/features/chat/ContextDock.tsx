@@ -7,12 +7,12 @@ import { ContinuityMemory } from './ContinuityMemory'
 const AttachmentsEditor = lazy(() => import('../library/AttachmentsEditor').then((module) => ({ default: module.AttachmentsEditor })))
 const LoreInspection = lazy(() => import('../library/LoreInspection').then((module) => ({ default: module.LoreInspection })))
 
-export function ContextDock({ story, branch, onClose }: { story: Story; branch: Branch; onClose: () => void }) {
+export function ContextDock({ story, branch, onClose, onReadMessage }: { story: Story; branch: Branch; onClose: () => void; onReadMessage: (messageId: string) => void }) {
   const [tab, setTab] = useState('scene')
   const [editing, setEditing] = useState(false)
   const [inspecting, setInspecting] = useState(false)
   return <aside className="context-dock" aria-label="Story context"><header><h2>Context</h2><button className="icon-button" aria-label="Close context" onClick={onClose}><X size={18} /></button></header><div className="tabs dock-tabs">{['scene', 'memory', 'cast', 'canon'].map((name) => <button key={name} aria-pressed={tab === name} onClick={() => setTab(name)}>{name}</button>)}</div>
-    <div className="dock-content"><ContextContents tab={tab} story={story} branch={branch} /><button className="text-button dock-add" onClick={() => setEditing(true)}><Plus size={15} />Manage story library</button></div>
+    <div className="dock-content"><ContextContents tab={tab} story={story} branch={branch} onReadMessage={onReadMessage} /><button className="text-button dock-add" onClick={() => setEditing(true)}><Plus size={15} />Manage story library</button></div>
     {tab === 'canon' && <button className="text-button dock-add" onClick={() => setInspecting(true)}>Inspect Canon on this path</button>}
     <footer className="dock-footer"><span className="status-dot" />Versioned with your story</footer>
     {inspecting && <Suspense fallback={<Loading label="Opening Canon decisions…" />}><LoreInspection branchId={branch.id} onClose={() => setInspecting(false)} /></Suspense>}
@@ -20,8 +20,8 @@ export function ContextDock({ story, branch, onClose }: { story: Story; branch: 
   </aside>
 }
 
-function ContextContents({ tab, story, branch }: { tab: string; story: Story; branch: Branch }) {
-  if (tab === 'memory') return <ContinuityMemory branch={branch} />
+function ContextContents({ tab, story, branch, onReadMessage }: { tab: string; story: Story; branch: Branch; onReadMessage: (messageId: string) => void }) {
+  if (tab === 'memory') return <ContinuityMemory branch={branch} onReadMessage={onReadMessage} />
   if (tab === 'scene') return <><span className="eyebrow">THE SITUATION</span><h3>{story.title}</h3><p className="context-prose">{story.premise || 'Give this story a little context in Story details.'}</p><div className="context-section"><span className="eyebrow">YOUR PARTICIPATION</span><p>{String(story.settings.persona || 'You decide what your character does next.')}</p></div><div className="context-section"><span className="eyebrow">CURRENT PATH</span><h4>{branch.name}</h4><p>{branch.messages.length} saved contributions</p></div></>
   const kind = tab === 'cast' ? 'character' : 'lorebook'
   const attached = branch.attachments.filter((item) => (item.kind === 'persona' ? 'character' : item.kind) === kind)

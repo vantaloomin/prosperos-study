@@ -72,4 +72,6 @@ def validate_roll(run, frozen, actual, job):
                     assessment_id=run['id'], assessment_job_id=job['id'])
     if 'background_state_id' in frozen['writer_snapshot']:
         expected['background_state_id'] = frozen['writer_snapshot']['background_state_id']
+    if 'memory_controls_version_id' in frozen['writer_snapshot']:
+        expected['memory_controls_version_id'] = frozen['writer_snapshot']['memory_controls_version_id']
     require(expected == actual, 'Assessment chance differs from its saved seed, report or tables.')

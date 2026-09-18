@@ -10,6 +10,7 @@ from server.mechanics.randomness import ALGORITHM, Draws
 from server.mechanics.state import node_state
 from server.mechanics.storage import mechanics_brief, opportunity_view
 from server.mechanics.table_engine import TableSet
+from server.memory.control_state import bind_frozen_controls, control_head
 from server.operations import previous, remember
 from server.stories import check_revision
 
@@ -86,6 +87,7 @@ class Mechanics:
         attach_lore(snapshot, frozen_lore(connection, branch))
         snapshot.update(branch=branch, story_revision=story["revision"], reroll_of=body.reroll_of)
         snapshot['background_state_id'] = state_id(connection, branch['id'])
+        snapshot['memory_controls_version_id'] = control_head(connection, branch['id'])
         opportunity_id = identifier()
         connection.execute("INSERT INTO mechanic_opportunities VALUES (?,?,?,?,?,?)",
                            (opportunity_id, story["id"], branch["id"], branch["head_id"] or "", encode(snapshot), now()))
@@ -101,6 +103,7 @@ class Mechanics:
                            (target_id, source["story_id"], body.branch_name, source["head_id"], source["manifest_id"],
                             source["id"], source["head_id"], now(), now()))
         bind(connection, target_id, original['snapshot'].get('background_state_id'))
+        bind_frozen_controls(connection, target_id, original['snapshot'])
         return {**source, "id": target_id, "revision": 0, "name": body.branch_name}
 
     def preview(self, table_id, body):

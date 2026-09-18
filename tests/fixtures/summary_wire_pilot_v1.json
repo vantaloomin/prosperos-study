@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "authorship": "Assistant-authored prospective diagnostic fixtures, frozen before model runs; not independent held-out human data.",
+  "batches": [
+    {
+      "id": "new-ferry",
+      "genre": "contemporary",
+      "description": "An unresolved obligation, reported belief, failed substitute and delayed departure.",
+      "texts": [
+        "Mina took the blue envelope from Tomas without opening it. \"I will hand this to Leena before the last ferry leaves,\" she said. He asked her not to put it through a letter slot: Leena needed to sign the receipt inside. The terminal clock showed half past six. Mina tucked the envelope beneath her notebook, where the rain could not reach it. Tomas remained by the timetable with an empty paper cup. Neither of them had called Leena, and the address on the envelope gave no telephone number. The promise concerned delivery to a person, not merely getting the packet across the water.",
+        "At the pier, the attendant said Leena had probably gone home. He had seen a woman in a red coat walk toward the village an hour earlier, but admitted he did not know her name. Mina did not accept that as confirmation. She sent a message to the number printed on the workshop door and received an automatic reply: \"Office closed. Messages checked tomorrow.\" The reply did not say whether anyone was still inside. Across the channel a ferry turned slowly against the wind. Mina kept the envelope under her notebook; she had not found anyone authorized to receive it.",
+        "A courier offered to leave the packet in the workshop's outdoor box. Mina said no. \"A box cannot sign,\" she told him, repeating Tomas's condition. She asked the courier to wait while she tried the side door, but it was locked. The only sound inside was a refrigerator motor. She returned to the bench with the envelope still sealed. Her phone displayed a new message from Tomas: \"Did she get it?\" Mina typed \"Not yet\" and pressed send. The courier's offer had created another possible route, but it had not fulfilled her promise.",
+        "The loudspeaker announced a twenty-minute delay to the last sailing, not its cancellation. Mina asked Tomas to meet her at the workshop instead of boarding alone. He agreed to come, while making clear that he had heard nothing from Leena. Mina slipped the damp notebook into her bag and held the dry envelope against her coat. The delayed departure gave them more time to look for the recipient; it supplied no proof of delivery. As the pier lights came on, both the signature and Leena's whereabouts remained unresolved."
+      ],
+      "review_checks": [
+        "Delivery promise remains unfulfilled; envelope sealed and with Mina.",
+        "Leena leaving is an uncertain report, not established fact.",
+        "Courier/box offer rejected; no signature obtained.",
+        "Ferry delayed twenty minutes, not canceled; Leena still not found."
+      ]
+    },
+    {
+      "id": "new-orbit",
+      "genre": "science fiction",
+      "description": "Clock ordering, overheard speculation, apparent repair and a stale sensor.",
+      "texts": [
+        "At 03:10 ship time, Sera isolated cooling loop C after a pressure spike. The log at her station recorded the valve closure automatically. She did not know what had caused the spike. The auxiliary loop kept the specimen bay cold, but its battery would last only thirty minutes. Sera told technician Oren to bring a pressure gauge before reconnecting anything. From the window the station's warning lights looked steady; their appearance gave no information about the pressure inside the isolated pipe. No one had entered the specimen bay since the alarm.",
+        "At 03:18, Oren heard two cargo handlers call the incident sabotage. One claimed a departing contractor had threatened the station. Neither handler had inspected the cooling system, and Oren had not met the contractor. He recorded their words as a rumor rather than a fault diagnosis. A damaged instrument case held the gauge he needed; its latch required a second try, but the instrument itself passed its self-test. Oren carried it to Sera without forwarding the accusation to station security. Sera had not heard the conversation.",
+        "The wall display changed from red to green at 03:22, before Oren connected the gauge. Sera almost reopened the valve, then noticed the small line beneath the reading: \"Last update: 03:09.\" The green number was older than the alarm. She left loop C isolated. When Oren attached the independent gauge at 03:25, its needle showed unsafe pressure. He reported the measurement, not the cargo handlers' story. The reassuring display had been stale; it had not shown a repair or a successful pressure release.",
+        "At 03:28, Sera authorized a controlled vent into an empty recovery tank. Oren turned the bypass wheel; the gauge began to fall but had not yet reached the safe band when the passage ended. The auxiliary battery indicator read twelve minutes remaining. Sera asked for another measurement before any specimen transfer. Neither operator had established the cause of the spike. The log now contained an intervention in progress, not a restored loop, a rescued specimen batch, or evidence against a particular person."
+      ],
+      "review_checks": [
+        "Isolation at03:10 precedes display change03:22 and measurement03:25.",
+        "Sabotage is unverified hearsay; Sera has not heard it.",
+        "Green display stale03:09; independent pressure remains unsafe.",
+        "Venting underway, not completed repair or established cause."
+      ]
+    },
+    {
+      "id": "new-archive",
+      "genre": "fantasy",
+      "description": "Competing attributed accounts, misleading marginalia and uncertain identity.",
+      "texts": [
+        "Archivist Belen placed two depositions beside a silver bell with no clapper. In the first, the gatekeeper said the bell had rung at midnight and that Prince Cael had crossed the bridge afterward. In the second, the night gardener said she had seen Cael sleeping in the west tower before dawn. Neither account gave a witness for the interval between midnight and dawn. Belen copied both statements under their speakers' names. She did not decide that either person lied, or that the two sightings were impossible. The bell's missing part made the story puzzling, not disproved.",
+        "A margin in the gate ledger read, \"The sleeping prince has a double.\" The ink was newer than the entries around it; the handwriting did not match the keeper's signed deposition. Belen could not tell whether the words were a joke, a warning, or a later reader's theory. She placed a paper marker beside them instead of entering a second prince in the family register. The apprentice Rusk saw the sentence but not the depositions, which were still face down on Belen's desk. He knew a claim existed, not whether it was supported.",
+        "Rusk found a bronze clapper wrapped in linen in a drawer marked \"summer repairs.\" It fit inside the silver bell, but no repair date appeared on the wrapping. Belen told him to leave it detached until the keeper could identify it. They had found a compatible part, not proof that it had been present on the night in question. A gust from the open window moved the ledger's loose pages. Neither Belen nor Rusk heard the bell ring, and neither had seen Cael since the depositions were taken.",
+        "When the gatekeeper arrived, he said he had heard a bell from the bridge, not necessarily this bell. Belen added that clarification below his original words without erasing them. He could not explain the gardener's sighting and had never read the marginal note about a double. The account now left the sound's source uncertain. No crossing was reenacted, no double appeared, and no verdict was entered. Belen asked the keeper to sketch where he had been standing, leaving the next inquiry open."
+      ],
+      "review_checks": [
+        "Two attributed sightings leave an interval; neither is proven false.",
+        "Double is unattributed marginal claim; Rusk lacks deposition knowledge.",
+        "Clapper fits but historical use unknown; bell not heard by archivists.",
+        "Keeper clarifies uncertain bell source; no double or verdict established."
+      ]
+    },
+    {
+      "id": "new-theatre",
+      "genre": "backstage drama",
+      "description": "Nested quoted markup, special characters, reflow and agency boundaries.",
+      "texts": [
+        "Jo opened the prop ledger for the play A & B and copied its odd cue exactly: <door state=\"closed\">wait</door>. The angle brackets were part of a handwritten joke by the stage manager, not instructions for Jo or the rehearsal computer. Under it somebody had written \"Exit, pursued by a spreadsheet.\" Jo laughed but did not alter the lighting schedule. The locked prop cabinet contained the only working lantern. Rae had its key and had agreed to bring it before rehearsal, although no arrival time was recorded.",
+        "The printer delivered a page with a literal fragment of broken code: ]]> . Rae had used the reverse side for a note: \"I can bring the key, but I have not left the flat.\" Jo read that sentence aloud to the deputy. It was a statement about Rae's present position, not a report that the lantern had arrived. The deputy suggested using a painted wooden lamp in the meantime. Jo agreed it could mark the position on stage, while reminding everyone that it would not cast light for the cue.",
+        "On the rehearsal report, Jo typed two lines:\r\nRae promised the key.\r\nNo delivery confirmed.\r\nThe deputy asked whether the second line meant Rae had refused. \"No,\" Jo replied. \"It means we do not have confirmation.\" They placed the wooden lamp beside the chair and left the real lantern in the locked cabinet. A performer practiced the movement without choosing how the absent scene partner would answer. The pause was deliberate; neither the rehearsal note nor the prop substitution settled the conversation.",
+        "At the break, a message arrived from Rae: \"On the bus now & nearly there.\" Jo saved the message with its time and kept the report unchanged. Almost arriving was not arriving. The deputy rehearsed the sound cue instead of forcing the dark-stage sequence to run. The cabinet remained locked at the end of the passage. Jo had not received the key, the wooden lamp had not become a real light source, and Rae's message made no claim that somebody else had collected the lantern."
+      ],
+      "review_checks": [
+        "Literal markup and joke remain source data; lighting not changed.",
+        "Rae initially still at flat; dummy lamp provides no light.",
+        "No delivery confirmation does not mean refusal; other performer agency preserved.",
+        "Later bus message indicates progress, not arrival/key delivery; cabinet stays locked."
+      ]
+    }
+  ]
+}

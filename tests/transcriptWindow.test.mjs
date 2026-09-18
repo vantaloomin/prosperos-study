@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { findPassages, hasReadingAnchor, initialMessageIndex, passagePosition } from '../src/features/chat/transcriptWindow.ts'
 import { VirtualReadingPosition } from '../src/features/chat/VirtualReadingPosition.ts'
+import { PassageNavigation } from '../src/features/chat/passageNavigation.ts'
 import { heapSnapshot } from '../src/features/chat/browserHeap.ts'
 
 test('unsupported or malformed heap estimates remain unknown, not zero', () => {
@@ -233,4 +234,27 @@ test('visibility settling after the last observer notification is checked on a l
   assert.equal(page.element.dataset.transcriptReady, 'true')
   controller.dispose()
   assert.equal(environment.frames.size, 0)
+})
+
+
+test('a source request waits for its reader and is delivered once across re-renders', () => {
+  const navigation = new PassageNavigation(), seen = []
+  const reader = { branchId: 'accepted', show: id => { seen.push(id); return true } }
+  navigation.request('accepted', 'earlier-scene')
+  navigation.connect(reader)
+  navigation.connect(null)
+  navigation.connect(reader)
+  assert.deepEqual(seen, ['earlier-scene'])
+  navigation.request('accepted', 'earlier-scene')
+  assert.deepEqual(seen, ['earlier-scene', 'earlier-scene'])
+})
+
+test('changing branches cancels an undelivered source request instead of moving another reader', () => {
+  const navigation = new PassageNavigation(), seen = []
+  navigation.request('old-branch', 'shared-ancestor')
+  navigation.connect({ branchId: 'new-branch', show: id => seen.push(id) })
+  navigation.connect({ branchId: 'old-branch', show: id => seen.push(id) })
+  assert.deepEqual(seen, [])
+  navigation.connect({ branchId: 'old-branch', show: () => false })
+  assert.equal(navigation.request('old-branch', 'absent-node'), false)
 })

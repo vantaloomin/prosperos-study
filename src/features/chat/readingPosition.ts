@@ -96,6 +96,12 @@ export class TranscriptPosition {
     this.restorePosition()
   }
 
+  seek = (position: ReadingPosition) => {
+    this.position = position
+    this.restorePosition()
+    this.save()
+  }
+
   private restorePosition = () => {
     restore(this.element, this.byId, this.position)
     this.restoredPixels = this.element.scrollTop

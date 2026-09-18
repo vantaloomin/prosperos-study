@@ -32,9 +32,11 @@ def validate_greeting(value):
 
 
 def narrative_asset(item):
+    # Availability of a later version is Library UI state, never pinned model context.
+    item = {key: value for key, value in item.items() if key != 'update_available'}
     if item['kind'] == 'persona':
         item = {**item, 'kind': 'character'}
-    excluded = AUTHORING_FIELDS if item['kind'] == 'character' else {'lore_definition', 'lore_documents', 'artwork_sha256'}
+    excluded = AUTHORING_FIELDS if item['kind'] == 'character' else {'lore_definition', 'lore_documents', 'artwork_sha256', 'canon_recall'}
     content = {key: value for key, value in item['version']['content'].items() if key not in excluded}
     return {**item, 'version': {**item['version'], 'content': content}}
 

@@ -19,7 +19,7 @@ class AuthoringPreview(Input):
     text: Prose
     context: dict[ContextKey, Prose] = Field(default_factory=dict, max_length=30)
     direction: str = Field(default='', max_length=10000)
-    step: Literal['authoring-draft', 'authoring-critique', 'authoring-tighten']
+    step: Literal['authoring-draft', 'authoring-critique', 'authoring-tighten', 'authoring-enrich']
     profile_ids: list[str] = Field(default_factory=list, max_length=4)
 
     @model_validator(mode='after')
@@ -49,5 +49,5 @@ class AuthoringOutput(Input):
 
 
 class AuthoringDefault(Input):
-    step: Literal['authoring-draft', 'authoring-critique', 'authoring-tighten']
+    step: Literal['authoring-draft', 'authoring-critique', 'authoring-tighten', 'authoring-enrich']
     profile_id: str | None = None

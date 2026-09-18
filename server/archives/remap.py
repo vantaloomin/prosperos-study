@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from server.archives.lore import remap_lore, remap_state
+from server.archives.memory_controls import remap_controls
 from server.database import decode, encode, identifier
 from server.library_formats.sources import source_record
 from server.mechanics.config import parse_settings
@@ -15,7 +16,7 @@ REFERENCES = {
     'selected_job_id', 'assessment_id', 'assessment_job_id',
     'background_state_id', 'previous_id',
     'selected_state_id',
-    'import_id', 'source_version_id',
+    'continuity_version_id', 'import_id', 'source_version_id', 'batch_id', 'memory_controls_version_id', 'knowledge_character_id',
 }
 
 
@@ -63,6 +64,9 @@ def snapshot(value, mapping):
         if key in value:
             updated[key] = fields(value[key], mapping)
     updated.update(remap_snapshot_lore(value, mapping))
+    if 'source_links' in value:
+        updated['source_links'] = [remap_source_link(item, mapping) for item in value['source_links']]
+    updated.update(remap_summary_links(value, mapping))
     if "settings" in value:
         updated["settings"] = settings({"randomness": value["settings"]}, mapping)["randomness"]
     if "tables" in value:
@@ -73,8 +77,16 @@ def snapshot(value, mapping):
         updated["scene"] = {**fields(value["scene"], mapping), "state": scene_state(value["scene"]["state"], mapping)}
     if 'review_job_ids' in value:
         updated['review_job_ids'] = [mapping[item] for item in value['review_job_ids']]
+    if 'dialogue_actors' in value:
+        updated['dialogue_actors'] = [snapshot(actor, mapping) for actor in value['dialogue_actors']]
     # Serialized provider inputs, cited source IDs, quotes, prose and source archives stay byte-for-byte intact.
     return updated
+
+
+def remap_source_link(item, mapping):
+    # id and frozen_* are receipts of the original provider bytes, not live references.
+    keys = ('node_id',) if 'node_id' in item else ('asset_id', 'version_id')
+    return {**item, **{key: mapping[item[key]] for key in keys}}
 
 
 def remap_snapshot_lore(value, mapping):
@@ -117,6 +129,7 @@ def scene_decision(value, mapping):
 
 def remap_json(table, row, document, mapping):
     converters = {
+        'memory_control_versions': {'payload': lambda value: remap_controls(value, mapping)},
         "stories": {"settings": lambda value: story_settings(value, document, mapping)},
         "asset_versions": {"content": lambda value: remap_dependencies(value, mapping)},
         "manifests": {"attachments": lambda value: [fields(item, mapping) for item in value]},
@@ -147,14 +160,20 @@ def remap_dependencies(value, mapping):
 
 
 def remap_record(table, row, document, mapping):
+    if table == 'archive_identities':
+        return {**row, 'record_id': mapping[row['record_id']]}
     if table == 'asset_sources' and row['format'] == 'legacy-metadata':
         version = next(item for item in document['data']['asset_versions'] if item['id'] == row['version_id'])
         return source_record({**version, 'id': mapping[version['id']], 'content': remap_dependencies(decode(version['content']), mapping)})
     updated = fields(row, mapping)
     updated = remap_json(table, updated, document, mapping)
-    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs'} and row["status"] in {"running", "queued"}:
+    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'} and row["status"] in {"running", "queued"}:
         updated["status"] = "interrupted"
         updated["error"] = "Restored from an archive. Partial output is preserved; retry is explicit."
+    if table == 'summary_batches' and row['status'] in {'queued', 'running'}:
+        updated.update(status='interrupted', error='Restored maintenance waits for explicit resume.')
+    if table == 'summary_wakeups' and row['status'] == 'pending':
+        updated.update(status='interrupted', error='Restored automatic maintenance waits for explicit resume.')
     return updated
 
 
@@ -177,3 +196,8 @@ def background_snapshot(value, mapping):
     if value.get('interpretation'):
         updated['interpretation'] = fields(value['interpretation'], mapping)
     return updated
+
+
+def remap_summary_links(value, mapping):
+    return {key: [{**link, 'version_id': mapping[link['version_id']], 'node_id': mapping[link['node_id']]}
+                  for link in value[key]] for key in ('summary_links', 'summary_aid_links') if key in value}

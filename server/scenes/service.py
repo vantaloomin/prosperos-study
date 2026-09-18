@@ -17,6 +17,7 @@ from server.scenes.output import validate_result
 from server.scenes.patch_context import patch_view, repair_patch, require_patch_choice
 from server.scenes.revision_context import available_reports
 from server.scenes.revision_decisions import approve_revision, resolve_item, revision_view
+from server.scenes.stage_guard import guard_stage
 from server.scenes.state import (
     choose_state,
     next_step,
@@ -77,13 +78,18 @@ class Scenes:
 
     def start(self, run_id, body):
         payload = {"run_id": run_id, **body.model_dump()}
-        with self.database.connect(write=True) as connection:
+        with self.database.connect() as connection:
             cached = previous(connection, body.operation_id, "scene-stage", payload)
             if cached is not None:
                 return cached
             run = run_record(connection, run_id)
             snapshot = stage_snapshot(connection, run, body)
             require(body.preview_hash == snapshot_hash(snapshot), "The stage inputs changed. Preview again before generating.", 409)
+        with self.database.connect(write=True) as connection:
+            cached = previous(connection, body.operation_id, "scene-stage", payload)
+            if cached is not None:
+                return cached
+            guard_stage(connection, run, body, snapshot)
             ids = insert_jobs(connection, run_id, snapshot["jobs"])
             save_decision(connection, run, "request", {"step": body.key, "job_ids": ids}, run["state"])
             return remember(connection, body.operation_id, "scene-stage", payload, {"id": run_id, "job_ids": ids})

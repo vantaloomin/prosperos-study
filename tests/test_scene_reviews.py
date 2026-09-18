@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from tests.test_archives import backup, restore
 from tests.test_history import append
@@ -178,7 +179,7 @@ def test_scene_review_archive_restore_remaps_links_keeps_quotes_and_can_be_archi
     chosen = original["jobs"][0]["id"]
     assert client.put(f"/api/reviews/{result['id']}/selection", json={"job_id": chosen}).status_code == 200
     file, document = backup(client, story)
-    assert document["version"] == 19
+    assert document["version"] == ARCHIVE_VERSION
     restored, mapping = restore(client, file)
     review = client.get(f"/api/reviews/{mapping[result['id']]}").json()
     assert review["current_scene_draft"] and review["snapshot"]["scene"]["id"] == mapping[scene_id]

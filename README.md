@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.5 - early preview** Â· [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) Â· [Choose your models](#bring-your-own-writing-partner) Â· [Questions](#questions)
+**v0.6 - memory management preview** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -17,6 +17,7 @@ The interesting part often comes after the first response: a better line, a diff
 | What you want to do | How the Study helps |
 | --- | --- |
 | Try the other ending | Branch from an earlier passage, explore alternate responses, and find your way back with a visual branch map. |
+| Keep earlier events within reach | Long story memory recalls older passages locally; review plans and commitments without rewriting the manuscript. |
 | Keep control of the draft | Generated prose arrives separately for review. Accept it, keep an alternative on another branch, or leave it aside. |
 | Build a world across several stories | Reuse Characters and Canon collections. Each story keeps its chosen versions until you decide to update it. |
 | Talk through an idea | A sidebar collaborator can discuss the story, critique a passage, or help with a prompt without advancing the narrative. |
@@ -32,6 +33,18 @@ Submitting a passage can automatically request the next draft. Prefer to write u
 ### Explore without losing your favorite version
 
 Edit an earlier passage to create a new branch. Browse alternative responses, return to an accepted telling, and keep different continuations alive. The branch map makes those paths visible; changing your mind does not require replacing the story you already have.
+
+### Keep the past, and what is still to come
+
+In **Story details > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows what each writing request includes. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
+
+Open **Context > Memory** to record **Plans & commitments**: who agreed, who withdrew, what was postponed, and what actually happened. A planned camping trip stays distinct from a completed trip; one person's refusal does not automatically cancel everyone else's plans. Records keep supporting passages and version history on the relevant branch.
+
+**Review plans** can ask your configured model to suggest updates from accepted passages. Review a suggestion and explicitly save it before it becomes memory. You can also edit plans yourself without a model request. Summaries are optional too: prepare and review them in **Writing tools > Story memory**, then enable their use in Story memory settings.
+
+Memory is selective and can miss indirect references, changing motives, or important evidence. Model-generated suggestions and summaries can misinterpret a passage even when their quotations are exact. Inspect the supplied context and keep author review part of your workflow. This release does not promise perfect recall.
+
+See [what changed in v0.6](CHANGELOG.md#v06---2026-09-18) for release details.
 
 ### Give your world a home
 
@@ -59,6 +72,7 @@ Bring your character cards and preferred model connections, then try a workflow 
 
 - Explore alternate scenes through a visual branch map.
 - Discuss a draft in the sidebar before deciding how the narrative should continue.
+- Keep plans, commitments, and earlier passages available as the story grows.
 - Share versioned world material across several stories.
 - Choose a different writer, reviewer, or collaborator for each job.
 - Export a readable Markdown manuscript or a private archive of your work.
@@ -76,7 +90,7 @@ Use **Settings > Models** to save connections. **Test connection** discovers ava
 | Google / Gemini | A Gemini API key |
 | OpenRouter | An OpenRouter API key |
 | Codex / ChatGPT | Codex CLI installed, available on PATH, and already signed in |
-| Local / LM Studio | A running local server with an OpenAI-compatible API |
+| Local / LM Studio | A running local server; compatible API or LM Studio native with thinking controls |
 | Kobold | A running server exposing the native Kobold generation API |
 | OAI Compatible API | A compatible Chat Completions API address and any required key |
 
@@ -122,7 +136,7 @@ Stories and Library material are stored locally in the project's `data/` folder.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
 - **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.5.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.
 
 ## Questions
 
@@ -132,11 +146,13 @@ Yes. Use a compatible local model server, or write manually. Local generation re
 
 **LM Studio is running, but the connection fails.**
 
-Use its API base address, normally `http://127.0.0.1:1234/v1`, including `/v1`. Start the server, make a model available, and use **Test connection**. The app reports connection and endpoint errors with suggested next steps.
+For **OpenAI-compatible**, use `http://127.0.0.1:1234/v1`, including `/v1`. For **LM Studio native**, use `http://127.0.0.1:1234/api/v1`. Start the server, make a model available, and use **Test connection**. Native discovery also reports supported thinking settings. The app reports connection and endpoint errors with suggested next steps.
 
 **The model finished, but no story appeared.**
 
 A thinking model can spend its output allowance on reasoning before producing prose. Check the reported usage and increase **Generation settings > Maximum output tokens** if it reached the limit. Save the profile and start a new continuation. **Retry original inputs** deliberately keeps the old model settings and limit.
+
+With **Local / LM Studio > Local API > LM Studio native**, test the connection and choose the model, then set **Generation settings > Thinking** to a supported option. This affects only that profile's requests. You can use a separate thinking-off profile for Story memory summaries while keeping your Primary Writer unchanged.
 
 **Do I have to run every agent or random table?**
 
@@ -146,7 +162,7 @@ No. Randomness starts off, individual systems are optional, and prompts/agents c
 
 Yes. Stories select versions independently, and publishing an edit does not silently change existing stories.
 
-**Is v0.5 a finished product?**
+**Is v0.6 a finished product?**
 
 It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. Companion Mode, social feeds, built-in image generation, and automated backups are future ideas, not features of this release.
 

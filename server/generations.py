@@ -3,7 +3,7 @@ from server.background.storage import bind
 from server.branches import insert_node, touch_branch
 from server.database import decode, encode, identifier, many, now, one
 from server.errors import require
-from server.generation_context import generation_snapshot
+from server.generation_preparation import prepare_writer
 from server.mechanics.storage import accepted_state
 from server.operations import previous, remember
 
@@ -35,13 +35,18 @@ class Generations:
         self.database = database
 
     def create(self, branch_id, body):
-        payload = {"branch_id": branch_id, **body.model_dump()}
+        payload = {"branch_id": branch_id, **body.model_dump(exclude_none=True)}
+        with self.database.connect() as connection:
+            cached = previous(connection, body.operation_id, "generate", payload)
+            if cached is not None:
+                return cached
+            prepared = prepare_writer(connection, branch_id, body)
         with self.database.connect(write=True) as connection:
             cached = previous(connection, body.operation_id, "generate", payload)
             if cached is not None:
                 return cached
-            snapshot, profiles = generation_snapshot(connection, branch_id, body)
-            result = record_generation(connection, snapshot, profiles)
+            prepared.validate(connection, body)
+            result = record_generation(connection, prepared.snapshot, prepared.profiles)
             return remember(connection, body.operation_id, "generate", payload, result)
 
     @staticmethod
@@ -123,4 +128,8 @@ class Generations:
                            (target_id, original["story_id"], body.branch_name, original["head_id"],
                             original["manifest_id"], original["id"], original["head_id"], now(), now()))
         bind(connection, target_id, snapshot.get('background_state_id'))
+        from server.memory.control_state import bind_frozen_controls
+        bind_frozen_controls(connection, target_id, snapshot)
+        from server.memory.plan_state import bind_plan_head
+        bind_plan_head(connection, target_id, snapshot.get('continuity_version_id'))
         return {**original, "id": target_id}

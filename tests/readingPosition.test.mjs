@@ -94,3 +94,18 @@ test('a new end-following transcript stays at the end until the reader scrolls a
   controller.dispose()
   assert.equal(browser.saved().block, 'passage-1')
 })
+
+
+test('reading a cited source persists the explicit target through dock-close reflow', (t) => {
+  const browser = environment(t, position), view = transcript()
+  const controller = new TranscriptPosition(view.element, 'branch')
+  controller.seek({ block: 'passage-0', offset: 0, fraction: 0, pixels: 0, atEnd: false })
+  assert.equal(view.element.scrollTop, 1000)
+  assert.equal(browser.saved().block, 'passage-0')
+  view.anchors[0].top = 700
+  browser.resize()
+  assert.equal(view.element.scrollTop, 700)
+  view.scroll()
+  controller.dispose()
+  assert.equal(browser.saved().block, 'passage-0')
+})

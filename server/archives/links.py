@@ -33,6 +33,8 @@ def snapshot_links(connection, snapshot, story_id):
     owned(connection, "manifests", branch["manifest_id"], story_id)
     if snapshot.get('background_state_id'):
         owned(connection, 'background_states', snapshot['background_state_id'], story_id)
+    if snapshot.get('memory_controls_version_id'):
+        owned(connection, 'memory_control_versions', snapshot['memory_controls_version_id'], story_id)
     if snapshot.get('writer_snapshot'):
         snapshot_links(connection, snapshot['writer_snapshot'], story_id)
     for node_id in [branch["head_id"], snapshot.get("from_node_id"), snapshot.get("through_node_id")]:
@@ -41,7 +43,7 @@ def snapshot_links(connection, snapshot, story_id):
 
 
 def validate_run_links(connection, data):
-    for table in ("generations", "review_runs", "mechanic_opportunities", "scene_runs", 'assessment_runs', 'background_runs'):
+    for table in ("generations", "review_runs", "mechanic_opportunities", "scene_runs", 'assessment_runs', 'background_runs', 'summary_runs'):
         for row in data[table]:
             branch = one(connection, "SELECT story_id FROM branches WHERE id=?", (row["branch_id"],))
             snapshot_links(connection, decode(row["snapshot"]), branch["story_id"])

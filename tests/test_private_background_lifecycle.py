@@ -3,6 +3,7 @@ import json
 from copy import deepcopy
 from uuid import uuid4
 
+from server.archives.format import ARCHIVE_VERSION
 from server.background.storage import state_id
 from server.database import decode
 from server.providers.events import ProviderEvent
@@ -96,7 +97,7 @@ def test_version_ten_restore_keeps_original_setup_without_inventing_interpretati
     document.pop('library_drafts', None)
     staged = client.post('/api/archives/imports', json={'content': json.dumps(document)})
     assert staged.status_code == 201, staged.text
-    assert staged.json()['summary']['version'] == 19
+    assert staged.json()['summary']['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, staged.json())
     recovered = revealed(client, {'id': mapping[receipt['id']]})
     assert recovered['result']['seed'] == before['result']['seed']

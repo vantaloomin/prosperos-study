@@ -6,6 +6,7 @@ from server.database import decode, identifier, many, now, one
 from server.errors import require
 from server.manifests import manifest_view
 from server.mechanics.config import configured_tables, read_settings
+from server.memory.control_state import bind_frozen_controls, control_head
 from server.operations import previous, remember
 from server.stories import check_revision
 
@@ -28,6 +29,7 @@ def initial_snapshot(connection, branch, body):
     recipe = recipe_for(connection, branch, body)
     result = resolve_background(recipe, versions, settings.model_dump(), secrets.token_hex(16))
     return {'recipe': recipe, 'settings': settings.model_dump(), 'result': result,
+            'memory_controls_version_id': control_head(connection, branch['id']),
             'drives_enabled': bool(recipe['characters']), 'hooks_enabled': bool(recipe['hooks']), 'day': body.day}
 
 
@@ -41,6 +43,7 @@ def reroll(connection, source, body):
     connection.execute('INSERT INTO branches VALUES (?,?,?,?,?,?,?,0,?,?)',
                        (target['id'], source['story_id'], body.branch_name, target['head_id'], manifest_id,
                         origin['id'], target['head_id'], now(), now()))
+    bind_frozen_controls(connection, target['id'], snapshot)
     snapshot['result'] = resolve_background(snapshot['recipe'], snapshot['result']['tables'], snapshot['settings'], secrets.token_hex(16))
     snapshot.pop('interpretation', None)
     return target, snapshot

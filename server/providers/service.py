@@ -4,6 +4,7 @@ from server.errors import require
 from server.providers.codex import CodexProvider
 from server.providers.config import profile_ready
 from server.providers.http import HttpProvider
+from server.providers.lmstudio import native_base
 from server.providers.restored_connection import credential_reference
 from server.providers.vault import credential_for
 
@@ -26,7 +27,8 @@ class ProviderService:
         require(profile_ready(profile["config"]), "Finish this model connection in Settings before generating.", 409)
         transport, key = self.connection(profile)
         config = profile["config"]
-        endpoint = (config["provider"], config["base_url"])
+        address = native_base(config["base_url"]) if config["provider"] == "local" else config["base_url"]
+        endpoint = (config["provider"], address)
         concurrency = 1 if config["provider"] in {"local", "kobold", "codex"} else 2
         limit = self.limits.setdefault(endpoint, asyncio.Semaphore(concurrency))
         async with limit:

@@ -1,4 +1,6 @@
 export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'local' | 'kobold' | 'codex' | 'google' | 'compatible'
+export type LocalProtocol = 'openai' | 'lmstudio'
+export type LocalReasoning = 'off' | 'on' | 'low' | 'medium' | 'high'
 export interface ProfileConfig {
   provider: Provider
   model: string
@@ -8,6 +10,8 @@ export interface ProfileConfig {
   timeout_seconds: number
   temperature: number | null
   reasoning_effort: string | null
+  local_protocol?: LocalProtocol
+  local_reasoning?: LocalReasoning | null
 }
 export interface ModelProfile {
   display_name?: string
@@ -26,7 +30,7 @@ export const providers: Record<Provider, { name: string; url: string; descriptio
   google: { name: 'Google / Gemini', url: 'https://generativelanguage.googleapis.com/v1beta', description: 'Connect directly with a Google AI Studio / Gemini API key.' },
   compatible: { name: 'OAI Compatible API', url: '', description: 'Use an OpenAI-compatible Chat Completions API, including NanoGPT, DeepSeek, or NVIDIA NIM. Enter its API base URL.' },
   codex: { name: 'Codex / ChatGPT', url: '', description: 'Use your installed Codex CLI and its existing login. Sign in with codex login in your terminal.' },
-  local: { name: 'Local / LM Studio', url: 'http://127.0.0.1:1234/v1', description: 'Connect to a local server with an OpenAI-compatible API, including LM Studio or Ollama.' },
+  local: { name: 'Local / LM Studio', url: 'http://127.0.0.1:1234/v1', description: 'Connect to LM Studio or another local server, including Ollama.' },
   kobold: { name: 'Kobold', url: 'http://127.0.0.1:5001/api/v1', description: 'Connect to the native Kobold generation API on this device.' },
 }
 export const initialConfig: ProfileConfig = { provider: 'openai', model: '', base_url: providers.openai.url, max_output_tokens: 1200, context_tokens: 16000, timeout_seconds: 180, temperature: null, reasoning_effort: null }

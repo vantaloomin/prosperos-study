@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.assessment.context import parse_assessment
 from server.assessment.models import AssessmentDecision
 from server.assessment.service import Assessments
@@ -181,7 +182,7 @@ def test_assessment_archive_preserves_seed_jobs_writer_and_rejects_tampering(cli
     run = settled(client, start(client, story)['assessment_id'])
     finished(client, run['generation_id'])
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     restored = client.get(f"/api/assessments/{mapping[run['id']]}").json()
     assert restored['snapshot']['seed'] == run['snapshot']['seed']

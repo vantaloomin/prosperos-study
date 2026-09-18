@@ -23,7 +23,7 @@ export function LibraryImport({ onClose, onPublishedClose, initialImportId, targ
   const [published, setPublished] = useState<AssetVersion[] | null>(null)
   const close = published ? onPublishedClose ?? onClose : onClose
   const finish = (versions: AssetVersion[]) => { setPublished(versions); setId(null) }
-  return <Modal open wide title="Bring your world along" description="Import Markdown world knowledge or a Character Card. Review the conversion, edit its fields, then choose what to publish." onClose={close} focusOnClose={published ? focusOnPublishedClose : focusOnClose}>
+  return <Modal open wide title="Bring your world along" description="Import Markdown, a Character Card, or an SGC knowledge pack. Review the conversion, edit its fields, then choose what to publish." onClose={close} focusOnClose={published ? focusOnPublishedClose : focusOnClose}>
     {published ? <ImportSuccess versions={published} onClose={close} /> : <>
       <div className="dialog-body form-stack"><ImportUpload onReady={(preview) => setId(preview.id)} />
         {id && <ImportReview key={id} id={id} target={target} onPublished={finish} />}
@@ -43,8 +43,8 @@ function ImportUpload({ onReady }: { onReady: (preview: ImportPreview) => void }
     const source_base64 = await readImportFile(file)
     onReady(await api<ImportPreview>('/library-imports', { filename: file.name, source_base64 }))
   })
-  return <section className="import-upload"><label className="field"><span>Choose Markdown or a JSON / PNG Character Card</span><input type="file" accept=".md,.markdown,.json,.png" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
-    <p className="subtle">Up to 10 MiB · UTF-8 text or PNG · Card V1, V2 or V3. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
+  return <section className="import-upload"><label className="field"><span>Choose Markdown, an SGC pack, or a JSON / PNG Character Card</span><input type="file" accept=".md,.markdown,.json,.png" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
+    <p className="subtle">Up to 10 MiB · UTF-8 text or PNG · Card V1, V2 or V3; SGC brain packs. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
     {action.busy && <Loading label="Preserving the source and preparing Markdown…" />}<ErrorNotice message={action.error} />
   </section>
 }
@@ -73,7 +73,7 @@ function ImportPublication({ preview, target, onPublished }: { preview: ImportPr
     onPublished(result.versions)
   })
   return <section className="import-review form-stack"><h3 ref={heading} tabIndex={-1}>{preview.filename}</h3>
-    <p className="subtle">{preview.card_version ? `Character Card ${preview.card_version.toUpperCase()}` : 'Markdown Canon collection'} · Preserved Markdown files: {preview.files.length}</p>
+    <p className="subtle">{importFormat(preview)} · Preserved Markdown files: {preview.files.length}</p>
     <SourceDownloads id={preview.id} /><button className="button" onClick={() => setInspect(true)}>Inspect converted Markdown</button>
     <ImportCompatibility preview={preview} /><ErrorNotice message={assets.error?.message} />
     {draft.choices.map((choice, index) => <ImportChoiceEditor key={choice.part} choice={choice} assets={assets.data ?? []} onBusy={(busy) => setUploads((previous) => previous[choice.part] === busy ? previous : { ...previous, [choice.part]: busy })} onChange={(patch) => { action.clearError(); setDraft({ ...draft, operation: operationId(), choices: draft.choices.map((item, at) => at === index ? { ...item, ...patch } : item) }) }} />)}
@@ -96,4 +96,9 @@ function ImportSuccess({ versions, onClose }: { versions: AssetVersion[]; onClos
 
 function PublicationButton({ reviewed, count, busy, uploading, onPublish }: { reviewed: boolean; count: number; busy: boolean; uploading: boolean; onPublish: () => void }) {
   return <button className="button primary" disabled={uploading || !reviewed || !count} aria-disabled={busy || uploading} onClick={onPublish}>{busy ? 'Publishing…' : 'Publish selected items'}</button>
+}
+
+function importFormat(preview: ImportPreview) {
+  if (preview.format === 'sgc-brain') return 'SGC knowledge pack'
+  return preview.card_version ? 'Character Card ' + preview.card_version.toUpperCase() : 'Markdown Canon collection'
 }

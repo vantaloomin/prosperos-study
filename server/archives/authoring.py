@@ -41,8 +41,11 @@ def validate_run(connection, row):
         require(source['asset_id'] == row['asset_id'] and canonical_kind(source['kind']) == canonical_kind(run['kind']), 'Authoring source ownership differs.')
     content = decode(run['content'])
     require(content['kind'] == run['kind'] and content['name'] == run['name'] and content['target']['key'] == run['target_key'], 'Authoring target differs from its request.')
-    AuthoringPreview.model_validate({key: run[key] for key in ('source_version_id', 'draft_id', 'kind', 'name', 'target_key', 'step')} | {
+    body = AuthoringPreview.model_validate({key: run[key] for key in ('source_version_id', 'draft_id', 'kind', 'name', 'target_key', 'step')} | {
         'target_label': content['target']['label'], 'text': content['target']['text'], 'context': content['supporting_fields'], 'direction': content['direction']})
+    if run['step'] == 'authoring-enrich':
+        from server.memory.enrichment import validate_request
+        validate_request(body)
     return run
 
 

@@ -1,5 +1,7 @@
+from server.archives.source_memory import validate_scene_projection
 from server.database import decode, one
 from server.errors import require
+from server.memory.control_packet import with_decisions
 from server.scenes.models import SceneState
 from server.scenes.output import parse_scene
 from server.scenes.revision_context import triage_context, triage_inputs, verification_inputs
@@ -12,13 +14,13 @@ def validate_revision_job(connection, job):
     snapshot = decode(job['snapshot'])
     origin = run_record(connection, job['run_id'])
     frozen = {**origin, 'state': SceneState.model_validate(snapshot['upstream']).model_dump()}
-    actual = decode(snapshot['content'])
     if job['step'] == 'scene-triage':
         expected = triage_inputs(connection, frozen, snapshot['review_job_ids'])
     else:
         require(not snapshot['review_job_ids'], 'A verification job cannot replace its triage reports.')
         expected = verification_inputs(connection, frozen, snapshot['item_id'])
-    require(actual == expected, 'A revision specialist has altered or foreign frozen inputs.')
+    expected = with_decisions(expected, frozen['snapshot'])
+    validate_scene_projection(connection, frozen['snapshot'], expected, snapshot)
     if job['status'] == 'done':
         require(parse_scene(job['output'], snapshot) == decode(job['result']), 'A revision result disagrees with its preserved output.')
 

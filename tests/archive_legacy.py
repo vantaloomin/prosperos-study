@@ -2,7 +2,10 @@ from server.archives.format import (
     ASSESSMENT_TABLES,
     AUTHORING_TABLES,
     BACKGROUND_TABLES,
+    CONTROL_TABLES,
     INTERPRETATION_TABLES,
+    MAINTENANCE_TABLES,
+    SUMMARY_TABLES,
 )
 
 
@@ -24,11 +27,34 @@ def remove_assessments(document):
 
 
 def remove_authoring(document):
+    remove_summaries(document)
     assert document['data'].pop('library_media') == []
     for table in AUTHORING_TABLES:
         assert document['data'].pop(table) == []
-    keys = {'authoring-draft', 'authoring-critique', 'authoring-tighten'}
+    keys = {'authoring-draft', 'authoring-critique', 'authoring-tighten', 'authoring-enrich'}
     for key in keys:
         document['prompt_heads'].pop(key)
     document['data']['prompt_versions'] = [row for row in document['data']['prompt_versions'] if row['key'] not in keys]
     document.pop('authoring_profiles', None)
+
+
+def remove_summaries(document):
+    remove_maintenance(document)
+    for table in SUMMARY_TABLES:
+        assert document['data'].pop(table) == []
+    document['prompt_heads'].pop('memory-summary')
+    document['data']['prompt_versions'] = [row for row in document['data']['prompt_versions'] if row['key'] != 'memory-summary']
+
+
+def remove_maintenance(document):
+    remove_controls(document)
+    for table in MAINTENANCE_TABLES:
+        assert document['data'].pop(table) == []
+
+
+def remove_controls(document):
+    for table in ('continuity_edits', 'branch_continuity_edits'):
+        assert document['data'].pop(table) == []
+    assert document['data'].pop('archive_identities') == []
+    for table in CONTROL_TABLES:
+        assert document['data'].pop(table) == []

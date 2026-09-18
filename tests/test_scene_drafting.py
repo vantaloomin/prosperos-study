@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from server.providers.events import ProviderEvent
 from server.scenes.catalog import DRAFT_KEYS
@@ -159,7 +160,7 @@ def test_completed_draft_archive_restores_gate_and_can_redraft_without_mutating_
         choose(client, run_id, run_stage(client, run_id, key)[0])
     old = get_plan(client, run_id)
     file, document = backup(client, story)
-    assert document["version"] == 19
+    assert document["version"] == ARCHIVE_VERSION
     result, mapping = restore(client, file)
     restored = get_plan(client, mapping[run_id])
     assert restored["draft"] == old["draft"] and restored["coverage_passes"]
@@ -193,7 +194,7 @@ def test_version_two_approved_plans_upgrade_and_continue_with_default_whole_pros
     content = json.dumps(document)
     staged = client.post("/api/archives/imports", json={"content": content})
     assert staged.status_code == 201, staged.text
-    assert staged.json()["summary"]["version"] == 19
+    assert staged.json()["summary"]["version"] == ARCHIVE_VERSION
     _, mapping = restore(client, staged.json())
     assert json.dumps(document) == content
     job = run_stage(client, mapping[run_id], "scene-draft")[0]

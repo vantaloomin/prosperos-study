@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.background.engine import guidance
 from server.background.interpretation_models import InterpretationStart
 from server.background.interpretations import Interpretations
@@ -156,7 +157,7 @@ def test_selected_interpretations_recover_reexport_and_reroll_drops_old_details(
     selected = choose_private(client, run['jobs'][0]).json()
     update(client, story)
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     result, mapping = restore(client, file)
     recovered = client.get(f"/api/background-interpretations/{mapping[run['id']]}?reveal=true").json()
     assert recovered['jobs'][0]['snapshot']['content'] == run['jobs'][0]['snapshot']['content']

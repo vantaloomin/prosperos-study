@@ -25,6 +25,13 @@ from server.library_formats.routes import router as library_source_router
 from server.lore.routes import router as lore_router
 from server.mechanics.routes import router as mechanics_router
 from server.mechanics.tables import initialize_tables
+from server.memory.control_routes import router as control_router
+from server.memory.enrichment_routes import router as enrichment_router
+from server.memory.maintenance_routes import router as maintenance_router
+from server.memory.maintenance_runner import MaintenanceRunner
+from server.memory.routes import router as memory_router
+from server.memory.summary_routes import router as summary_router
+from server.memory.summary_runner import SummaryRunner
 from server.profile_routes import router as profile_router
 from server.prompts import initialize_prompts
 from server.providers.vault import SystemVault
@@ -57,6 +64,8 @@ async def invalid_request(_request: Request, error: RequestValidationError):
 
 @asynccontextmanager
 async def lifespan(app):
+    app.state.summary_runner.recover()
+    app.state.maintenance_runner.recover()
     app.state.authoring_runner.recover()
     app.state.background_runner.recover()
     app.state.assessment_runner.recover()
@@ -64,7 +73,9 @@ async def lifespan(app):
     app.state.side_runner.recover()
     app.state.review_runner.recover()
     app.state.scene_runner.recover()
+    app.state.maintenance_runner.start()
     yield
+    await app.state.maintenance_runner.shutdown()
     await app.state.assessment_runner.shutdown()
     await app.state.runner.shutdown()
     await app.state.side_runner.shutdown()
@@ -72,10 +83,11 @@ async def lifespan(app):
     await app.state.scene_runner.shutdown()
     await app.state.background_runner.shutdown()
     await app.state.authoring_runner.shutdown()
+    await app.state.summary_runner.shutdown()
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.5.0", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.6.0", lifespan=lifespan)
     app.state.database = Database(database_path)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)
@@ -85,6 +97,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.state.scene_runner = SceneRunner(app.state.database, app.state.runner.provider)
     app.state.background_runner = BackgroundRunner(app.state.database, app.state.runner.provider)
     app.state.authoring_runner = AuthoringRunner(app.state.database, app.state.runner.provider)
+    app.state.summary_runner = SummaryRunner(app.state.database, app.state.runner.provider)
+    app.state.maintenance_runner = MaintenanceRunner(app.state.database, app.state.summary_runner)
     initialize_prompts(app.state.database)
     initialize_tables(app.state.database)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
@@ -97,6 +111,11 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.include_router(library_import_router)
     app.include_router(artwork_router)
     app.include_router(lore_router)
+    app.include_router(memory_router)
+    app.include_router(control_router)
+    app.include_router(enrichment_router)
+    app.include_router(summary_router)
+    app.include_router(maintenance_router)
     app.include_router(profile_router)
     app.include_router(generation_router)
     app.include_router(side_router)

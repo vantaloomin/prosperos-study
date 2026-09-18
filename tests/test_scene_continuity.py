@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from server.providers.events import ProviderEvent
 from tests.test_archives import backup, restore
@@ -106,7 +107,7 @@ def test_continuity_archive_preserves_frozen_inputs_receipt_and_original_ids(cli
     assert response.status_code == 200, response.text
     prior = continuity(client, story['branch_id'])
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     copied = continuity(client, mapping[story['branch_id']])
     assert copied['entries'][0]['id'] == prior['entries'][0]['id']

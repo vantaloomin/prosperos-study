@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode, encode
 from server.providers.events import ProviderEvent
 from tests.test_archives import backup, restore
@@ -171,7 +172,7 @@ def test_revision_archive_remaps_owned_links_without_rewriting_model_inputs(clie
     decide(client, run_id, 'approve-revision', {'package': 'C', 'confirmed_hold_ids': ['t2']})
     old = get_plan(client, run_id)
     archive, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     restored, mapping = restore(client, archive)
     new = get_plan(client, mapping[run_id])
     assert new['state']['gate_b']['triage_job_id'] == mapping[old['state']['gate_b']['triage_job_id']]

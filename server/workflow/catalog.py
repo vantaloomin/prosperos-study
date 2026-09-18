@@ -1,6 +1,7 @@
 from server.assessment.catalog import ASSESSMENT_PROMPT, ASSESSMENT_STEP
 from server.authoring.catalog import AUTHORING_PROMPTS
 from server.background.catalog import INTERPRETATION_PROMPT, INTERPRETATION_STEP
+from server.memory.summary_catalog import SUMMARY_KEY, SUMMARY_PROMPT, SUMMARY_STEP
 from server.scenes.catalog import SCENE_PROMPTS, SCENE_STEPS
 
 REVIEW_ROLES = [
@@ -30,7 +31,7 @@ CORE_STEPS = [
     {"key": "writer", "name": "Primary prose", "scope": "writer"},
     {"key": "collaborator", "name": "Sidebar Collaborator", "scope": "side conversation"},
 ]
-STEPS = CORE_STEPS + [ASSESSMENT_STEP, INTERPRETATION_STEP] + SCENE_STEPS + REVIEW_ROLES
+STEPS = CORE_STEPS + [ASSESSMENT_STEP, INTERPRETATION_STEP, SUMMARY_STEP] + SCENE_STEPS + REVIEW_ROLES
 
 OUTPUT_CONTRACT = """
 Your input contains only sources allowed for your role. Review them independently; other reviewers' results,
@@ -46,5 +47,6 @@ DEFAULT_PROMPTS = {role["key"]: f"You are the {role['name']} specialist.\n{role[
                    for role in REVIEW_ROLES}
 DEFAULT_PROMPTS.update(SCENE_PROMPTS)
 DEFAULT_PROMPTS.update(AUTHORING_PROMPTS)
+DEFAULT_PROMPTS[SUMMARY_KEY] = SUMMARY_PROMPT
 DEFAULT_PROMPTS['beat-assessment'] = ASSESSMENT_PROMPT
 DEFAULT_PROMPTS['background-interpretation'] = INTERPRETATION_PROMPT

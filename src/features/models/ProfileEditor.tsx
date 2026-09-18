@@ -8,6 +8,9 @@ import { ModelDiscovery } from './ModelDiscovery'
 import { useModelDiscovery } from './useModelDiscovery'
 import { discoveredSettings, typedModelSettings, type Discovery } from './discovery'
 import { profileSaveState } from './profileReadiness'
+import { LocalProtocolField, LocalThinking } from './LocalSettings'
+import { localAddressHint, temperatureCeiling } from './localProtocol'
+import type { DiscoveredModel } from './discovery'
 import { initialConfig, providers } from './types'
 import type { ModelProfile, ProfileConfig, Provider } from './types'
 
@@ -23,7 +26,7 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
   const [primary, setPrimary] = useState(!!first)
   const action = useAction()
   const discovery = useModelDiscovery(profile)
-  const patch = (change: Partial<ProfileConfig>) => { if (change.base_url !== undefined) discovery.reset(); setConfig(current => ({ ...current, ...change })) }
+  const patch = (change: Partial<ProfileConfig>) => { if (change.base_url !== undefined || change.local_protocol !== undefined) discovery.reset(); setConfig(current => ({ ...current, ...change })) }
   const changeProvider = (provider: Provider) => { discovery.reset(); setConfig({ ...initialConfig, provider, base_url: providers[provider].url }); setKey('') }
   const onDiscovered = (result: Discovery) => setConfig(current => applyDiscovered(result, current))
   const { ready, savedKey, canSave } = profileSaveState(config, key, initial)
@@ -40,7 +43,7 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
       <ConnectionFields config={config} apiKey={key} saved={savedKey} patch={patch} onKey={(value) => { discovery.reset(); setKey(value) }} />
       <ModelDiscovery config={config} result={discovery.result} busy={discovery.busy} error={discovery.error} connect={() => { void discovery.connect(config, key, onDiscovered) }} patch={patch} />
       <Field label="Model ID" value={config.model} onChange={(e) => patch(typedModelSettings(e.target.value, config, discovery.result?.model_details))} placeholder="Choose a returned model, or enter an ID" />
-      <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} /></details>
+      <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={discovery.result?.model_details?.find(model => model.id === config.model)} /></details>
       <label className="check-row"><input type="checkbox" disabled={!ready} checked={primary && ready} onChange={(e) => setPrimary(e.target.checked)} />Use as Primary Writer</label>{!ready && <p className="subtle">Save your API key now and finish setup later. Choose a model before using this connection for writing.</p>}<ErrorNotice message={action.error} />
     </div></div><footer className="dialog-footer"><span className="subtle">API keys stay in your OS credential vault.</span><button className="button primary" onClick={save} disabled={!canSave || action.busy}>{action.busy ? 'Saving…' : ready ? 'Save profile' : 'Save connection'}</button></footer>
   </Modal>
@@ -49,13 +52,14 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
 function ConnectionFields({ config, apiKey, saved, patch, onKey }: { config: ProfileConfig; apiKey: string; saved: boolean; patch: (next: Partial<ProfileConfig>) => void; onKey: (key: string) => void }) {
   if (config.provider === 'codex') return <p className="connection-note">Uses the CLI's existing authentication. No API key is needed here. Codex runs in an isolated temporary folder with shell, plugins, and web tools disabled.</p>
   const local = config.provider === 'local' || config.provider === 'kobold'
-  return <>{(local || config.provider === 'compatible') && <Field label="Server address" value={config.base_url} onChange={(e) => patch({ base_url: e.target.value })} hint={config.provider === 'local' ? 'LM Studio normally uses http://127.0.0.1:1234/v1. Include /v1, even when its server panel shows only the host and port.' : 'Use the API base URL, without /models or /chat/completions.'} />}<Field label="API key" type="password" autoComplete="new-password" value={apiKey} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved securely. Leave blank to keep it.' : 'Paste a key, or use an environment variable'} hint={local ? 'Optional for local servers that do not require authentication.' : 'Never included in story exports or run details.'} /></>
+  return <><LocalProtocolField config={config} patch={patch} />{(local || config.provider === 'compatible') && <Field label="Server address" value={config.base_url} onChange={(e) => patch({ base_url: e.target.value })} hint={localAddressHint(config)} />}<Field label="API key" type="password" autoComplete="new-password" value={apiKey} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved securely. Leave blank to keep it.' : 'Paste a key, or use an environment variable'} hint={local ? 'Optional for local servers that do not require authentication.' : 'Never included in story exports or run details.'} /></>
 }
 
-function GenerationSettings({ config, patch }: { config: ProfileConfig; patch: (next: Partial<ProfileConfig>) => void }) {
+function GenerationSettings({ config, patch, model }: { config: ProfileConfig; patch: (next: Partial<ProfileConfig>) => void; model?: DiscoveredModel }) {
   const cli = config.provider === 'codex'
   return <div className="form-stack"><Field label="Context allowance (tokens)" type="number" min={1024} max={2000000} value={config.context_tokens} onChange={(e) => patch({ context_tokens: Number(e.target.value) })} hint="An app-side budget check. Large context isn't silently discarded." /><Field label={cli ? 'Reserved output budget (tokens)' : 'Maximum output tokens'} type="number" min={64} max={128000} value={config.max_output_tokens} onChange={(e) => patch({ max_output_tokens: Number(e.target.value) })} hint={cli ? 'Used for context planning; the CLI controls its own hard output limit.' : 'Thinking models can spend this allowance on reasoning before writing. Increase it if a response ends before prose appears.'} />
-    {!cli && <Field label="Temperature" type="number" step="0.05" min={0} max={2} value={config.temperature ?? ''} onChange={(e) => patch({ temperature: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Provider default" hint="Leave blank for models that do not support temperature." />}
+    {!cli && <Field label="Temperature" type="number" step="0.05" min={0} max={temperatureCeiling(config)} value={config.temperature ?? ''} onChange={(e) => patch({ temperature: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Provider default" hint="Leave blank for models that do not support temperature." />}
+    <LocalThinking config={config} patch={patch} model={model} />
     <Field label="Timeout (seconds)" type="number" min={10} max={1800} value={config.timeout_seconds} onChange={(e) => patch({ timeout_seconds: Number(e.target.value) })} />
     {(cli || config.provider === 'openai') && <label className="field"><span>Reasoning effort</span><select aria-label="Reasoning effort" value={config.reasoning_effort ?? ''} onChange={(e) => patch({ reasoning_effort: e.target.value || null })}><option value="">Model default</option>{['minimal', 'low', 'medium', 'high', 'xhigh'].map((value) => <option key={value}>{value}</option>)}</select><small>Choose only settings supported by your selected model.</small></label>}
   </div>

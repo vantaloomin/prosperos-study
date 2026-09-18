@@ -20,10 +20,10 @@ export function Collaborator(props: Props) {
   const compact = useMediaQuery('(max-width: 1050px)')
   const transferred = useRef(false)
   const content = <Conversations {...props} onInsert={(text) => { transferred.current = true; props.onInsert(text) }} />
-  const focusOnClose = () => transferred.current ? document.querySelector<HTMLTextAreaElement>('[aria-label="Story message"]') : null
+  const focusOnClose = () => document.querySelector<HTMLElement>(transferred.current ? '[aria-label="Story message"]' : '[aria-label="Open collaborator"]')
   if (compact) return <Modal open onClose={props.onClose} focusOnClose={focusOnClose} title="Beside the story" description="A separate conversation. Suggestions stay here until you choose to use them.">{content}</Modal>
   return <motion.aside className="collaborator-dock" aria-label="Sidebar collaborator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.14 }}>
-    <header><div><MessageSquareText size={17} /><h2>Beside the story</h2></div><button className="icon-button" aria-label="Close collaborator" onClick={props.onClose}><X size={18} /></button></header>{content}
+    <header><div><MessageSquareText size={17} /><h2>Beside the story</h2></div><button className="icon-button" aria-label="Close collaborator" onClick={() => { props.onClose(); requestAnimationFrame(() => focusOnClose()?.focus()) }}><X size={18} /></button></header>{content}
   </motion.aside>
 }
 

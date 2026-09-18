@@ -12,12 +12,15 @@ GROUPS = [
     ('Independent review', [role['key'] for role in REVIEW_ROLES]),
     ('Revision', REVISION_KEYS + PATCH_KEYS),
     ('Continuity', CONTINUITY_KEYS),
+    ('Story memory', ['memory-summary']),
     ('Alongside your writing', ['collaborator']),
     ('Library assistance', [step['key'] for step in AUTHORING_STEPS]),
 ]
 FLOW = {key: {'group': group, 'order': index} for index, (group, key) in enumerate(
     (group, key) for group, keys in GROUPS for key in keys)}
 NOTES = {
+    'memory-summary': 'Summarizes accepted prose with exact quotations. Supports explicit batches and opt-in maintenance; saving still requires review.',
+    'authoring-enrich': 'Suggests summaries, topics and aliases for selected Canon excerpts. Applying them requires review; original prose stays intact.',
     'writer': 'Drafts the next passage. When disabled, write in the composer yourself.',
     'beat-assessment': 'Checks whether a completed beat calls for optional chance. Skipped when disabled.',
     'scene-options': 'Proposes different approaches to the scene. Skip to work directly from your direction.',

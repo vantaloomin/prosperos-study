@@ -1,0 +1,583 @@
+{
+  "format": "prospero-literature-annotations/1",
+  "version": 1,
+  "stories": [
+    {
+      "id": "speckled",
+      "file": "pg1661.txt",
+      "start": 317272,
+      "end": 370226,
+      "title": "The Adventure of the Speckled Band",
+      "genre": "mystery"
+    },
+    {
+      "id": "doll",
+      "file": "pg2542.txt",
+      "start": 1206,
+      "end_marker": "*** END OF THE PROJECT GUTENBERG EBOOK",
+      "title": "A Doll's House",
+      "genre": "relationships"
+    },
+    {
+      "id": "machine",
+      "file": "pg72890.txt",
+      "start": 3071,
+      "end": 71577,
+      "title": "The Machine Stops",
+      "genre": "speculative"
+    },
+    {
+      "id": "fire",
+      "file": "pg2429.txt",
+      "start": 55941,
+      "end": 94071,
+      "title": "To Build a Fire",
+      "genre": "travel_survival"
+    }
+  ],
+  "probes": [
+    {
+      "id": "speckled-locks",
+      "story": "speckled",
+      "query": "Remind me why the sisters locked their bedroom doors every night.",
+      "features": [
+        "literal"
+      ],
+      "rationale": "Their stated reason is the roaming animals, not a known intruder.",
+      "groups": [
+        {
+          "any_of": [
+            "I think that I mentioned to you that the Doctor kept a cheetah and a baboon. We had no feeling of security unless our doors were locked."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-motive",
+      "story": "speckled",
+      "query": "What did Holmes learn about the money Roylott would lose if his stepdaughters married?",
+      "features": [
+        "literal"
+      ],
+      "rationale": "Requires the current estate income and the marriage allowance, rather than merely a wedding mention.",
+      "groups": [
+        {
+          "any_of": [
+            "not more than £ 750. Each daughter can claim an income of £ 250, in case of marriage."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-bed",
+      "story": "speckled",
+      "query": "Keep the sleeping arrangement consistent: why was the furniture deliberately immobilized?",
+      "features": [
+        "paraphrase",
+        "causal"
+      ],
+      "rationale": "The fixed bed keeps its occupant aligned with the delivery route. Two alternative explanations are accepted.",
+      "groups": [
+        {
+          "any_of": [
+            "The lady could not move her bed. It must always be in the same relative position to the ventilator and to the rope",
+            "the bed was clamped to the floor, instantly gave rise to the suspicion that the rope was there as a bridge for something passing through the hole and coming to the bed."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-band",
+      "story": "speckled",
+      "query": "Before the next scene, distinguish the misleading interpretation of the dying words from what the investigators actually found.",
+      "features": [
+        "paraphrase",
+        "multi_evidence",
+        "belief_correction"
+      ],
+      "rationale": "Requires both the mistaken band association and the physical discovery; the misleading belief alone is insufficient.",
+      "groups": [
+        {
+          "any_of": [
+            "The presence of the gipsies, and the use of the word ‘band,’ which was used by the poor girl"
+          ]
+        },
+        {
+          "any_of": [
+            "“It is a swamp adder!” cried Holmes; “the deadliest snake in India."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-safe",
+      "story": "speckled",
+      "query": "Reconcile the earlier account of what the safe contained with the way Holmes used it after Roylott died.",
+      "features": [
+        "multi_evidence",
+        "chronology"
+      ],
+      "rationale": "The old memory of business papers is not a complete description of its later use.",
+      "groups": [
+        {
+          "any_of": [
+            "Only once, some years ago. I remember that it was full of papers."
+          ]
+        },
+        {
+          "any_of": [
+            "carrying it at arm’s length, threw it into the iron safe, which he closed upon it."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-animals",
+      "story": "speckled",
+      "query": "Do not give this household a pet cat just because there is milk nearby; what animals are actually reported?",
+      "features": [
+        "false_premise",
+        "entity_confusion"
+      ],
+      "rationale": "The witness explicitly denies keeping a cat despite the milk saucer.",
+      "groups": [
+        {
+          "any_of": [
+            "No; we don’t keep a cat. But there is a cheetah and a baboon."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "speckled-unknown-safe",
+      "story": "speckled",
+      "query": "What was the manufacturer and serial number of Roylott’s iron safe?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "The selected story describes the safe but does not supply its manufacturer or serial number.",
+      "groups": []
+    },
+    {
+      "id": "speckled-unknown-letter",
+      "story": "speckled",
+      "query": "What was the exact wording of the letter Julia wrote to her fiancé the day before she died?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "The selected story does not supply such a letter; mentions of engagement are not its contents.",
+      "groups": []
+    },
+    {
+      "id": "doll-dates",
+      "story": "doll",
+      "query": "Which two dates expose the problem with the signature on Nora’s bond?",
+      "features": [
+        "literal",
+        "chronology"
+      ],
+      "rationale": "Requires the stated death and signature dates.",
+      "groups": [
+        {
+          "any_of": [
+            "Your father died on the 29th of September. But, look here; your father has dated his signature the 2nd of October."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-rank",
+      "story": "doll",
+      "query": "What did Doctor Rank say a black cross on his card would mean?",
+      "features": [
+        "literal",
+        "entity_confusion"
+      ],
+      "rationale": "Rank explains the sign himself; it is not Krogstad’s threat.",
+      "groups": [
+        {
+          "any_of": [
+            "As soon as I am quite certain that the worst has come, I shall send you my card with a black cross on it, and then you will know that the loathsome end has begun."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-truth",
+      "story": "doll",
+      "query": "Why does Christine decide that suppressing the disclosure would make things worse for the couple?",
+      "features": [
+        "paraphrase",
+        "motives"
+      ],
+      "rationale": "Her reason is the impossibility of understanding under concealment, not continued hostility.",
+      "groups": [
+        {
+          "any_of": [
+            "Helmer must know all about it. This unhappy secret must be disclosed; they must have a complete understanding between them, which is impossible with all this concealment and falsehood going on."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-money",
+      "story": "doll",
+      "query": "Correct the public story about who paid for the trip that saved Torvald, and identify the actual lender.",
+      "features": [
+        "multi_evidence",
+        "belief_correction",
+        "entity_confusion"
+      ],
+      "rationale": "The earlier account rejects paternal funding; the later exchange names the lender.",
+      "groups": [
+        {
+          "any_of": [
+            "Papa didn’t give us a shilling. It was I who procured the money."
+          ]
+        },
+        {
+          "any_of": [
+            "Nora—it was Krogstad who lent you the money!"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-response",
+      "story": "doll",
+      "query": "Keep Torvald’s change of attitude clear: what does he say when he first reads the exposure, and what changes after the second delivery?",
+      "features": [
+        "multi_evidence",
+        "chronology",
+        "relationship"
+      ],
+      "rationale": "Requires his first self-regarding accusation and subsequent response to the returned bond.",
+      "groups": [
+        {
+          "any_of": [
+            "Now you have destroyed all my happiness. You have ruined all my future."
+          ]
+        },
+        {
+          "any_of": [
+            "You too, of course; we are both saved, both you and I. Look, he sends you your bond back."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-false-signature",
+      "story": "doll",
+      "query": "Do not treat Nora’s father as the person who signed the bond. Who admits writing his name?",
+      "features": [
+        "false_premise"
+      ],
+      "rationale": "The direct admission overturns the attributed signature.",
+      "groups": [
+        {
+          "any_of": [
+            "No, it was not. It was I that wrote papa’s name."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doll-unknown-rate",
+      "story": "doll",
+      "query": "What exact annual percentage interest rate did Krogstad put on Nora’s loan?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "The selected play discusses debt and repayment but does not specify an annual percentage rate.",
+      "groups": []
+    },
+    {
+      "id": "doll-unknown-destination",
+      "story": "doll",
+      "query": "Give the exact street address of the home Nora will live in a year after leaving Torvald.",
+      "features": [
+        "unknown",
+        "future"
+      ],
+      "rationale": "The play does not establish this later address.",
+      "groups": []
+    },
+    {
+      "id": "machine-permission",
+      "story": "machine",
+      "query": "What permission did Kuno lack when he made his own way outside?",
+      "features": [
+        "literal"
+      ],
+      "rationale": "His direct admission identifies the missing authorization.",
+      "groups": [
+        {
+          "any_of": [
+            "I did not get an Egression-permit."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-shelter",
+      "story": "machine",
+      "query": "According to Vashti, why would an unprotected person die on the surface?",
+      "features": [
+        "literal",
+        "belief"
+      ],
+      "rationale": "This asks for her belief, not an authoritative world fact.",
+      "groups": [
+        {
+          "any_of": [
+            "you would need a respirator, or the cold of the outer air would kill you. One dies immediately in the outer air."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-expertise",
+      "story": "machine",
+      "query": "Why can a civilization full of specialists no longer understand the system that keeps it alive?",
+      "features": [
+        "paraphrase",
+        "causal"
+      ],
+      "rationale": "Fragmented expertise and the loss of the original designers explain the gap.",
+      "groups": [
+        {
+          "any_of": [
+            "in all the world there was not one who understood the monster as a whole. Those master brains had perished."
+          ]
+        },
+        {
+          "any_of": [
+            "their successors had each of them mastered a portion of those directions."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-outside",
+      "story": "machine",
+      "query": "Contrast the early claim that nobody remains outside with what the son later reports from direct experience.",
+      "features": [
+        "multi_evidence",
+        "belief_correction"
+      ],
+      "rationale": "Both the old belief and the contradictory report are required.",
+      "groups": [
+        {
+          "any_of": [
+            "The surface of the earth is only dust and mud, no life remains on it"
+          ]
+        },
+        {
+          "any_of": [
+            "I have seen them, spoken to them, loved them. They are hiding in the mist and the ferns until our civilisation stops."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-decay",
+      "story": "machine",
+      "query": "Trace the change from tolerating small faults to the repair service admitting that it cannot fix itself.",
+      "features": [
+        "multi_evidence",
+        "chronology"
+      ],
+      "rationale": "The first evidence establishes adaptation to faults; the second establishes repair-system failure.",
+      "groups": [
+        {
+          "any_of": [
+            "The defects had not been remedied, but the human tissues in that latter day had become so subservient, that they readily adapted themselves to every caprice of the Machine."
+          ]
+        },
+        {
+          "any_of": [
+            "It confessed that the Mending Apparatus was itself in need of repair."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-observation",
+      "story": "machine",
+      "query": "A lecturer praises learning directly from experience, correct? Preserve what he actually advocates.",
+      "features": [
+        "false_premise"
+      ],
+      "rationale": "The passage advises mediated, second-hand or tenth-hand ideas instead.",
+      "groups": [
+        {
+          "any_of": [
+            "Let your ideas be second-hand, and if possible tenth-hand, for then they will be far removed from that disturbing element--direct observation."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-unknown-designer",
+      "story": "machine",
+      "query": "What was the full personal name of the Machine’s original chief designer?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "Past master brains are mentioned without naming an original chief designer.",
+      "groups": []
+    },
+    {
+      "id": "machine-unknown-rebuild",
+      "story": "machine",
+      "query": "How many years after the collapse did survivors rebuild the underground system?",
+      "features": [
+        "unknown",
+        "future"
+      ],
+      "rationale": "The ending does not establish a later reconstruction date.",
+      "groups": []
+    },
+    {
+      "id": "fire-temperature",
+      "story": "fire",
+      "query": "What is the actual temperature while the man initially treats it as merely colder than fifty below?",
+      "features": [
+        "literal"
+      ],
+      "rationale": "The narrator states seventy-five below.",
+      "groups": [
+        {
+          "any_of": [
+            "It was seventy-five below zero."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-warning",
+      "story": "fire",
+      "query": "What travel rule had the old-timer on Sulphur Creek laid down?",
+      "features": [
+        "literal"
+      ],
+      "rationale": "The rule combines traveling alone, place and cold threshold.",
+      "groups": [
+        {
+          "any_of": [
+            "The old-timer had been very serious in laying down the law that no man must travel alone in the Klondike after fifty below."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-blindness",
+      "story": "fire",
+      "query": "Why does this alert newcomer fail to grasp the danger behind the numbers?",
+      "features": [
+        "paraphrase",
+        "causal"
+      ],
+      "rationale": "The narration distinguishes practical alertness from understanding significance.",
+      "groups": [
+        {
+          "any_of": [
+            "The trouble with him was that he was without imagination. He was quick and alert in the things of life, but only in the things, and not in the significances."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-dog-plan",
+      "story": "fire",
+      "query": "Explain the emergency plan involving his animal, and the physical limitation that makes it impossible.",
+      "features": [
+        "multi_evidence",
+        "causal"
+      ],
+      "rationale": "Both the warming plan and inability to wield a knife or strangle are needed.",
+      "groups": [
+        {
+          "any_of": [
+            "He would kill the dog and bury his hands in the warm body until the numbness went out of them."
+          ]
+        },
+        {
+          "any_of": [
+            "With his helpless hands he could neither draw nor hold his sheath-knife nor throttle the animal."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-advice",
+      "story": "fire",
+      "query": "Show how his judgment of the older man’s caution changes between apparent recovery and his final surrender.",
+      "features": [
+        "multi_evidence",
+        "chronology"
+      ],
+      "rationale": "Requires the dismissive assessment and the later admission.",
+      "groups": [
+        {
+          "any_of": [
+            "Those old-timers were rather womanish, some of them, he thought."
+          ]
+        },
+        {
+          "any_of": [
+            "“You were right, old hoss; you were right,” the man mumbled to the old-timer of Sulphur Creek."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-snow",
+      "story": "fire",
+      "query": "Was a gust of wind responsible for extinguishing his first successful emergency fire? Keep the actual chain of events.",
+      "features": [
+        "false_premise",
+        "causal"
+      ],
+      "rationale": "No wind; pulling fuel shakes the loaded tree. Both distinguish the real cause.",
+      "groups": [
+        {
+          "any_of": [
+            "No wind had blown for weeks, and each bough was fully freighted."
+          ]
+        },
+        {
+          "any_of": [
+            "Each time he had pulled a twig he had communicated a slight agitation to the tree"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire-unknown-name",
+      "story": "fire",
+      "query": "What is the traveler’s full name?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "The selected story never gives the traveler a personal name.",
+      "groups": []
+    },
+    {
+      "id": "fire-unknown-dog",
+      "story": "fire",
+      "query": "What name had the man given his husky?",
+      "features": [
+        "unknown",
+        "topical"
+      ],
+      "rationale": "The selected story does not name the dog.",
+      "groups": []
+    }
+  ]
+}

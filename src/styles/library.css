@@ -144,3 +144,22 @@
 .asset-monogram img { display: block; width: 100%; height: 144px; min-height: 0; object-fit: cover; }
 .artwork-comparison { display: block; max-width: 100%; width: 160px; height: 180px; object-fit: contain; margin-top: 12px; border-radius: 6px; }
 @media (max-width: 560px) { .artwork-field { flex-direction: column; } .artwork-preview { flex-basis: auto; } }
+
+.canon-export-entries { margin: 0; padding: 14px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.canon-export-entries legend { padding: 0 4px; color: var(--muted); font-size: 0.75rem; }
+
+.canon-cue-manager { min-width: 0; }
+.canon-cue-heading { margin: 0; }
+.canon-cue-search { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.canon-cue-search .field:first-child { flex: 1 1 240px; }
+.canon-cue-search .field { min-width: 0; flex: 1 1 190px; }
+.canon-cue-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.canon-cue-state { color: var(--muted); font-size: .75rem; line-height: 1.7; }
+.canon-cue-card .section-heading { flex-wrap: wrap; gap: 8px; }
+.canon-cue-card h4, .canon-cue-summary { margin: 0; }
+.canon-cue-summary { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 8em; overflow: auto; }
+.canon-cue-evidence summary { cursor: pointer; }
+
+.decision-conflict { border: 1px solid var(--border); border-radius: 8px; min-width: 0; padding: 16px; }
+.decision-conflict legend { padding: 0 6px; }
+.decision-merge p { overflow-wrap: anywhere; }

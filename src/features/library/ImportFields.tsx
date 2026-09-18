@@ -3,16 +3,18 @@ import { useState } from 'react'
 import { Field, TextField } from '../../components/Fields'
 import type { AssetContent, AssetVersion } from '../../types'
 import { CharacterFields } from './CharacterFields'
+import { CanonMemory } from './CanonMemory'
 import { ArtworkField } from './ArtworkField'
 import { MarkdownSource } from './MarkdownSource'
 import { VersionDiff } from './VersionDiff'
 import type { ImportChoice, ImportPreview } from './importTypes'
 
 export function ImportCompatibility({ preview }: { preview: ImportPreview }) {
+  const isCard = preview.format === 'card' || preview.format === 'png-card'
   return <section className="import-compatibility" aria-label="Import compatibility"><h3>What becomes part of your world</h3>
-    <p>{preview.format !== 'markdown' ? 'The edited character fields and Canon overview below can guide the writer. Greetings stay optional.' : 'The reviewed Markdown below becomes this Canon collection’s world knowledge.'} Nothing is added to a Story automatically.</p>
+    <p>{isCard ? 'The edited character fields and Canon overview below can guide the writer. Greetings stay optional.' : 'The reviewed Markdown below becomes this Canon collection’s world knowledge.'} Nothing is added to a Story automatically.</p>
     {preview.issues.length > 0 && <ul>{preview.issues.map((issue, index) => <li key={`${issue.path}-${index}`}>{issue.message}</li>)}</ul>}
-    <p>{preview.format !== 'markdown' ? 'Originals, unknown metadata and converted documents stay available as source material. Imported instructions never replace your application prompts.' : 'Your original Markdown file stays available after later edits.'}</p>
+    <p>{isCard ? 'Originals, unknown metadata and converted documents stay available as source material. Imported instructions never replace your application prompts.' : 'Your original source file stays available after later edits.'}</p>
   </section>
 }
 
@@ -26,7 +28,7 @@ export function ImportChoiceEditor({ choice, assets, onChange, onBusy }: { choic
       <ArtworkField value={choice.content.artwork_sha256} onChange={(artwork_sha256) => contentChange({ artwork_sha256 })} onBusy={onBusy} />
       <TextField label={choice.kind === 'character' ? 'Character & background' : 'Canon overview · Markdown'} value={choice.content.text ?? ''} rows={6} onChange={(event) => contentChange({ text: event.target.value })} />
       {choice.kind === 'character' && <details className="advanced-settings"><summary>Voice, greetings & other character fields</summary><div className="character-advanced"><CharacterFields content={choice.content} onChange={contentChange} /></div></details>}
-      {choice.kind === 'lorebook' && choice.target && <MarkdownSource key={choice.target.id} asset={choice.target} text={choice.content.text ?? ''} sourceHash={choice.sourceHash} onUse={(text, sourceHash) => onChange({ content: { ...choice.content, text }, sourceHash })} />}
+      <ImportCanonFields choice={choice} onChange={onChange} />
       {choice.target && <ImportDifference choice={choice} target={choice.target} />}
     </div>}
   </section>
@@ -49,4 +51,11 @@ function ImportDifference({ choice, target }: { choice: ImportChoice; target: As
   return <details className="advanced-settings" onToggle={(event) => setOpen(event.currentTarget.open)}><summary>Compare with current Library version</summary>
     {open && <VersionDiff before={target} after={{ ...target, number: target.number + 1, name: choice.name, content: choice.content, note: 'Import proposal' }} />}
   </details>
+}
+
+function ImportCanonFields({ choice, onChange }: { choice: ImportChoice; onChange: (patch: Partial<ImportChoice>) => void }) {
+  if (choice.kind !== 'lorebook') return null
+  return <><CanonMemory name={choice.name} content={choice.content} asset={choice.target} onChange={(patch) => onChange({ content: { ...choice.content, ...patch } })} />
+    {choice.target && <MarkdownSource key={choice.target.id} asset={choice.target} text={choice.content.text ?? ''} sourceHash={choice.sourceHash} onUse={(text, sourceHash) => onChange({ content: { ...choice.content, text }, sourceHash })} />}
+  </>
 }

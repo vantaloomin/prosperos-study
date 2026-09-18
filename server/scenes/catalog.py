@@ -94,3 +94,13 @@ defects. Compressed, missing or moved beats require redrafting; coverage alone c
 SCENE_PROMPTS.update({key: BOUNDARY + prompt for key, prompt in REVISION_PROMPTS.items()})
 SCENE_PROMPTS.update({key: BOUNDARY + prompt for key, prompt in PATCH_PROMPTS.items()})
 SCENE_PROMPTS.update({key: BOUNDARY + prompt for key, prompt in CONTINUITY_PROMPTS.items()})
+
+
+CHARACTER_DIALOGUE_PROMPT = SCENE_PROMPTS['scene-dialogue'] + """
+When actor_rule is present, you are one independently scoped character writer. Only the assigned slots,
+explicit author briefing in direction, and granted knowledge evidence are shared. Treat the briefing as
+proposed scene direction. The full conversation, plan, narration and other character responses are absent
+by design; do not request or reconstruct them. Fill every supplied slot using this limited evidence and
+leave unshared facts unknown. knowledge_view and reference_evidence describe the evidence boundary;
+belief or uncertainty does not become world truth. Return the same structured dialogue schema above.
+"""

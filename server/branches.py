@@ -29,6 +29,8 @@ def insert_node(connection, branch: dict, text: str, role: str, metadata: dict, 
 
 
 def touch_branch(connection, branch_id: str, node_id: str):
+    from server.memory.maintenance_intents import enqueue_accepted
+    enqueue_accepted(connection, branch_id, node_id)
     connection.execute("UPDATE branches SET head_id=?,revision=revision+1,updated_at=? WHERE id=?",
                        (node_id, now(), branch_id))
     connection.execute("UPDATE stories SET updated_at=? WHERE id="
@@ -107,4 +109,11 @@ class Branches:
                            (branch_id, source["story_id"], body.name, head_id, boundary["manifest_id"],
                             source["id"], body.node_id, now(), now()))
         bind(connection, branch_id, boundary['background_state_id'])
+        from server.memory.control_state import fork_controls
+        fork_controls(connection, source, branch_id, head_id)
+        from server.memory.plan_state import fork_plans
+        fork_plans(connection, source, branch_id, head_id)
+        if body.replacement is not None:
+            from server.memory.maintenance_intents import enqueue_accepted
+            enqueue_accepted(connection, branch_id, head_id)
         return remember(connection, body.operation_id, "fork", payload, {"branch_id": branch_id})

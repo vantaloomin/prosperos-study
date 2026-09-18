@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PlanDetails } from '../storyMemory/PlanDetails'
 import { api, operationId } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
@@ -18,7 +19,7 @@ export function ContinuityArtifact({ result }: { result: SceneResult }) {
 }
 
 function ContinuityChangeView({ change }: { change: ContinuityChange }) {
-  return <article className="review-finding"><span className="eyebrow">{change.action} · {change.kind}</span><h4>{change.subject}</h4><p>{change.text}</p><p className="subtle">{change.reason}</p>
+  return <article className="review-finding"><span className="eyebrow">{change.action} · {change.kind}</span><h4>{change.subject}</h4><p>{change.text}</p><p className="subtle">{change.reason}</p>{change.plan && <PlanDetails plan={change.plan} />}
     <details className="input-inspector"><summary>Evidence for this change</summary>{change.evidence.map((item, index) => <div key={index}><blockquote>{item.quote}</blockquote><small>{item.source_id}</small></div>)}</details>
   </article>
 }

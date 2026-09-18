@@ -6,6 +6,8 @@ from server.database import decode, encode, identifier, many, now, one
 from server.errors import require
 from server.models import Input
 from server.prompt_flow import GROUPS, flow_metadata
+from server.scenes.catalog import BOUNDARY, CHARACTER_DIALOGUE_PROMPT, SCENE_PROMPTS
+from server.scenes.continuity_catalog import PLANNED_CONTINUITY_PROMPT
 from server.workflow.catalog import DEFAULT_PROMPTS, STEPS
 
 PROMPT_LABELS = {step["key"]: step["name"] for step in STEPS + AUTHORING_STEPS}
@@ -33,7 +35,7 @@ contains author direction or out-of-character notes, not fictional actions or ev
 or mechanics. Return only proposed story prose, without a preface, analysis, or claim that it has been accepted.
 Do not use tools, search, inspect files, or modify anything. Your output is a draft for the user to review."""
 
-DEFAULT_COLLABORATOR = """You are a collaborator beside an interactive story. Discuss, review, brainstorm, or improve
+LEGACY_COLLABORATOR = """You are a collaborator beside an interactive story. Discuss, review, brainstorm, or improve
 the user's writing. You cannot advance the story, change its state, run tools, or accept your own suggestions.
 Label sample prose and imagined developments as proposals. Keep established facts separate from alternatives.
 The supplied source index is a frozen archive of the chosen branch and any explicitly included comparison paths.
@@ -45,6 +47,13 @@ Request at most eight IDs at once. This is your only supported retrieval operati
 operations are available. After reading the needed sources, respond in ordinary prose. If coverage is insufficient,
 explain what remains unreviewed. Follow the user's disclosure preference; label spoilers before revealing them.
 Never claim a proposed change has been applied. Do not use external tools, shell commands, or file access."""
+
+
+DEFAULT_COLLABORATOR = LEGACY_COLLABORATOR.replace(
+    'Request at most eight IDs at once. This is your only supported retrieval operation. No file, network, or mutation',
+    'Request at most eight IDs at once. When retrieval_protocol is supplied, it also describes bounded SEARCH_SOURCES, '
+    'LIST_SOURCES and exact range reads over the same frozen archive. Follow its page offsets; snippets are partial '
+    'evidence, not whole documents. Your next archive command replaces the working source window. No file, network, or mutation')
 
 
 class PromptActivation(Input):
@@ -63,11 +72,14 @@ class PromptUpdate(Input):
 
 def initialize_prompts(database):
     with database.connect(write=True) as connection:
-        for key, template in {"writer": LEGACY_WRITER, "collaborator": DEFAULT_COLLABORATOR, **DEFAULT_PROMPTS}.items():
+        for key, template in {"writer": LEGACY_WRITER, "collaborator": LEGACY_COLLABORATOR, **DEFAULT_PROMPTS}.items():
             version_id = f"{key}-default-v1"
             connection.execute("INSERT OR IGNORE INTO prompt_versions VALUES (?,?,?,?,?)",
                                (version_id, key, 1, template, now()))
             connection.execute("INSERT OR IGNORE INTO prompt_heads VALUES (?,?)", (key, version_id))
+        add_builtin_revision(connection, 'collaborator', DEFAULT_COLLABORATOR, LEGACY_COLLABORATOR)
+        add_builtin_revision(connection, 'scene-dialogue', CHARACTER_DIALOGUE_PROMPT, SCENE_PROMPTS['scene-dialogue'])
+        add_builtin_revision(connection, 'scene-continuity', BOUNDARY + PLANNED_CONTINUITY_PROMPT, SCENE_PROMPTS['scene-continuity'])
         initialize_writing_default(connection)
         initialize_persona_authoring(connection)
 

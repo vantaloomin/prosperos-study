@@ -19,12 +19,14 @@ export interface Generation {
   stale: boolean
   candidates: Candidate[]
   snapshot: {
+    knowledge_lens?: import('./KnowledgeChoice').KnowledgeReceipt
     lore?: LoreReceipt
     opportunity_id: string | null
     content: string
     prompt: { id: string; key: string; number: number; template: string }
     estimated_input_tokens: number
-    coverage: { messages: number; complete_path: boolean }
+    coverage: { messages: number; complete_path: boolean; included_messages?: number; recalled_passages?: number }
+    reviewed_context?: { fingerprint: string; stage: 'writer' | 'before_assessment' }
   }
 }
 export interface GenerationSummary { id: string; branch_id: string; created_at: string }

@@ -9,6 +9,14 @@ from server.database import decode, encode, many, one
 from server.errors import DomainError, require
 from server.library_formats.import_context import import_reference_sources
 from server.manifests import manifest_view
+from server.memory.control_packet import decision_packet
+from server.memory.control_state import control_view
+from server.memory.index import connection_index
+from server.memory.plan_state import plan_head
+from server.memory.scoped_aids import annotated_documents
+from server.memory.settings import memory_settings
+from server.memory.side_packet import prepare_archive
+from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
 from server.prompts import PROMPT_LABELS, prompt_snapshot
 from server.stories import check_revision
@@ -21,29 +29,40 @@ def document_parts(source_id, title, text):
             for offset in range(0, max(len(text), 1), 6000)]
 
 
-def branch_sources(connection, branch):
+def branch_sources(connection, branch, aids=None):
     docs = []
     prefix = f"{branch['name']} · revision {branch['revision']}"
     nodes = path_nodes(connection, branch["head_id"])
     for index, node in enumerate(nodes):
-        docs.extend(document_parts(f"{branch['id']}:message:{node['id']}", f"{prefix} · message {index + 1} · {node['role']}", node["text"]))
+        docs.extend(message_documents(branch, node, f"{prefix} · message {index + 1} · {node['role']}", aids or {}))
     for asset in manifest_view(connection, branch["manifest_id"]):
         version = asset["version"]
         docs.extend(document_parts(f"asset:{version['id']}", f"{prefix} · {version['name']} v{version['number']}",
                                    encode(asset)))
         docs.extend(import_reference_sources(connection, version['id']))
+    decisions = decision_packet(control_view(connection, branch))
+    if decisions:
+        docs.extend(document_parts(f"author-controls:{branch['id']}", f"{prefix} · Author memory decisions; not story events", encode(decisions)))
     docs.extend(review_sources(connection, branch))
     docs.extend(scene_sources(connection, branch))
     docs.extend(assessment_sources(connection, branch))
     docs.extend(interpretation_sources(connection, branch))
     docs.extend(document_parts(f"continuity:{branch['id']}", f"{prefix} · accepted continuity and provenance",
-                               encode(continuity_view(connection, branch['head_id']))))
+                               encode(continuity_view(connection, branch['head_id'], plan_head(connection, branch['id'])))))
     docs.extend(mechanic_sources(connection, branch, nodes))
     background = state_id(connection, branch['id'])
     if background:
         row = one(connection, 'SELECT snapshot FROM background_states WHERE id=?', (background,))
         docs.extend(document_parts(f'background:{background}', f'{prefix} · PRIVATE background; disclose only with full-disclosure permission', row['snapshot']))
     return docs
+
+
+def message_documents(branch, node, title, aids):
+    prefix = f"{branch['id']}:message:{node['id']}"
+    aligned = annotated_documents(f"message:{node['id']}", title, node['text'], aids) if aids else None
+    if aligned is None:
+        return document_parts(prefix, title, node['text'])
+    return [{'id': f'{prefix}:{index + 1}', 'title': title, **document} for index, document in enumerate(aligned)]
 
 
 def assessment_sources(connection, branch):
@@ -110,22 +129,28 @@ def side_snapshot(connection, thread, body):
     require(branch["story_id"] == thread["story_id"], "Choose a branch from this story.")
     check_revision(branch, body.expected_revision)
     story = one(connection, "SELECT * FROM stories WHERE id=?", (thread["story_id"],))
+    policy = memory_settings(decode(story['settings']).get('memory'))
     sources = document_parts(f"story:{story['id']}", "Story settings and premise", encode(story))
     for branch_id in dict.fromkeys([body.branch_id, *body.compare_branch_ids]):
         selected = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
         require(selected["story_id"] == thread["story_id"], "Comparison paths must belong to this story.")
-        sources.extend(branch_sources(connection, selected))
+        aids = reviewed_aids(connection, selected, policy) if policy.summary_recall else {}
+        sources.extend(branch_sources(connection, selected, aids))
     sources.extend(workspace_sources(connection, body.branch_id, story))
-    history = many(connection, "SELECT t.question,t.snapshot,r.output FROM side_turns t JOIN side_replies r "
+    history = many(connection, "SELECT t.id,t.question,t.snapshot,r.output,r.coverage FROM side_turns t JOIN side_replies r "
                    "ON t.selected_reply_id=r.id WHERE t.thread_id=? AND r.status='done' ORDER BY t.created_at", (thread["id"],))
     conversation = [{"question": row["question"], "answer": row["output"],
                      "branch": decode(row["snapshot"])["branch"]["name"]} for row in history]
     profiles = [resolve_profile(connection, story, "collaborator", item) for item in (body.profile_ids or [None])]
     require(len(body.profile_ids) == len(set(body.profile_ids)), "Choose each profile once.")
-    return {"branch": branch, "story_revision": story["revision"], "question": body.question,
+    snapshot = {"branch": branch, "story_revision": story["revision"], "question": body.question,
             "prompt": prompt_snapshot(connection, "collaborator", story), "conversation": conversation,
             "sources": list({doc["id"]: doc for doc in sources}.values()), "disclosure": body.disclosure,
-            "max_reads": body.max_reads}, profiles
+            "max_reads": body.max_reads}
+    if policy.mode == 'long':
+        with connection_index(connection):
+            snapshot = prepare_archive(snapshot, history, profiles)
+    return snapshot, profiles
 
 
 def workspace_sources(connection, branch_id, story):
@@ -158,6 +183,8 @@ def assemble_context(snapshot, profile, source_ids):
 
 
 def initial_sources(snapshot, profile):
+    if snapshot.get('retrieval'):
+        return []  # The identical first packet was already frozen against every profile.
     ids = [item["id"] for item in snapshot["sources"]]
     try:
         assemble_context(snapshot, profile, ids)

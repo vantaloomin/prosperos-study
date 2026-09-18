@@ -1,0 +1,2 @@
+# Preserve downloaded source bytes and upstream whitespace exactly.
+*.txt -text -whitespace

@@ -1,3 +1,4 @@
+import hashlib
 import math
 
 from server.database import decode, encode, identifier, now, one
@@ -8,6 +9,7 @@ from server.lore.runtime import attach_lore
 from server.mechanics.engine import resolve_beat
 from server.mechanics.models import Beat, RngSettings
 from server.mechanics.storage import opportunity_stale, opportunity_view
+from server.memory.packet import ordered_layers
 
 
 def opportunity_for(connection, run, snapshot, job):
@@ -28,6 +30,8 @@ def opportunity_for(connection, run, snapshot, job):
     result.update(assessment_id=run['id'], assessment_job_id=job['id'])
     if 'background_state_id' in snapshot['writer_snapshot']:
         result['background_state_id'] = snapshot['writer_snapshot']['background_state_id']
+    if 'memory_controls_version_id' in snapshot['writer_snapshot']:
+        result['memory_controls_version_id'] = snapshot['writer_snapshot']['memory_controls_version_id']
     opportunity_id = identifier()
     connection.execute('INSERT INTO mechanic_opportunities VALUES (?,?,?,?,?,?)',
                        (opportunity_id, branch['story_id'], branch['id'], run['head_key'], encode(result), now()))
@@ -40,11 +44,18 @@ def apply_opportunity(writer, profiles, opportunity_id, opportunity):
     if opportunity.get('lore'):
         writer['lore'] = opportunity['lore']
         content = writer_context(content, opportunity['lore'])
+    # Earlier saved assessments must reproduce their original input bytes on archive validation.
+    memory = writer.get('memory', {})
+    current_receipt = memory.get('receipt_version', 1) >= 2
+    content = ordered_layers(content) if current_receipt else content
     writer.update(content=encode(content), opportunity_id=opportunity_id)
+    if current_receipt:
+        memory['content_sha256'] = hashlib.sha256(writer['content'].encode('utf-8')).hexdigest()
     estimated = math.ceil(len((writer['prompt']['template'] + writer['content']).encode('utf-8')) / 3)
     for profile in profiles:
         capacity = profile['config']['context_tokens'] - profile['config']['max_output_tokens']
-        require(estimated <= capacity, f"The assessed beat exceeds {profile['name']}'s context allowance. Continue without chance or use another profile.", 409)
+        margin = memory.get('overhead_margin', 0) if current_receipt else 0
+        require(estimated + margin <= capacity, f"The assessed beat exceeds {profile['name']}'s context allowance. Continue without chance or use another profile.", 409)
     writer['estimated_input_tokens'] = estimated
 
 

@@ -1,3 +1,4 @@
+import { SourceMemoryCoverage, SourceMemoryDetails } from '../workflow/SourceMemoryCoverage'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, operationId } from '../../api'
@@ -16,6 +17,7 @@ import { PatchWorkspace } from './PatchWorkspace'
 import { ContinuityWorkspace } from './ContinuityWorkspace'
 import { ManualSceneAcceptance } from './ManualSceneAcceptance'
 import { StageRequest } from './StageRequest'
+import { ActorJobInputs } from './CharacterDialogue'
 import { enabledSceneSteps, planningStep, sceneSteps, sceneWorking, type SceneJob, type SceneKey, type SceneRun } from './types'
 import { useScene } from './useScene'
 import { useSceneFocus } from './useSceneFocus'
@@ -116,12 +118,13 @@ export function SceneProposal({ job, run, onChosen }: { job: SceneJob; run: Scen
     onChosen()
   })
   const control = (kind: string) => action.run(async () => { await api(`/scene-jobs/${job.id}/${kind}`, {}) })
-  return <section ref={panel} tabIndex={-1} aria-label={`Proposal from ${job.snapshot.profile.name}`} className="scene-proposal form-stack"><div className="candidate-meta"><span>{job.snapshot.profile.config.model} · prompt v{job.snapshot.prompt.number}</span><span role="status">{job.status} · attempt {job.attempt}</span></div><ErrorNotice message={action.error || job.error} />
+  return <section ref={panel} tabIndex={-1} aria-label={`Proposal from ${job.snapshot.profile.name}`} className="scene-proposal form-stack"><div className="candidate-meta"><span>{job.snapshot.profile.config.model} · prompt v{job.snapshot.prompt.number}</span><span role="status">{job.status} · attempt {job.attempt}</span></div><ErrorNotice message={action.error || job.error} /><SourceMemoryCoverage memory={job.snapshot.source_memory} />
     {!job.current_inputs && <p className="subtle">This proposal uses earlier choices. It remains available for reference.</p>}
+    <ActorJobInputs job={job} />
     <SceneArtifact job={job} run={run} disabled={locked} onChoose={choose} />
     {job.result && job.step !== 'scene-options' && <button className="button" aria-disabled={locked || chosen} onClick={() => choose()}>{chosen ? 'Result selected' : 'Use this stage result'}</button>}
     <JobControls job={job} busy={action.busy} onControl={control} />
-    <details className="input-inspector"><summary>Reveal exact inputs and raw output (may include private background)</summary><h4>Prompt</h4><pre>{job.snapshot.prompt.template}</pre><h4>Sources and proposed inputs</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><h4>Reported usage</h4><pre>{JSON.stringify(job.usage, null, 2)}</pre></details><SceneAttempts job={job} />
+    <details className="input-inspector"><summary>Reveal exact inputs and raw output (may include private background)</summary><h4>Prompt</h4><pre>{job.snapshot.prompt.template}</pre><h4>Sources and proposed inputs</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><SourceMemoryDetails memory={job.snapshot.source_memory} /><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><h4>Reported usage</h4><pre>{JSON.stringify(job.usage, null, 2)}</pre></details><SceneAttempts job={job} />
   </section>
 }
 

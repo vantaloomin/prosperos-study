@@ -5,6 +5,8 @@ from fastapi.responses import StreamingResponse
 
 from server.continuity import continuity_view
 from server.database import encode, one
+from server.memory.plan_state import plan_head
+from server.scenes.actor_context import actor_choices
 from server.scenes.continuity_models import SceneAcceptance
 from server.scenes.models import (
     SceneApproval,
@@ -16,6 +18,7 @@ from server.scenes.models import (
 )
 from server.scenes.revision_models import RevisionApproval, TriageEdit
 from server.scenes.service import Scenes
+from server.scenes.state import run_record
 
 router = APIRouter(prefix="/api")
 
@@ -38,6 +41,12 @@ def detail(run_id: str, request: Request):
 @router.post("/scenes/{run_id}/preview")
 def preview(run_id: str, body: SceneStep, request: Request):
     return Scenes(request.app.state.database).preview(run_id, body)
+
+
+@router.get('/scenes/{run_id}/character-evidence')
+def character_evidence(run_id: str, request: Request):
+    with request.app.state.database.connect() as connection:
+        return actor_choices(connection, run_record(connection, run_id))
 
 
 @router.get('/scenes/{run_id}/reports')
@@ -92,7 +101,7 @@ def accept(run_id: str, body: SceneAcceptance, request: Request):
 def continuity(branch_id: str, request: Request):
     with request.app.state.database.connect() as connection:
         branch = one(connection, 'SELECT head_id FROM branches WHERE id=?', (branch_id,))
-        return continuity_view(connection, branch['head_id'])
+        return continuity_view(connection, branch['head_id'], plan_head(connection, branch_id))
 
 
 async def updates(request, run_id):

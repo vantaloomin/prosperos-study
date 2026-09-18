@@ -4,7 +4,7 @@ import type { ModelProfile } from '../models/types'
 export interface SideThread { id: string; name: string; story_id: string; turns: SideTurn[] }
 export interface SideTurn {
   id: string; question: string; selected_reply_id: string | null; source_count: number
-  snapshot: { branch: BranchSummary; story_revision: number; disclosure: string; max_reads: number }
+  snapshot: { branch: BranchSummary; story_revision: number; disclosure: string; max_reads: number; retrieval?: { version: number; input_allowance: number } }
   replies: SideReply[]
 }
 export interface SideReply {

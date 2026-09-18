@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image, PngImagePlugin
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.character_content import narrative_asset
 from server.database import one
@@ -80,7 +81,7 @@ def test_artwork_versions_pins_archive_and_restore_keep_exact_images(client, tmp
     assert branch['attachments'][0]['version_id'] == first['id']
     assert 'source_base64' not in json.dumps(branch)
     file, document = backup(client)
-    assert document['version'] == 19 and len(document['data']['library_media']) == 2
+    assert document['version'] == ARCHIVE_VERSION and len(document['data']['library_media']) == 2
     restore(client, file)  # Restoring into the source workspace deduplicates image bytes.
     with TestClient(create_app(tmp_path / 'fresh.sqlite3'), headers={'x-roleplay-client': 'workspace'}) as target:
         staged = target.post('/api/archives/imports', json={'content': json.dumps(document)})
@@ -103,7 +104,7 @@ def test_png_provenance_restores_even_after_artwork_is_removed(client, tmp_path)
     assert response.status_code == 201
     _, document = backup(client)
     assert len(document['data']['library_media']) == 1
-    assert parse_archive(json.dumps(document))['version'] == 19
+    assert parse_archive(json.dumps(document))['version'] == ARCHIVE_VERSION
 
 
 @pytest.mark.parametrize('kind', ['character', 'lorebook', 'persona'])
@@ -227,6 +228,10 @@ def test_format_seventeen_upgrades_without_changing_prior_card_conversion(client
     _, original = backup(client)
     original['data'].pop('library_media')
     original['version'] = 17
+    from tests.archive_legacy import remove_summaries
+    remove_summaries(original)
+    original['prompt_heads'].pop('authoring-enrich')
+    original['data']['prompt_versions'] = [row for row in original['data']['prompt_versions'] if row['key'] != 'authoring-enrich']
     assert parse_archive(json.dumps(original))['data']['library_media'] == []
     assert convert_import('card.json', json.dumps(card('v3')).encode()) == before
 

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
+from starlette.concurrency import run_in_threadpool
 
 from server.side_conversations import SideConversations, SideQuestion, SideThreadCreate
 
@@ -22,7 +23,7 @@ def detail(thread_id: str, request: Request):
 
 @router.post("/side-conversations/{thread_id}/questions", status_code=201)
 async def ask(thread_id: str, body: SideQuestion, request: Request):
-    result = SideConversations(request.app.state.database).ask(thread_id, body)
+    result = await run_in_threadpool(SideConversations(request.app.state.database).ask, thread_id, body)
     runner = request.app.state.side_runner
     for reply in runner.pending(result["id"]):
         runner.start(reply["id"])
@@ -47,3 +48,20 @@ async def cancel(reply_id: str, request: Request):
 @router.post("/side-replies/{reply_id}/retry", status_code=201)
 async def retry(reply_id: str, request: Request):
     return request.app.state.side_runner.retry(reply_id)
+
+
+@router.get("/side-turns/{turn_id}/source-search")
+def search_sources(turn_id: str, request: Request, query: str = Query(default="", max_length=1000),
+                   offset: int = Query(default=0, ge=0, le=1000000)):
+    return SideConversations(request.app.state.database).search_sources(turn_id, query, offset)
+
+
+@router.get("/side-turns/{turn_id}/source")
+def read_source(turn_id: str, request: Request, source_id: str = Query(max_length=500),
+                offset: int = Query(default=0, ge=0), length: int = Query(default=2400, ge=1, le=2400)):
+    return SideConversations(request.app.state.database).read_source(turn_id, source_id, offset, length)
+
+
+@router.get("/side-replies/{reply_id}/requests/{index}")
+def request_inputs(reply_id: str, index: int, request: Request):
+    return SideConversations(request.app.state.database).request_inputs(reply_id, index)

@@ -13,6 +13,9 @@ import { Collaborator } from '../collaborator/Collaborator'
 import type { DraftTransfer } from './Composer'
 import { loadBranch, useBranchReadiness } from './navigationTiming'
 import { TranscriptPosition } from './readingPosition'
+import { PassageNavigation, type PassageReader } from './passageNavigation'
+import { passagePosition } from './transcriptWindow'
+import { useImperativeHandle, type Ref } from 'react'
 import { Modal } from '../../components/Modal'
 import { ChatHeading } from './ChatHeading'
 import { PendingBranch } from './PendingBranch'
@@ -36,6 +39,7 @@ export function Chat({ storyId, branchId, onBranch, onOpen }: Props) {
 
 function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; branch: Branch; onBranch: (id: string) => void; onOpen: (selection: Selection) => void }) {
   const mode = storyMode(story.settings)
+  const [reading] = useState(() => new PassageNavigation())
   const workspace = useRef<HTMLDivElement>(null)
   useBranchReadiness(branch, workspace)
   const [context, setContext] = useState(false)
@@ -52,12 +56,15 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   const toggleSide = () => { setSide(!side); setContext(false); setTools(false) }
   const toggleTools = () => { setTools(!tools); setContext(false); setSide(false) }
   const withDock = [context, side, tools].some(Boolean)
+  const readMessage = (messageId: string) => {
+    if (reading.request(branch.id, messageId)) setContext(false)
+  }
   const closeTools = () => { setTools(false); workspace.current?.querySelector<HTMLButtonElement>('[aria-label="Writing tools"]')?.focus() }
   return <div ref={workspace} data-active-branch={branch.id} className={`chat-workspace ${withDock ? 'with-context' : ''}`}><GenerationControls key={`generation:${branch.id}`} branch={branch} onBranch={onBranch} open={tools} onClose={closeTools}><main className="chat-main">
     <ChatHeading story={story} branchName={branch.name} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
-    {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
+    {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript reader={reading.connect} key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript reader={reading.connect} key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
     <Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
-  </main></GenerationControls>{context && <ContextDock story={story} branch={branch} onClose={() => setContext(false)} />}
+  </main></GenerationControls>{context && <ContextDock onReadMessage={readMessage} story={story} branch={branch} onClose={() => setContext(false)} />}
     {side && <Collaborator story={story} branch={branch} onClose={() => setSide(false)} onInsert={(text) => setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text })} />}
     {map && <BranchMap branches={story.branches} selected={branch.id} onSelect={onBranch} onClose={() => setMap(false)} openedAt={mapOpenedAt} />}
     {details && <StoryDetails story={story} branchId={branch.id} onOpen={onOpen} onClose={() => setDetails(false)} />}
@@ -66,7 +73,7 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   </div>
 }
 
-function Transcript({ branch, mode, onBranch }: { branch: Branch; mode: StoryMode; onBranch: (id: string) => void }) {
+function Transcript({ branch, mode, onBranch, reader }: { branch: Branch; mode: StoryMode; onBranch: (id: string) => void; reader: Ref<PassageReader> }) {
   const labels = messageLabels(mode)
   const container = useRef<HTMLDivElement>(null)
   const position = useRef<TranscriptPosition | null>(null)
@@ -80,6 +87,12 @@ function Transcript({ branch, mode, onBranch }: { branch: Branch; mode: StoryMod
   useLayoutEffect(() => {
     position.current?.refresh()
   }, [branch.messages.length])
+  useImperativeHandle(reader, () => ({ branchId: branch.id, show: (messageId) => {
+    if (!branch.messages.some((message) => message.id === messageId)) return false
+    position.current?.seek(passagePosition(messageId))
+    container.current?.focus({ preventScroll: true })
+    return true
+  } }), [branch.id, branch.messages])
   return <div className="transcript" data-transcript-ready="true" ref={container} tabIndex={0} role="region" aria-label="Story history">
     {branch.messages.length === 0 ? <Empty title="The next sentence is yours."><p>Write a passage, set the scene, or leave a note for your writer.<br />Every possibility has a place here.</p><span className="empty-rule" /></Empty> : <div className="reading-column"><div className="chapter-mark"><span />A beginning, and what followed<span /></div>{branch.messages.map((message) => <MessageCard key={message.id} message={message} label={labels[message.role]} branch={branch} onBranch={onBranch} />)}<div className="end-mark">· · ·</div></div>}
   </div>

@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from server.authoring.models import AuthoringOutput
 from server.database import decode, encode, one
 from server.errors import DomainError, require
+from server.memory.enrichment import ENRICHMENT_KEY, parse_enrichment, validate_request
 from server.workflow.context import job_snapshot, snapshot_hash
 from server.workflow.models import ReviewStep
 
@@ -15,6 +16,8 @@ def defaults(connection):
 
 
 def authoring_snapshot(connection, body):
+    if body.step == ENRICHMENT_KEY:
+        validate_request(body)
     asset_id = None
     if body.source_version_id:
         source = one(connection, 'SELECT v.asset_id,a.kind FROM asset_versions v JOIN assets a ON a.id=v.asset_id WHERE v.id=?', (body.source_version_id,))
@@ -38,6 +41,8 @@ def preview_view(snapshot):
 
 
 def parse_authoring(output, snapshot):
+    if snapshot['step'] == ENRICHMENT_KEY:
+        return parse_enrichment(output, snapshot)
     try:
         result = AuthoringOutput.model_validate(json.loads(output))
     except (ValueError, ValidationError) as error:

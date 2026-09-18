@@ -15,6 +15,7 @@ from server.providers.events import (
     google_event,
     openai_event,
 )
+from server.providers.lmstudio import NativeStream, native_local
 from server.providers.requests import REQUESTS, headers_for, validate_key
 
 PARSERS = {"openai": openai_event, "anthropic": anthropic_event,
@@ -80,8 +81,9 @@ class HttpProvider:
                                  headers=headers_for(config, key), json=body) as response:
             check_status(response)
             completion = StreamCompletion()
+            parser = NativeStream(config["max_output_tokens"]) if native_local(config) else PARSERS[config["provider"]]
             async for data in sse_data(response):
-                event = ProviderEvent(done=True) if data.get("_done") else PARSERS[config["provider"]](data)
+                event = ProviderEvent(done=True) if data.get("_done") and not native_local(config) else parser(data)
                 completion.observe(event)
                 yield event
             completion.validate(config)

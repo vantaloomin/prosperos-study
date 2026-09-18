@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from server.archives.format import ARCHIVE_VERSION
 from server.background.engine import guidance
 from server.background.models import Preparation
 from server.background.service import Background
@@ -152,7 +153,7 @@ def test_background_archive_roundtrip_reexport_and_tamper_rejection(client):
     append(client, story['branch_id'], 'An accepted contribution.', 1)
     update(client, story)
     file, document = backup(client, story)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     result, mapping = restore(client, file)
     restored = revealed(client, {'id': mapping[receipt['id']]})
     assert restored['result']['seed'] == revealed(client, receipt)['result']['seed']

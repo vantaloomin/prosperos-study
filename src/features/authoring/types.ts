@@ -1,8 +1,8 @@
 import type { AssetVersion } from '../../types'
 import type { AssetDraft } from '../library/versionChanges'
 
-export type AuthoringStep = 'authoring-draft' | 'authoring-critique' | 'authoring-tighten'
-export const actions: Record<AuthoringStep, string> = { 'authoring-draft': 'Draft', 'authoring-critique': 'Critique', 'authoring-tighten': 'Tighten' }
+export type AuthoringStep = 'authoring-draft' | 'authoring-critique' | 'authoring-tighten' | 'authoring-enrich'
+export const actions: Record<AuthoringStep, string> = { 'authoring-draft': 'Draft', 'authoring-critique': 'Critique', 'authoring-tighten': 'Tighten', 'authoring-enrich': 'Search aids' }
 export interface Target { key: string; label: string; text: string }
 export interface EditorProps { draft: AssetDraft; draftId: string; asset?: AssetVersion; onChange: (draft: AssetDraft) => void }
 export interface RequestBody {
@@ -13,7 +13,7 @@ export interface Preview {
   preview_hash: string; request_count: number
   jobs: { profile_name: string; model: string; provider: string; prompt_version: number; estimated_input_tokens: number; content: string; prompt: string }[]
 }
-export interface Proposal { summary: string; proposal: string | null; findings: { quote: string; explanation: string; suggestion: string }[] }
+export interface Proposal { enrichment?: { source_id: string; summary: string; topics: string[]; aliases: string[] }[]; summary: string; proposal: string | null; findings: { quote: string; explanation: string; suggestion: string }[] }
 export interface Job {
   id: string; status: string; error: string; output: string; attempt: number; result: Proposal | null; usage: Record<string, unknown>
   snapshot: { step: AuthoringStep; content: string; prompt: { template: string; number: number }; profile: { name: string; config: { model: string } } }

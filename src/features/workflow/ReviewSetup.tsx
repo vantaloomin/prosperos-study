@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { SourceMemoryCoverage } from './SourceMemoryCoverage'
 import { api, operationId } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
@@ -50,5 +51,5 @@ function ComparisonChoices({ profiles, selected, onChange }: { profiles: ModelPr
 export function ReviewEstimate({ data, busy, onStart }: { data: ReviewPreview; busy: boolean; onStart: () => void }) {
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
-  return <section className="review-estimate form-stack"><h3 ref={heading} tabIndex={-1}>{data.request_count} deliberate requests</h3><p className="subtle">{data.scene ? `Saved draft of ${data.scene.title} · plan revision ${data.scene.revision}. This prose is not in Story history.` : `${data.draft_messages} contributions in the reviewed range.`} Input token counts are estimates; provider billing may differ. Previewing has made no model calls.</p>{data.jobs.map((job, index) => <div className="review-estimate-row" key={index}><strong>{job.name}</strong><span>{job.profile_name} · {job.model}</span><small>~{job.estimated_input_tokens.toLocaleString()} input tokens · {job.source_count} sources · prompt v{job.prompt_version}</small></div>)}<button className="button primary" disabled={busy} onClick={onStart}>Start {data.request_count} review requests</button></section>
+  return <section className="review-estimate form-stack"><h3 ref={heading} tabIndex={-1}>{data.request_count} deliberate requests</h3><p className="subtle">{data.scene ? `Saved draft of ${data.scene.title} · plan revision ${data.scene.revision}. This prose is not in Story history.` : `${data.draft_messages} contributions in the reviewed range.`} Input token counts are estimates; provider billing may differ. Previewing has made no model calls.</p>{data.jobs.map((job, index) => <div className="review-estimate-row" key={index}><strong>{job.name}</strong><span>{job.profile_name} · {job.model}</span><small>~{job.estimated_input_tokens.toLocaleString()} input tokens · {job.source_count} sources · prompt v{job.prompt_version}</small><SourceMemoryCoverage memory={job.source_memory} /></div>)}<button className="button primary" disabled={busy} onClick={onStart}>Start {data.request_count} review requests</button></section>
 }

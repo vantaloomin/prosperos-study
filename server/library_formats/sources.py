@@ -4,6 +4,7 @@ from hashlib import sha256
 from server.database import decode
 from server.errors import require
 from server.library_formats.markdown import document
+from server.memory.canon_models import validate_canon
 
 MAX_MARKDOWN_BYTES = 10 * 1024 * 1024
 
@@ -30,6 +31,7 @@ def validate_source(source, version):
 
 
 def validate_new_markdown(content):
+    validate_canon(content)
     text = content.get('text', '')
     require(isinstance(text, str), 'Lorebook prose must be Markdown text.')
     require(len(text.encode('utf-8')) <= MAX_MARKDOWN_BYTES, 'Use at most 10 MiB of Markdown per book.')

@@ -7,8 +7,9 @@
 .context-budget header > span { color: var(--accent); white-space: nowrap; font-size: 0.75rem; }
 .context-budget-meter { height: 6px; border-radius: 9px; background: var(--raised); display: flex; overflow: hidden; }
 .context-budget-meter span:first-child { background: var(--accent); }
-.context-budget-meter span:last-child { background: #888b78; }
-.context-budget dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.context-budget-meter span:nth-child(2) { background: #888b78; }
+.context-budget-meter span:nth-child(3) { background: var(--muted); opacity: .5; }
+.context-budget dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin: 0; }
 .context-budget dt { font-size: 0.625rem; color: var(--muted); }
 .context-budget dd { font-variant-numeric: tabular-nums; font-size: 0.875rem; margin: 5px 0 0; }
 .context-over-budget { border-color: #ba8866; }

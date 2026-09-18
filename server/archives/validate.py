@@ -11,17 +11,26 @@ from server.archives.characters import validate_openings
 from server.archives.configuration import validate_configuration_links
 from server.archives.continuity import validate_continuity
 from server.archives.format import JSON_FIELDS, MAX_ARCHIVE_BYTES, TABLES, ArchiveDocument
+from server.archives.identities import validate_identities
 from server.archives.interpretations import validate_interpretations
+from server.archives.knowledge import validate_knowledge
 from server.archives.library_imports import validate_imports
 from server.archives.library_sources import validate_sources
 from server.archives.links import validate_ownership
 from server.archives.lore import validate_lore
 from server.archives.lore_sources import validate_entry_sources
+from server.archives.maintenance import validate_maintenance
+from server.archives.memory_controls import validate_controls
 from server.archives.migrations import upgrade
 from server.archives.patches import validate_patches
+from server.archives.plans import validate_plan_edits
 from server.archives.reviews import validate_draft_reviews
 from server.archives.revisions import validate_revisions
 from server.archives.scenes import validate_scenes
+from server.archives.side_memory import validate_side_memory
+from server.archives.summaries import validate_summaries
+from server.archives.summary_context import validate_writer_summaries
+from server.archives.writer_memory import validate_writer_memory
 from server.character_content import validate_character
 from server.database import SCHEMA, decode, one
 from server.errors import DomainError, require
@@ -35,15 +44,17 @@ from server.prompts import PROMPT_LABELS, prompt_snapshot
 from server.providers.config import SavedProfileConfig
 
 
-def parse_archive(content):
+def parse_archive(content, *, verification=None):
     require(len(content.encode("utf-8")) <= MAX_ARCHIVE_BYTES, "Archives are limited to 128 MiB.")
     try:
         document = upgrade(ArchiveDocument.model_validate_json(content).model_dump())
-        validate_archive(document)
+        result = validate_archive(document)
+        if verification is not None:
+            verification.update(result)
         return document
     except DomainError:
         raise
-    except (ValidationError, sqlite3.Error, ValueError, KeyError, TypeError, RecursionError):
+    except (ValidationError, sqlite3.Error, ValueError, KeyError, TypeError, AttributeError, RecursionError):
         raise DomainError("This archive has invalid records or an unsupported format. No stories were changed.", 400) from None
 
 
@@ -51,6 +62,7 @@ def validate_archive(document):
     require(set(document["data"]) == set(TABLES), "This archive's record groups do not match the supported format.")
     validate_entry_sources(document)
     validate_artwork(document['data'])
+    validate_identities(document['data'])
     with sqlite3.connect(":memory:") as connection:
         connection.row_factory = sqlite3.Row
         connection.executescript(SCHEMA)
@@ -69,14 +81,26 @@ def validate_archive(document):
         validate_scenes(connection, document)
         validate_revisions(connection, document)
         validate_patches(connection, document)
+        acyclic(document['data']['continuity_edits'], 'parent_id')
+        validate_plan_edits(connection, document['data'])
         validate_continuity(connection, document)
         validate_draft_reviews(connection, document)
+        validate_side_memory(document['data'])
         validate_assessments(connection, document['data'])
         validate_lore(connection, document['data'])
         validate_background(connection, document['data'])
         validate_interpretations(connection, document['data'])
         validate_authoring(connection, document)
+        acyclic(document['data']['summary_versions'], 'parent_id')
+        validate_summaries(connection, document['data'])
+        validate_writer_summaries(connection, document['data'])
+        validate_maintenance(connection, document['data'])
+        acyclic(document['data']['memory_control_versions'], 'parent_id')
+        validate_controls(connection, document['data'])
+        validate_knowledge(connection, document['data'])
+        report = validate_writer_memory(connection, document["data"])
         connection.rollback()
+        return report
 
 
 def insert_records(connection, table, rows):
@@ -191,7 +215,7 @@ def validate_models_and_tables(data):
     for table in ("candidates", "side_replies"):
         for row in data[table]:
             validate_profile(decode(row["profile"]))
-    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs'):
+    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
         for row in data[table]:
             validate_profile(decode(row["snapshot"])["profile"])
     for row in data['assessment_runs']:
@@ -206,12 +230,12 @@ def validate_models_and_tables(data):
 
 
 def validate_runs(connection, data):
-    for table in ("generations", "review_runs", "mechanic_opportunities", "scene_runs", 'assessment_runs', 'background_runs'):
+    for table in ("generations", "review_runs", "mechanic_opportunities", "scene_runs", 'assessment_runs', 'background_runs', 'summary_runs'):
         for row in data[table]:
             snapshot = decode(row["snapshot"])
             require(snapshot["branch"]["id"] == row["branch_id"], "A saved run refers to a different branch.")
             one(connection, "SELECT id FROM branches WHERE id=?", (row["branch_id"],))
-    for table in ("candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs'):
+    for table in ("candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
         for row in data[table]:
             require(row["status"] in {"queued", "running", "done", "error", "cancelled", "interrupted"}, "An archived job status is unsupported.")
     for row in data["node_mechanics"]:

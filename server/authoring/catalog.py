@@ -1,7 +1,10 @@
+from server.memory.enrichment import ENRICHMENT_KEY, ENRICHMENT_PROMPT
+
 AUTHORING_STEPS = [
     {'key': 'authoring-draft', 'name': 'Library · draft', 'scope': 'library authoring'},
     {'key': 'authoring-critique', 'name': 'Library · critique', 'scope': 'library authoring'},
     {'key': 'authoring-tighten', 'name': 'Library · tighten', 'scope': 'library authoring'},
+    {'key': ENRICHMENT_KEY, 'name': 'Canon · search aids', 'scope': 'library enrichment'},
 ]
 AUTHORING_KEYS = {step['key'] for step in AUTHORING_STEPS}
 CONTRACT = '''You help an author edit one field of a character or lorebook. Preserve established genre,
@@ -17,3 +20,5 @@ FOCUS = {'draft': 'Draft or expand the selected field according to the direction
          'critique': 'Review the selected field. Keep proposal null. Find specific issues without inventing a quota.',
          'tighten': 'Return a focused, nonempty revision of the selected field. Preserve useful detail and intentional rhythm.'}
 AUTHORING_PROMPTS = {f'authoring-{key}': f'{focus}\n{CONTRACT}' for key, focus in FOCUS.items()}
+
+AUTHORING_PROMPTS[ENRICHMENT_KEY] = ENRICHMENT_PROMPT

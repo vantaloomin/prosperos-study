@@ -11,6 +11,15 @@ from server.lore.runtime import current_lore, selected_for_writer
 from server.manifests import manifest_view
 from server.mechanics.config import read_settings
 from server.mechanics.storage import opportunity_stale, pending_opportunity
+from server.memory.control_packet import decision_packet
+from server.memory.control_state import control_view
+from server.memory.index import connection_index
+from server.memory.knowledge_writer import knowledge_snapshot
+from server.memory.packet import assemble_memory
+from server.memory.plan_state import plan_head
+from server.memory.settings import memory_settings
+from server.memory.summary_excerpt import summary_links
+from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
 from server.prompts import prompt_snapshot
 from server.stories import check_revision
@@ -21,13 +30,20 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
     story = one(connection, "SELECT * FROM stories WHERE id=?", (branch["story_id"],))
     check_revision(branch, body.expected_revision)
     profiles = selected_profiles(connection, story, body.profile_ids)
+    if body.knowledge_subject or body.knowledge_character_id:
+        return knowledge_snapshot(connection, branch, story, body, profiles)
     context = {"story": {"title": story["title"], "premise": story["premise"], "settings": decode(story["settings"])},
                "history": path_nodes(connection, branch["head_id"]),
                "library": manifest_view(connection, branch["manifest_id"]), "direction": body.direction}
-    context['continuity'] = continuity_view(connection, branch['head_id'])
+    context['continuity'] = continuity_view(connection, branch['head_id'], plan_head(connection, branch['id']))
+    controls = control_view(connection, branch)
+    decisions = decision_packet(controls)
+    if decisions:
+        context['author_memory'] = decisions
     background = frozen_background(connection, branch_id)
     if 'private_background' in background:
         context['private_background'] = background['private_background']
+    canon_assets = context["library"]
     context["library"] = [narrative_asset(item) for item in context["library"] if item["enabled"]]
     opportunity = prepared_context(connection, branch, story, body.use_prepared_beat)
     lore_context, lore = current_lore(connection, branch, read_settings(story).enabled, context['history'])
@@ -36,21 +52,36 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
     if opportunity:
         context["prepared_beat"] = opportunity["snapshot"]["writer"]
     prompt = prompt_snapshot(connection, "writer", story)
-    content = encode(writer_context(context, lore))
+    memory_policy = memory_settings(context['story']['settings'].get('memory'))
+    aids = reviewed_aids(connection, branch, memory_policy)
+    with connection_index(connection, memory_policy.mode == 'long'):
+        prepared, memory = assemble_memory(writer_context(context, lore), prompt["template"], profiles, canon_assets=canon_assets, summary_aids=aids)
+    content = encode(prepared)
     estimated = math.ceil(len((prompt["template"] + content).encode("utf-8")) / 3)
     if validate_budget:
-        validate_writer_budget(profiles, estimated)
+        validate_writer_budget(profiles, estimated, memory)
     return {"branch": branch, "story_revision": story["revision"], "prompt": prompt,
+            "continuity_version_id": plan_head(connection, branch_id),
+            "memory_controls_version_id": controls["version_id"],
             'lore_context': lore_context, 'lore': lore,
             'background_state_id': background['background_state_id'],
             "opportunity_id": opportunity["id"] if opportunity else None,
             "content": content, "estimated_input_tokens": estimated,
-            "coverage": {"messages": len(context["history"]), "complete_path": True}}, profiles
+            "coverage": memory['coverage'] if memory else {
+                "messages": len(context["history"]), "complete_path": True},
+            **({'memory': memory} if memory else {}),
+            **({'summary_links': summary_links(prepared)} if prepared.get('reviewed_summaries') else {})}, profiles
 
 
-def validate_writer_budget(profiles, estimated):
+def validate_writer_budget(profiles, estimated, memory=None):
+    margin = memory['overhead_margin'] if memory else 0
     for profile in profiles:
         capacity = profile["config"]["context_tokens"] - profile["config"]["max_output_tokens"]
+        if memory:
+            require(estimated + margin <= capacity,
+                    f"Required story context needs an estimated {estimated:,} tokens plus {margin:,} "
+                    f"for overhead, exceeding {profile['name']}'s allowance. Reduce required guidance "
+                    "or Canon, reserve less output, or choose a larger context. Original prose is preserved.", 409)
         require(estimated <= capacity,
                 f"Full context is estimated at {estimated:,} tokens and exceeds {profile['name']}'s allowance. "
                 "Increase its context limit or use another profile. Nothing was silently omitted.", 409)

@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from server.database import decode
 from server.errors import DomainError, require
+from server.memory.source_evidence import quotation_matches
 from server.scenes.continuity_models import ContinuityOutput, validate_continuity
 from server.scenes.drafts import (
     CoverageOutput,
@@ -37,10 +38,10 @@ DRAFT_VALIDATORS = {"scene-draft": validate_draft, "scene-dialogue": validate_di
 def validate_result(key, result, content):
     parsed = OUTPUTS[key].model_validate(result).model_dump()
     if key == "scene-brief":
-        sources = {source["id"]: source["text"] for source in decode(content)["sources"]}
+        sources = {source["id"]: source for source in decode(content)["sources"]}
         for fact in parsed["facts"]:
             require(fact["source_id"] in sources, "The brief cites a source outside its supplied context.", 502)
-            require(fact["quote"] in sources[fact["source_id"]], "A brief quotation does not match its source.", 502)
+            require(quotation_matches(sources[fact["source_id"]], fact["quote"]), "A brief quotation does not match its source.", 502)
     elif key in DRAFT_VALIDATORS:
         DRAFT_VALIDATORS[key](parsed, decode(content))
     else:

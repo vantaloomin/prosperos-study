@@ -31,14 +31,16 @@ class Archives:
             document['library_drafts'] = collect_drafts(self.database, document['data'])
             document['lore_drafts'] = collect_entry_drafts(self.database, document['data'])
         content = canonical(document)
-        parse_archive(content)
-        return self.save(document, content, "backup")
+        verification = {}
+        parse_archive(content, verification=verification)
+        return self.save(document, content, "backup", verification)
 
     def stage(self, content):
-        document = parse_archive(content)
-        return self.save(document, canonical(document), "import")
+        verification = {}
+        document = parse_archive(content, verification=verification)
+        return self.save(document, canonical(document), "import", verification)
 
-    def save(self, document, content, kind):
+    def save(self, document, content, kind, verification=None):
         file_id = identifier()
         self.directory.mkdir(parents=True, exist_ok=True)
         target = self.directory / f"{file_id}.json"
@@ -46,7 +48,7 @@ class Archives:
         temporary.write_text(content, encoding="utf-8")
         temporary.replace(target)
         row = {"id": file_id, "kind": kind, "filename": f"roleplay-{document['scope']}-{file_id[:8]}.json",
-               "sha256": digest(content), "summary": encode(summary(document)),
+               "sha256": digest(content), "summary": encode({**summary(document), "writer_verification": verification}),
                "byte_count": len(content.encode("utf-8")), "created_at": now()}
         with self.database.connect(write=True) as connection:
             connection.execute("INSERT INTO archive_files VALUES (?,?,?,?,?,?,?)", tuple(row.values()))
@@ -60,6 +62,15 @@ class Archives:
         path = self.directory / f"{row['id']}.json"
         require(path.is_file(), "This archive file is missing. Import another saved copy.", 404)
         return row, path
+
+    def review(self, file_id):
+        row, path = self.file(file_id)
+        content = path.read_text(encoding='utf-8')
+        require(digest(content) == row['sha256'], 'The saved archive changed. Import and review that file again.', 409)
+        verification = {}
+        parse_archive(content, verification=verification)
+        value = file_view(row)
+        return {**value, 'summary': {**value['summary'], 'writer_verification': verification}}
 
     def apply(self, file_id, body):
         row, path = self.file(file_id)

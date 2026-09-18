@@ -4,6 +4,7 @@ from server.database import decode
 from server.errors import require
 from server.mechanics.models import RngSettings
 from server.mechanics.tables import catalog, validate_graph
+from server.memory.settings import normalize_memory
 
 TEXTURES = {"small-wrongs", "small-rights", "interruptions", "who-shows-up"}
 
@@ -23,6 +24,7 @@ def parse_settings(raw):
 
 
 def normalize_story_settings(settings):
+    settings = normalize_memory(settings)
     if "randomness" not in settings:
         return settings
     return {**settings, "randomness": parse_settings(settings["randomness"]).model_dump()}

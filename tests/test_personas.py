@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.validate import parse_archive
 from server.database import SCHEMA, Database, one
 from server.errors import DomainError
@@ -119,7 +120,7 @@ def test_persona_archive_restores_shared_identity_and_rejects_invalid_old_format
     identity = persona(client)
     a, b = with_book(client, identity, 'A'), with_book(client, identity, 'B')
     _, document = backup(client)
-    assert document['version'] == 19
+    assert document['version'] == ARCHIVE_VERSION
     with TestClient(create_app(tmp_path/'restored.sqlite3'), headers={'x-roleplay-client':'workspace'}) as target:
         uploaded = target.post('/api/archives/imports', json={'content': json.dumps(document)})
         assert uploaded.status_code == 201, uploaded.text
@@ -161,7 +162,7 @@ def test_legacy_character_accepts_character_authoring_and_archives(client):
     run = start(client, request(identity, kind='character', target_label='Character & background', text=identity['content']['text']))
     assert run['jobs'][0]['status'] == 'done'
     _, document = backup(client)
-    assert parse_archive(json.dumps(document))['version'] == 19
+    assert parse_archive(json.dumps(document))['version'] == ARCHIVE_VERSION
 
 
 def test_character_card_can_publish_over_legacy_persona_without_changing_identity(client):
@@ -178,4 +179,4 @@ def test_character_card_can_publish_over_legacy_persona_without_changing_identit
     assert version['asset_id'] == identity['asset_id'] and version['number'] == 2
     assert client.get(f"/api/library/{identity['asset_id']}/versions").json()[-1] == identity
     _, document = backup(client)
-    assert parse_archive(json.dumps(document))['version'] == 19
+    assert parse_archive(json.dumps(document))['version'] == ARCHIVE_VERSION

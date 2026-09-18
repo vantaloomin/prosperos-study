@@ -12,13 +12,15 @@ from server.archives.format import (
 from server.authoring.catalog import AUTHORING_KEYS
 from server.errors import require
 from server.library_formats.sources import source_record
+from server.memory.summary_catalog import SUMMARY_KEYS
 from server.prompts import DEFAULT_PROMPTS, PROMPT_LABELS
 from server.scenes.catalog import DRAFT_KEYS, PLAN_KEYS, SCENE_PROMPTS
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
 from server.scenes.patch_catalog import PATCH_KEYS
 from server.scenes.revision_catalog import REVISION_KEYS
 
-LEGACY_PROMPTS = set(PROMPT_LABELS) - {'beat-assessment', 'background-interpretation'} - AUTHORING_KEYS
+ENRICHMENT_KEYS = {'authoring-enrich'}
+LEGACY_PROMPTS = set(PROMPT_LABELS) - {'beat-assessment', 'background-interpretation'} - AUTHORING_KEYS - SUMMARY_KEYS
 
 def upgrade(document):
     if document["version"] == 1:
@@ -106,10 +108,10 @@ def upgrade_fifteen(document):
     from server.archives.format import AUTHORING_TABLES, V15_TABLES
     if document['version'] == 15:
         require(set(document['data']) == set(V15_TABLES), 'Version 15 needs its original record groups.')
-        require(set(document['prompt_heads']) == set(PROMPT_LABELS) - AUTHORING_KEYS, 'Version 15 needs its original prompts.')
+        require(set(document['prompt_heads']) == set(PROMPT_LABELS) - AUTHORING_KEYS - SUMMARY_KEYS, 'Version 15 needs its original prompts.')
         require(not document['authoring_profiles'], 'Version 15 cannot contain Library assistant defaults.')
         document['data'].update({table: [] for table in AUTHORING_TABLES})
-        add_prompts(document, sorted(AUTHORING_KEYS), 15)
+        add_prompts(document, sorted(AUTHORING_KEYS - ENRICHMENT_KEYS), 15)
         document['version'] = 16
     return upgrade_sixteen(document)
 
@@ -130,6 +132,68 @@ def upgrade_seventeen(document):
         document['version'] = 18
     if document['version'] == 18:
         document['version'] = 19
+    return upgrade_nineteen(document)
+
+
+def upgrade_nineteen(document):
+    if document['version'] == 19:
+        require(set(document['prompt_heads']) == set(PROMPT_LABELS) - ENRICHMENT_KEYS - SUMMARY_KEYS, 'Version 19 needs its original supported prompts.')
+        require(not ENRICHMENT_KEYS.intersection(document['authoring_profiles']), 'Version 19 cannot contain enrichment defaults.')
+        add_prompts(document, sorted(ENRICHMENT_KEYS), 19)
+        document['version'] = 20
+    return upgrade_twenty(document)
+
+
+def upgrade_twenty(document):
+    from server.archives.format import SUMMARY_TABLES, V20_TABLES
+    if document['version'] == 20:
+        require(set(document['data']) == set(V20_TABLES), 'Version 20 needs its original record groups.')
+        require(set(document['prompt_heads']) == set(PROMPT_LABELS) - SUMMARY_KEYS, 'Version 20 needs its original prompts.')
+        document['data'].update({table: [] for table in SUMMARY_TABLES})
+        add_prompts(document, sorted(SUMMARY_KEYS), 20)
+        document['version'] = 21
+    return upgrade_twenty_one(document)
+
+
+def upgrade_twenty_one(document):
+    from server.archives.format import MAINTENANCE_TABLES, V21_TABLES
+    if document['version'] == 21:
+        require(set(document['data']) == set(V21_TABLES), 'Version 21 needs its original record groups.')
+        document['data'].update({table: [] for table in MAINTENANCE_TABLES})
+        document['version'] = 22
+    return upgrade_twenty_two(document)
+
+
+def upgrade_twenty_two(document):
+    from server.archives.format import CONTROL_TABLES, V22_TABLES, V27_TABLES
+    if document['version'] == 22:
+        require(set(document['data']) == set(V22_TABLES), 'Version 22 needs its original record groups.')
+        document['data'].update({table: [] for table in CONTROL_TABLES})
+        document['version'] = 23
+    if document['version'] == 23:
+        document['version'] = 24
+    if document['version'] == 24:
+        document['version'] = 25
+    if document['version'] == 25:
+        document['version'] = 26
+    if document['version'] == 26:
+        document['version'] = 27
+    if document['version'] == 27:
+        require(set(document['data']) == set(V27_TABLES), 'Version 27 needs its original record groups.')
+        document['data']['archive_identities'] = []
+        document['version'] = 28
+    return upgrade_twenty_eight(document)
+
+
+def upgrade_twenty_eight(document):
+    if document['version'] == 28:
+        # Plans extend continuity JSON; legacy records and frozen inputs stay untouched.
+        document['version'] = 29
+    if document['version'] == 29:
+        from server.archives.format import PLAN_TABLES, V29_TABLES
+        require(set(document['data']) == set(V29_TABLES), 'Version 29 needs its original record groups.')
+        document['data'].update({table: [] for table in PLAN_TABLES})
+        document['version'] = 30
     return document
 
 

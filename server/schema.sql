@@ -303,3 +303,93 @@ CREATE TABLE IF NOT EXISTS library_media (
   width INTEGER NOT NULL,
   height INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS summary_runs (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL REFERENCES branches(id), request_key TEXT NOT NULL,
+    snapshot TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(branch_id,request_key)
+);
+CREATE TABLE IF NOT EXISTS summary_jobs (
+    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES summary_runs(id), step TEXT NOT NULL,
+    snapshot TEXT NOT NULL, status TEXT NOT NULL, output TEXT NOT NULL DEFAULT '',
+    result TEXT NOT NULL DEFAULT 'null', usage TEXT NOT NULL DEFAULT '{}', error TEXT NOT NULL DEFAULT '',
+    attempt INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS summary_attempts (
+    id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES summary_jobs(id), attempt INTEGER NOT NULL,
+    status TEXT NOT NULL, output TEXT NOT NULL, result TEXT NOT NULL, usage TEXT NOT NULL,
+    error TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(job_id,attempt)
+);
+CREATE TABLE IF NOT EXISTS summary_versions (
+    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES summary_runs(id),
+    job_id TEXT NOT NULL REFERENCES summary_jobs(id), parent_id TEXT REFERENCES summary_versions(id),
+    branch_id TEXT NOT NULL REFERENCES branches(id), node_id TEXT NOT NULL REFERENCES nodes(id),
+    result TEXT NOT NULL, enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),
+    origin TEXT NOT NULL CHECK(origin IN ('reviewed','generated')), created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS summary_runs_branch ON summary_runs(branch_id);
+CREATE INDEX IF NOT EXISTS summary_jobs_run ON summary_jobs(run_id);
+CREATE INDEX IF NOT EXISTS summary_versions_boundary ON summary_versions(node_id);
+CREATE TRIGGER IF NOT EXISTS immutable_summary_run BEFORE UPDATE ON summary_runs
+BEGIN SELECT RAISE(ABORT,'Summary inputs are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_summary_job BEFORE UPDATE OF snapshot,run_id,step ON summary_jobs
+BEGIN SELECT RAISE(ABORT,'Summary job inputs are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_summary_version BEFORE UPDATE ON summary_versions
+BEGIN SELECT RAISE(ABORT,'Memory versions are immutable'); END;
+
+CREATE TABLE IF NOT EXISTS summary_pending (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL REFERENCES branches(id),
+    node_id TEXT NOT NULL REFERENCES nodes(id), created_at TEXT NOT NULL, UNIQUE(branch_id,node_id)
+);
+CREATE TABLE IF NOT EXISTS summary_wakeups (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL UNIQUE REFERENCES branches(id),
+    revision INTEGER NOT NULL, allowance INTEGER NOT NULL CHECK(allowance BETWEEN 0 AND 4),
+    status TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS summary_batches (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL REFERENCES branches(id),
+    kind TEXT NOT NULL CHECK(kind IN ('automatic','backfill')), snapshot TEXT NOT NULL,
+    status TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS summary_batch_runs (
+    id TEXT PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES summary_batches(id),
+    run_id TEXT NOT NULL UNIQUE REFERENCES summary_runs(id), ordinal INTEGER NOT NULL,
+    UNIQUE(batch_id,ordinal)
+);
+CREATE INDEX IF NOT EXISTS summary_batch_queue ON summary_batches(status,created_at);
+CREATE INDEX IF NOT EXISTS summary_wakeups_status ON summary_wakeups(status,updated_at);
+CREATE TRIGGER IF NOT EXISTS immutable_summary_batch BEFORE UPDATE OF branch_id,kind,snapshot ON summary_batches
+BEGIN SELECT RAISE(ABORT,'Summary batch inputs are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_summary_batch_run BEFORE UPDATE ON summary_batch_runs
+BEGIN SELECT RAISE(ABORT,'Summary batch links are immutable'); END;
+
+CREATE TABLE IF NOT EXISTS memory_control_versions (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id),
+    branch_id TEXT NOT NULL REFERENCES branches(id), node_id TEXT NOT NULL REFERENCES nodes(id),
+    parent_id TEXT REFERENCES memory_control_versions(id), payload TEXT NOT NULL,
+    created_at TEXT NOT NULL, origin TEXT NOT NULL CHECK(origin='author')
+);
+CREATE TABLE IF NOT EXISTS branch_memory_controls (
+    branch_id TEXT PRIMARY KEY REFERENCES branches(id), version_id TEXT NOT NULL REFERENCES memory_control_versions(id)
+);
+CREATE INDEX IF NOT EXISTS memory_controls_story ON memory_control_versions(story_id);
+CREATE TRIGGER IF NOT EXISTS immutable_memory_controls BEFORE UPDATE ON memory_control_versions
+BEGIN SELECT RAISE(ABORT,'Author memory decisions are immutable'); END;
+
+CREATE TABLE IF NOT EXISTS archive_identities (
+    record_id TEXT NOT NULL, source_id TEXT NOT NULL, record_kind TEXT NOT NULL,
+    source_story_id TEXT NOT NULL,
+    PRIMARY KEY (record_id, source_id, source_story_id)
+);
+CREATE INDEX IF NOT EXISTS archive_identities_source ON archive_identities(source_id);
+
+-- Author corrections share the continuity projection; they do not insert manuscript nodes.
+CREATE TABLE IF NOT EXISTS continuity_edits (
+    id TEXT PRIMARY KEY, origin_id TEXT NOT NULL, branch_id TEXT NOT NULL REFERENCES branches(id),
+    node_id TEXT NOT NULL REFERENCES nodes(id), parent_id TEXT REFERENCES continuity_edits(id),
+    changes TEXT NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS branch_continuity_edits (
+    branch_id TEXT PRIMARY KEY REFERENCES branches(id), version_id TEXT NOT NULL REFERENCES continuity_edits(id)
+);
+CREATE TRIGGER IF NOT EXISTS continuity_edits_immutable BEFORE UPDATE ON continuity_edits
+BEGIN SELECT RAISE(ABORT,'Continuity edits are immutable'); END;

@@ -2,6 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from server.assessment.service import Assessments
 from server.assessment.writing import WritingRequests
@@ -31,7 +32,7 @@ def context_section(branch_id: str, body: ContextSectionRequest, request: Reques
 
 @router.post("/branches/{branch_id}/generations", status_code=201)
 async def generate(branch_id: str, body: GenerateRequest, request: Request):
-    result = WritingRequests(request.app.state.database).create(branch_id, body)
+    result = await run_in_threadpool(WritingRequests(request.app.state.database).create, branch_id, body)
     if 'assessment_id' in result:
         for job in Assessments(request.app.state.database).pending(result['assessment_id']):
             request.app.state.assessment_runner.start(job['id'])

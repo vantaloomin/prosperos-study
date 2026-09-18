@@ -8,8 +8,14 @@ from server.errors import require
 
 LABELS = {
     'story': 'Story and writing preferences', 'history': 'Selected story path',
+    'knowledge_view': 'Character evidence boundary', 'knowledge': 'Permitted character evidence',
+    'author_memory': 'Author decisions and supporting evidence',
     'library': 'Pinned Library material', 'direction': 'Direction for this draft',
-    'continuity': 'Accepted continuity', 'private_background': 'Private background',
+    'plan_memory': 'Plans and commitments', 'continuity': 'Accepted continuity', 'private_background': 'Private background',
+    'memory_guidance': 'How recalled evidence should be used',
+    'reviewed_summaries': 'Reviewed summaries in context',
+    'recalled_passages': 'Earlier passages recalled for this draft',
+    'recalled_canon': 'Recalled Canon references',
     'prepared_beat': 'Prepared narrative beat', 'lore_header': 'Lore before the story',
     'lore_recent': 'Lore near recent context', 'lore_tail': 'Lore after the direction',
 }
@@ -54,20 +60,23 @@ def section_summaries(sections):
     return result
 
 
-def profile_budget(profile, estimate):
+def profile_budget(profile, estimate, overhead=0):
     config = profile['config']
     reserved = config['max_output_tokens']
-    remaining = config['context_tokens'] - estimate - reserved
+    remaining = config['context_tokens'] - estimate - reserved - overhead
     return {'profile_id': profile['profile_id'], 'version_id': profile['id'], 'name': profile['name'],
             'version': profile['number'], 'provider': config['provider'], 'model': config['model'],
             'context_tokens': config['context_tokens'], 'output_tokens': reserved,
-            'estimated_input_tokens': estimate, 'remaining_tokens': remaining, 'fits': remaining >= 0}
+            'estimated_input_tokens': estimate, 'remaining_tokens': remaining, 'fits': remaining >= 0,
+            **({'overhead_tokens': overhead} if overhead else {})}
 
 
 def preview_fingerprint(snapshot, budgets, assessment):
     identity = {'branch': snapshot['branch'], 'story_revision': snapshot['story_revision'],
                 'prompt': snapshot['prompt'], 'content': snapshot['content'],
-                'budgets': budgets, 'assessment': assessment}
+                'budgets': budgets, 'assessment': assessment, 'memory': snapshot.get('memory'),
+                'opportunity_id': snapshot.get('opportunity_id'),
+                'background_state_id': snapshot.get('background_state_id')}
     return hashlib.sha256(encode(identity).encode('utf-8')).hexdigest()
 
 
@@ -80,6 +89,9 @@ def source_labels(snapshot, section):
                 for item in context.get('library', [])]
     if section == 'history':
         return [f"{index + 1}. {item['role']} · {item['id']}" for index, item in enumerate(context['history'])]
+    if section in {'recalled_passages', 'recalled_canon', 'reviewed_summaries'}:
+        return [f"{item['source_id']} · characters {item['start']}–{item['end']}"
+                for item in context.get(section, [])]
     return []
 
 
@@ -87,11 +99,20 @@ def readable_section(snapshot, key):
     if key == 'prompt':
         return snapshot['prompt']['template']
     value = decode(snapshot['content'])[key]
+    if key == 'reviewed_summaries':
+        return '\n\n'.join(readable_summary(item) for item in value)
     if key == 'history':
         return '\n\n'.join(f"### {index + 1}. {node['role']}\nSource: {node['id']}\n\n{node['text']}"
                            for index, node in enumerate(value))
     if key == 'library':
         return '\n\n'.join(readable_asset(item) for item in value)
+    if key == 'recalled_canon':
+        return '\n\n'.join(f"### {item['title']}\nSource: {item['source_id']} · characters "
+                           f"{item['start']}–{item['end']}\n{item['knowledge']}\n\n{item['text']}" for item in value)
+    if key == 'recalled_passages':
+        return '\n\n'.join(f"### Passage {item['passage_number']} · {item['reason']}\n"
+                           f"Source: {item['source_id']} · characters {item['start']}–{item['end']}\n\n"
+                           f"{item['text']}" for item in value)
     return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, indent=2)
 
 
@@ -112,3 +133,10 @@ def section_page(snapshot, sections, key, offset, view):
     return {'text': value[offset:offset + 8000], 'offset': offset, 'total_characters': len(value),
             'next_offset': offset + 8000 if offset + 8000 < len(value) else None,
             'sources': sources[:30], 'source_count': len(sources)}
+
+
+def readable_summary(item):
+    return (f"### Reviewed interpretation · Passage {item['passage_number']}\n"
+            f"Source: {item['source_id']} · characters {item['start']}–{item['end']}\n"
+            f"Summary version: {item['summary_version_id']}\n{item['authority']}\n\n{item['text']}\n\n"
+            'Exact grounding quotes:\n' + '\n'.join(f'> {quote}' for quote in item['grounding_quotes']))

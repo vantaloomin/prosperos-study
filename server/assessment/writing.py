@@ -1,8 +1,9 @@
 from server.agent_switches import agent_enabled
-from server.assessment.context import assessment_needed, assessment_snapshot
+from server.assessment.context import assessment_needed, assessment_plan, seed_assessment
 from server.database import decode, encode, identifier, now, one
 from server.errors import require
-from server.generation_context import generation_snapshot
+from server.generation_models import semantic_request
+from server.generation_preparation import prepare_writer
 from server.generations import record_generation
 from server.operations import previous, remember
 
@@ -24,8 +25,9 @@ def start_assessment(connection, snapshot):
     return {'assessment_id': run_id}
 
 
-def writing_request(connection, branch_id, body):
-    writer, profiles = generation_snapshot(connection, branch_id, body)
+def writing_request(connection, prepared, plan, body):
+    writer, profiles = prepared.snapshot, prepared.profiles
+    branch_id = writer['branch']['id']
     branch = writer['branch']
     story = one(connection, 'SELECT * FROM stories WHERE id=?', (branch['story_id'],))
     existing = connection.execute('SELECT * FROM assessment_runs WHERE branch_id=? AND head_key=?',
@@ -38,10 +40,11 @@ def writing_request(connection, branch_id, body):
         if existing['generation_id']:
             return record_generation(connection, writer, profiles)
         frozen = decode(existing['snapshot'])
-        require(frozen['request'] == body.model_dump(exclude={'operation_id'}),
+        require(frozen['request'] == semantic_request(body),
                 'An assessment is already saved at this point. Reopen it, or explicitly continue without assessment.', 409)
         return {'assessment_id': existing['id']}
-    return start_assessment(connection, assessment_snapshot(connection, story, writer, profiles, body))
+    require(plan is not None, 'The assessment inputs changed. Refresh the request.', 409)
+    return start_assessment(connection, seed_assessment(plan))
 
 
 class WritingRequests:
@@ -49,10 +52,29 @@ class WritingRequests:
         self.database = database
 
     def create(self, branch_id, body):
-        payload = {'branch_id': branch_id, **body.model_dump()}
+        payload = {'branch_id': branch_id, **body.model_dump(exclude_none=True)}
+        with self.database.connect() as connection:
+            cached = previous(connection, body.operation_id, 'generate', payload)
+            if cached is not None:
+                return cached
+            prepared = prepare_writer(connection, branch_id, body)
+            plan = prepare_assessment(connection, prepared, body)
         with self.database.connect(write=True) as connection:
             cached = previous(connection, body.operation_id, 'generate', payload)
             if cached is not None:
                 return cached
-            result = writing_request(connection, branch_id, body)
+            prepared.validate(connection, body)
+            result = writing_request(connection, prepared, plan, body)
             return remember(connection, body.operation_id, 'generate', payload, result)
+
+
+def prepare_assessment(connection, prepared, body):
+    writer = prepared.snapshot
+    branch = writer['branch']
+    story = one(connection, 'SELECT * FROM stories WHERE id=?', (branch['story_id'],))
+    existing = connection.execute('SELECT id FROM assessment_runs WHERE branch_id=? AND head_key=?',
+                                  (branch['id'], branch['head_id'] or '')).fetchone()
+    needed = agent_enabled(connection, 'beat-assessment', story) and assessment_needed(story, writer, body)
+    if not needed or existing or saved_boundary(connection, branch):
+        return None
+    return assessment_plan(connection, story, writer, prepared.profiles, body)

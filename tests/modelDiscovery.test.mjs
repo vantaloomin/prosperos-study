@@ -36,3 +36,23 @@ test('browser transport and response errors point to the app server', async () =
   assert.match(connectionError(new SyntaxError('Unexpected token')), /unreadable response/)
   assert.match(connectionError(null), /both running/)
 })
+
+
+test('explicit local protocol changes preserve host and prefix and clear incompatible thinking', async () => {
+  const { localProtocolSettings, nativeLocal, temperatureCeiling } = await import('../src/features/models/localProtocol.ts')
+  const old = { ...initialConfig, provider: 'local', base_url: 'http://localhost:1234/proxy/v1/', local_reasoning: 'on' }
+  const native = { ...old, ...localProtocolSettings(old, 'lmstudio') }
+  assert.equal(native.base_url, 'http://localhost:1234/proxy/api/v1')
+  assert.equal(native.local_reasoning, null)
+  assert.equal(nativeLocal(old), false)
+  assert.equal(nativeLocal(native), true)
+  assert.equal(temperatureCeiling(native), 1)
+  assert.equal(localProtocolSettings(native, 'openai').base_url, 'http://localhost:1234/proxy/v1')
+  assert.equal(localProtocolSettings({ ...old, base_url: 'http://localhost:1234' }, 'lmstudio').base_url, 'http://localhost:1234/api/v1')
+})
+
+test('discovery never silently changes an explicit thinking choice', () => {
+  const selected = { ...initialConfig, provider: 'local', local_protocol: 'lmstudio', local_reasoning: 'off' }
+  const model = { ...known, reasoning_options: ['low', 'high'], reasoning_default: 'high' }
+  assert.equal({ ...selected, ...discoveredSettings(model, selected) }.local_reasoning, 'off')
+})

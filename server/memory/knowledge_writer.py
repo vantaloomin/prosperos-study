@@ -1,0 +1,31 @@
+"""An explicit request lens; ordinary writing continues to use its existing context."""
+from server.background.storage import state_id
+from server.database import decode
+from server.errors import require
+from server.memory.budget import token_estimate
+from server.memory.control_sources import characters, pinned_items
+from server.memory.control_state import control_view
+from server.memory.knowledge import prepare_knowledge
+from server.memory.plan_state import plan_head
+from server.prompts import prompt_snapshot
+
+
+def knowledge_snapshot(connection, branch, story, body, profiles):
+    require(not body.use_prepared_beat and not body.assess_beat,
+            'Character evidence view cannot include prepared chance or beat assessment. '
+            'Turn those off for this request, or return to Author view.', 409)
+    controls = control_view(connection, branch)
+    subject = body.knowledge_subject
+    if body.knowledge_character_id:
+        choices = {item['id']: item['name'] for item in characters(pinned_items(connection, branch))}
+        require(body.knowledge_character_id in choices, 'This Character is no longer enabled in the Story. Choose its view again.', 409)
+        subject = choices[body.knowledge_character_id]
+    prompt = prompt_snapshot(connection, 'writer', story)
+    content, report, links = prepare_knowledge(controls, subject, body.direction, prompt['template'], profiles, decode(story['settings']), body.knowledge_character_id)
+    return {'branch': branch, 'story_revision': story['revision'], 'prompt': prompt,
+            'continuity_version_id': plan_head(connection, branch['id']),
+            'memory_controls_version_id': controls['version_id'], 'knowledge_lens': report, 'source_links': links,
+            'background_state_id': state_id(connection, branch['id']), 'opportunity_id': None,
+            'content': content, 'estimated_input_tokens': token_estimate(prompt['template'], decode(content)),
+            **({'knowledge_character_id': body.knowledge_character_id} if body.knowledge_character_id else {}),
+            'coverage': {'messages': len({link['node_id'] for link in links if 'node_id' in link}), 'complete_path': False}}, profiles
