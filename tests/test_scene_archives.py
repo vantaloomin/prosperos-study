@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from server.archives.format import ARCHIVE_VERSION, SCENE_TABLES
 from server.database import decode
+from server.prompts import PROMPT_LABELS, original_prompt
 from server.providers.events import ProviderEvent
 from server.scenes.catalog import SCENE_PROMPTS
 from tests.archive_legacy import remove_assessments
@@ -54,9 +55,12 @@ def test_old_v1_archives_upgrade_without_changing_existing_prompt_defaults(clien
     result, _ = restore(client, response.json())
     assert json.dumps(document) == original
     restored = client.get(f"/api/prompts?story_id={result['story_ids'][0]}").json()
-    assert set(SCENE_PROMPTS) <= {item["key"] for item in restored}
-    for key, template in SCENE_PROMPTS.items():
-        assert next(item for item in restored if item["key"] == key)["template"] == template
+    assert {item['key'] for item in restored} == set(PROMPT_LABELS) - {'library-assist'}
+    with client.app.state.database.connect() as connection:
+        # Migration retains every historical task head even though the UI shows roles.
+        for key, template in SCENE_PROMPTS.items():
+            assert original_prompt(connection, key)['key'] == key
+            assert connection.execute('SELECT id FROM prompt_versions WHERE key=? AND template=?', (key, template)).fetchone()
     assert response.json()["summary"]["version"] == ARCHIVE_VERSION
 
 

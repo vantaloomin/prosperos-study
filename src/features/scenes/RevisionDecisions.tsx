@@ -4,7 +4,7 @@ import { ErrorNotice } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
 import type { ModelProfile } from '../models/types'
 import type { RevisionPlan, TriageItem } from './revisionTypes'
-import type { SceneRun } from './types'
+import { consolidatedScene, type SceneRun } from './types'
 import { EvidenceList, TriageText } from './RevisionArtifact'
 import { RevisionJobs } from './RevisionJobs'
 import { ResolutionEditor } from './ResolutionEditor'
@@ -25,7 +25,7 @@ function DecisionItem({ run, plan, item, profiles }: { run: SceneRun; plan: Revi
   return <article className="review-finding form-stack"><TriageText item={item} />
     <details className="input-inspector"><summary>Original findings · {item.finding_ids.length}</summary>{plan.findings.filter((finding) => item.finding_ids.includes(finding.id)).map((finding) => <div key={finding.id}><h4>{finding.role} · {finding.severity}</h4><blockquote>{finding.quote}</blockquote><p>{finding.explanation}</p><p>{finding.suggestion}</p><small>{finding.id} · {finding.source_id}</small></div>)}</details>
     {verdict && <div className="scene-notice"><strong>Selected verdict: {verdict.verdict}</strong><p>{verdict.summary}</p><EvidenceList evidence={verdict.evidence} /><p>{verdict.smallest_fix}</p><small>Record your resolution separately before approving changes.</small></div>}
-    <div className="scene-actions"><ResolveControl run={run} item={item} /><button className="button quiet" aria-expanded={verifying} onClick={() => setVerifying(!verifying)}>{verifying ? 'Close verification' : `Verify ${item.id}`}</button></div>
+    <div className="scene-actions"><ResolveControl run={run} item={item} />{!consolidatedScene(run) && <button className="button quiet" aria-expanded={verifying} onClick={() => setVerifying(!verifying)}>{verifying ? 'Close verification' : `Verify ${item.id}`}</button>}</div>
     {verifying && <RevisionJobs run={run} profiles={profiles} step="scene-verify" targets={{ item_id: item.id }} />}
   </article>
 }

@@ -52,7 +52,7 @@ function SceneRunView({ run, profiles, branch, routing, onBranch }: WorkspacePro
     <ContinuityWorkspace run={run} profiles={profiles} onBranch={onBranch} />
     <ManualSceneAcceptance run={run} onBranch={onBranch} />
     <details className="input-inspector"><summary>Director decisions & preserved edits</summary>{run.decisions.map((decision) => <div key={decision.id}><h4>{decision.revision} · {decision.kind} · {new Date(decision.created_at).toLocaleString()}</h4><pre>{JSON.stringify(decision.payload, null, 2)}</pre></div>)}</details>
-    {editing && run.plan && <BeatEditor run={run} plan={run.plan} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); setStage('scene-brief') }} />}
+    {editing && run.plan && <BeatEditor run={run} plan={run.plan} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); setStage('') }} />}
   </section>
 }
 
@@ -80,7 +80,7 @@ function SceneStage({ step, run, profiles, onChosen, onEdit }: { step: SceneKey;
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus({ preventScroll: true }); heading.current?.scrollIntoView({ block: 'nearest' }) }, [])
   return <div className="form-stack"><h4 ref={heading} tabIndex={-1}>{sceneSteps.find((item) => item.key === step)?.name}</h4>
-    {!ready && <p className="subtle">{!planningStep(step) && !run.state.gate_a ? 'Approve the beat plan and continuity brief before drafting.' : 'Choose the preceding stage’s result before preparing this step.'}</p>}
+    {!ready && <p className="subtle">{!planningStep(step) && !run.state.gate_a ? 'Approve the selected scene plan before drafting.' : 'Choose the preceding stage’s result before preparing this step.'}</p>}
     <JobSelect jobs={jobs} job={job} chosen={run.state.selections[step]} onSelect={setSelected} />
     {job && <SceneProposal key={job.id} run={run} job={job} onChosen={onChosen} />}
     {step === 'scene-beats' && run.plan && <EditedPlan run={run} locked={locked} onEdit={onEdit} />}

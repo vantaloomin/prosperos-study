@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+from server.assessment.preparation import after_acceptance
 from server.assessment.service import Assessments
 from server.assessment.writing import WritingRequests
 from server.context_inspector import ContextInspector, ContextSectionRequest
@@ -16,7 +17,13 @@ from server.generation_models import (
     RetryCandidate,
 )
 from server.generations import Generations
-from server.prompts import PromptActivation, Prompts, PromptSectionActivation, PromptUpdate
+from server.prompts import (
+    PromptActivation,
+    PromptAdoption,
+    Prompts,
+    PromptSectionActivation,
+    PromptUpdate,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -77,8 +84,9 @@ async def generation_events(generation_id: str, request: Request):
 
 
 @router.post("/candidates/{candidate_id}/accept")
-def accept(candidate_id: str, body: AcceptCandidate, request: Request):
-    return Generations(request.app.state.database).accept(candidate_id, body)
+async def accept(candidate_id: str, body: AcceptCandidate, request: Request):
+    result = await run_in_threadpool(Generations(request.app.state.database).accept, candidate_id, body)
+    return await after_acceptance(request, result)
 
 
 @router.post("/candidates/{candidate_id}/alternatives", status_code=201)
@@ -126,3 +134,8 @@ def activate_prompt(key: str, body: PromptActivation, request: Request):
 @router.get("/prompts/{key}/versions")
 def prompt_history(key: str, request: Request):
     return Prompts(request.app.state.database).history(key)
+
+
+@router.post('/prompts/{key}/adopt-combined')
+def adopt_prompt(key: str, body: PromptAdoption, request: Request, story_id: str | None = None):
+    return Prompts(request.app.state.database).adopt(key, body, story_id)

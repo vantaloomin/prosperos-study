@@ -22,7 +22,7 @@ from tests.test_generations import DraftProvider, finished
 from tests.test_history import append
 from tests.test_memory import fixture_context, profiles, small_profile
 from tests.test_reviews import ReviewProvider, finished_review, start
-from tests.test_scenes import choose, get_plan, run_stage
+from tests.test_scenes import choose, get_plan, legacy_scene_creation, run_stage
 from tests.test_story_summaries import SummaryProvider, fork, publication, started
 
 OPENING = 'Mara promised to return the brass observatory key to Ivo before the eclipse. '
@@ -242,9 +242,10 @@ def test_historical_and_scene_requests_restore_and_continue_with_live_summary_li
     assert result['jobs'][0]['status'] == 'done'
     assert summary_items(decode(result['jobs'][0]['snapshot']['content']))
     client.app.state.scene_runner.provider = GroundedSceneProvider()
-    created = client.post('/api/branches/' + branch_id + '/scenes', json={'operation_id': uuid4().hex,
-        'expected_revision': branch['revision'], 'title': 'The promise', 'direction': 'The observatory key promise.',
-        'propose_options': False, 'dialogue_split': False})
+    with legacy_scene_creation():
+        created = client.post('/api/branches/' + branch_id + '/scenes', json={'operation_id': uuid4().hex,
+            'expected_revision': branch['revision'], 'title': 'The promise', 'direction': 'The observatory key promise.',
+            'propose_options': False, 'dialogue_split': False})
     assert created.status_code == 201, created.text
     run_id = created.json()['id']
     job = run_stage(client, run_id, 'scene-beats')[0]
@@ -358,9 +359,10 @@ def test_summary_evidence_survives_scene_review_triage_patch_and_archive(client)
     branch_id = story['branch_id']
     branch = client.get('/api/branches/' + branch_id).json()
     client.app.state.scene_runner.provider = GroundedSceneProvider()
-    created = client.post('/api/branches/' + branch_id + '/scenes', json={'operation_id': uuid4().hex,
-        'expected_revision': branch['revision'], 'title': 'The promise', 'direction': 'The observatory key promise.',
-        'propose_options': False, 'dialogue_split': False})
+    with legacy_scene_creation():
+        created = client.post('/api/branches/' + branch_id + '/scenes', json={'operation_id': uuid4().hex,
+            'expected_revision': branch['revision'], 'title': 'The promise', 'direction': 'The observatory key promise.',
+            'propose_options': False, 'dialogue_split': False})
     assert created.status_code == 201, created.text
     run_id = created.json()['id']
     for key in ('scene-beats', 'scene-brief'):
@@ -395,21 +397,30 @@ def test_summary_evidence_survives_scene_review_triage_patch_and_archive(client)
 
 
 def test_assessment_and_prepared_chance_preserve_summary_receipts(client, monkeypatch):
-    from tests.test_assessments import AssessmentProvider, settled
+    from tests.test_assessments import AssessmentProvider
     from tests.test_mechanics import configure
     story, _, _, _, _ = setup_story(client)
     small_profile(client, limit=8192)
     monkeypatch.setattr('server.assessment.context.secrets.token_hex', lambda *_: '03' * 32)
     configure(client, story, automatic_assessment=True, chance=100, cooldown=0)
+    scribe = client.post('/api/profiles', json={'name': 'Scribe', 'config': {
+        'provider': 'local', 'model': 'test', 'context_tokens': 16384, 'max_output_tokens': 512}}).json()
+    routing = client.get(f"/api/stories/{story['story_id']}/workflow").json()
+    assert client.put(f"/api/stories/{story['story_id']}/workflow", json={
+        'expected_revision': routing['story_revision'], 'step_profiles': {'scribe': scribe['profile_id']}}).status_code == 200
     client.app.state.assessment_runner.provider = AssessmentProvider()
     client.app.state.runner.provider = DraftProvider()
     branch = client.get('/api/branches/' + story['branch_id']).json()
+    from server.assessment.preparation import prepare_accepted
+    from server.assessment.service import Assessments
+    from tests.test_post_acceptance import complete
+    queued = prepare_accepted(client.app.state.database, story['branch_id'], branch['head_id'])
+    run = complete(client, Assessments(client.app.state.database).detail(queued['assessment_id']))
+    assert run['opportunity_id'] and not run['generation_id'], run['error']
     request = client.post('/api/branches/' + story['branch_id'] + '/generations', json={
         'operation_id': uuid4().hex, 'expected_revision': branch['revision'], 'direction': 'The observatory key promise.'})
     assert request.status_code == 201, request.text
-    run = settled(client, request.json()['assessment_id'])
-    assert run['generation_id'], run['error']
-    result = finished(client, run['generation_id'])
+    result = finished(client, request.json()['id'])
     writer = result['snapshot']
     assert summary_items(decode(writer['content'])) and writer['summary_links']
     assert writer['memory']['content_sha256'] == hashlib.sha256(writer['content'].encode()).hexdigest()
@@ -428,9 +439,10 @@ def test_scene_archive_cannot_strip_summary_validation_metadata(client, tamper):
     story, _, _, _, _ = setup_story(client)
     branch = client.get('/api/branches/' + story['branch_id']).json()
     client.app.state.scene_runner.provider = GroundedSceneProvider()
-    created = client.post('/api/branches/' + story['branch_id'] + '/scenes', json={
-        'operation_id': uuid4().hex, 'expected_revision': branch['revision'], 'title': 'Archive check',
-        'direction': 'The observatory key promise.', 'propose_options': False})
+    with legacy_scene_creation():
+        created = client.post('/api/branches/' + story['branch_id'] + '/scenes', json={
+            'operation_id': uuid4().hex, 'expected_revision': branch['revision'], 'title': 'Archive check',
+            'direction': 'The observatory key promise.', 'propose_options': False})
     assert created.status_code == 201, created.text
     job = run_stage(client, created.json()['id'], 'scene-beats')[0]
     assert summary_items(decode(job['snapshot']['content']))

@@ -21,6 +21,7 @@ from server.scenes.continuity_context import continuity_inputs
 from server.scenes.drafts import assemble_draft
 from server.scenes.patch_catalog import PATCH_KEYS
 from server.scenes.patch_context import patch_inputs
+from server.scenes.prompts import stage_prompt
 from server.scenes.revision_catalog import REVISION_KEYS
 from server.scenes.revision_context import revision_inputs
 from server.scenes.state import require_step, selected_result, upstream
@@ -112,6 +113,9 @@ def brief_evidence(connection, run, context):
 def drafting_inputs(connection, run, key):
     context = {"continuity_brief": selected_result(connection, run, "scene-brief"),
                "dialogue_split": run["snapshot"].get("dialogue_split", False)}
+    if run['snapshot'].get('workflow_version', 1) >= 2:
+        context.pop('continuity_brief')
+        context['continuity'] = run['snapshot'].get('continuity', {})
     coverage = selected_result(connection, run, "scene-coverage")
     if key == "scene-draft" and coverage:
         context["revision_context"] = {"draft": draft_view(connection, run), "coverage": coverage}
@@ -143,7 +147,8 @@ def stage_snapshot(connection, run, body):
         context['author_memory'] = run['snapshot']['author_memory']
     jobs = actor_jobs(connection, story, run, body, context) if body.dialogue_actors else job_snapshot(
         connection, story, body, context, memory_policy=run['snapshot'].get('memory_policy'), summary_aids=run['snapshot'].get('summary_aids'),
-        manifest_id=run['snapshot']['branch']['manifest_id'], summary_bindings=run['snapshot'].get('summary_aid_links'))
+        manifest_id=run['snapshot']['branch']['manifest_id'], summary_bindings=run['snapshot'].get('summary_aid_links'),
+        prompt=stage_prompt(connection, story, run, body.key))
     for job in jobs:
         job["upstream"] = upstream(run, body.key)
         if body.key in REVISION_KEYS:

@@ -44,7 +44,20 @@ def validate_assessment(connection, run, jobs):
         job = jobs[run['selected_job_id']]
         require(job['run_id'] == run['id'] and job['status'] == 'done', 'Selected assessment belongs to another run or is unfinished.')
     require(bool(run['selected_job_id']) == bool(run['opportunity_id']), 'An assessment selection has no saved chance result.')
-    require(not run['opportunity_id'] or run['generation_id'], 'Selected assessment has no writer request.')
+    post = frozen.get('purpose') == 'post-acceptance'
+    require(not run['opportunity_id'] or run['generation_id'] or post, 'Selected assessment has no writer request.')
+    if post:
+        require(not run['generation_id'], 'Post-acceptance bookkeeping cannot dispatch a writer.')
+        for job in jobs.values():
+            if job['run_id'] == run['id']:
+                snapshot = decode(job['snapshot'])
+                require(snapshot['profile']['id'] == frozen['assessment_profile_id']
+                        and snapshot['prompt']['id'] == frozen['assessment_prompt_version_id'], 'Beat preparation configuration differs from its job.')
+        if run['opportunity_id']:
+            opportunity = one(connection, 'SELECT * FROM mechanic_opportunities WHERE id=?', (run['opportunity_id'],))
+            require(opportunity['branch_id'] == run['branch_id'] and opportunity['head_key'] == run['head_key'],
+                    'Prepared assessment belongs to another boundary.')
+            validate_roll(run, frozen, decode(opportunity['snapshot']), jobs[run['selected_job_id']])
     if run['generation_id']:
         validate_writer(connection, run, frozen, jobs)
 

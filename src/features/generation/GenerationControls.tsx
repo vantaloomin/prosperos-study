@@ -17,8 +17,8 @@ const GenerationReview = lazy(() => import('./GenerationReview').then((module) =
 import { usePreparedBeat } from '../mechanics/usePreparedBeat'
 import { defaultAssessmentChoice } from './assessmentTypes'
 import type { AssessmentChoice, WritingResult } from './assessmentTypes'
-import { AssessmentOptionsDialog } from './AssessmentOptionsDialog'
 import { AssessmentHistory } from './AssessmentHistory'
+import { PreparedBeatStatus } from './PreparedBeatStatus'
 import { ContextPreviewButton } from './ContextPreviewButton'
 import { SummaryLauncher } from '../storyMemory/SummaryLauncher'
 import { useReviewedContext } from './useReviewedContext'
@@ -40,8 +40,7 @@ export function GenerationControls({ branch, onBranch, open, onClose, onOpen, ch
   const [comparing, setComparing] = useState(false)
   const [runId, setRunId] = useState('')
   const [assessment, setAssessment] = useState({ id: '', follow: false })
-  const [assessmentOptions, setAssessmentOptions] = useState(false)
-  const [assessmentChoice, setAssessmentChoice] = useState<AssessmentChoice>(defaultAssessmentChoice)
+  const assessmentChoice = defaultAssessmentChoice
   const receive = (result: WritingResult) => { setComparing(false); setSelection(selectResult(result, branch.head_id)) }
   const openWriter = (id: string) => { setAssessment({ id: '', follow: false }); setSelection({ id, kind: 'generation', anchor: selectionAnchor(selection) }) }
   useFollowAssessment(selection, openWriter)
@@ -63,13 +62,12 @@ export function GenerationControls({ branch, onBranch, open, onClose, onOpen, ch
   </div><div hidden={Boolean(knowledge)}><PreparedChoice prepared={prepared} selected={usePrepared} onSkip={setSkippedBeat} /></div><ErrorNotice message={action.error || profiles.error?.message} />
     <Suspense fallback={<p role="status">Opening knowledge views...</p>}><KnowledgeChoice branchId={branch.id} value={knowledge} onChange={changeKnowledge} /></Suspense>
     <ContextPreviewButton key={branch.id} branchId={branch.id} request={contextRequest} onReviewed={preview.onReviewed} />{preview.notice}
-    <div hidden={Boolean(knowledge)}><AssessmentLinks branch={branch} choice={assessmentChoice} onOptions={() => setAssessmentOptions(true)} onSaved={(id) => setAssessment({ id, follow: false })} /></div>
+    <div hidden={Boolean(knowledge)}><AssessmentLinks branch={branch} onSaved={(id) => setAssessment({ id, follow: false })} /></div>
     <SummaryLauncher branch={branch} />
     <DraftHistory history={history.data ?? []} onSelect={setRunId} />
     <AssessmentHistory branchId={branch.id} onSelect={(id) => setAssessment({ id, follow: false })} />
     </div></aside>}
     {comparing && <Suspense fallback={<p role="status">Opening comparison...</p>}><ComparisonSetup branch={branch} profiles={availableProfiles} knowledge={knowledge} usePrepared={usePrepared} onClose={() => setComparing(false)} assessmentChoice={assessmentChoice} onCreated={receive} /></Suspense>}
-    <AssessmentOptionsDialog open={assessmentOptions} profiles={availableProfiles} value={assessmentChoice} onChange={setAssessmentChoice} onClose={() => setAssessmentOptions(false)} />
     {assessment.id && <Suspense fallback={<p role="status">Opening assessment...</p>}><AssessmentPanel id={assessment.id} followWriter={assessment.follow} onClose={() => setAssessment({ id: '', follow: false })} onWriter={openWriter} /></Suspense>}
     {runId && <Suspense fallback={<p role="status">Opening drafts…</p>}><GenerationReview id={runId} onClose={() => setRunId('')} onBranch={onBranch} /></Suspense>}
   </WritingContext.Provider>
@@ -113,7 +111,7 @@ function assessmentLabel(run?: AssessmentStatus) {
   if (run.stale) return 'The story changed. Review the saved assessment.'
   if (run.stopped) return 'Assessment stopped. Your story is unchanged.'
   if (run.error || run.jobs.some(job => ['error', 'interrupted', 'cancelled'].includes(job.status))) return 'Assessment needs attention. Open its status to recover.'
-  if (run.jobs.some(job => ['queued', 'running'].includes(job.status))) return 'Checking the scene before writing…'
+  if (run.jobs.some(job => ['queued', 'running'].includes(job.status))) return 'Scribe is checking the accepted scene. You can keep writing…'
   return 'Assessment ready. Review the next step.'
 }
 
@@ -165,9 +163,9 @@ function PreparedChoice({ prepared, selected, onSkip }: { prepared: Branch['mech
   return <label className="prepared-choice check-row"><input type="checkbox" checked={selected} disabled={prepared.stale} onChange={(e) => onSkip(e.target.checked ? '' : prepared.id)} /><span>{prepared.stale ? 'Prepared beat is outdated; writing without it.' : `Use prepared beat: ${prepared.label}`}</span></label>
 }
 
-function AssessmentLinks({ branch, choice, onOptions, onSaved }: { branch: Branch; choice: AssessmentChoice; onOptions: () => void; onSaved: (id: string) => void }) {
-  return <>{branch.mechanics.automatic_assessment && <div className="prepared-choice assessment-controls"><button className="text-button" onClick={onOptions}>Beat assessment options</button><span className="subtle">{choice.assess_beat ? `Beat checks before writing: up to ${Math.max(1, choice.assessment_profile_ids.length)}.` : 'Skipping assessment for this request.'}</span></div>}
-    {branch.mechanics.assessment && <button className="text-button" onClick={() => onSaved(branch.mechanics.assessment!.id)}>Open saved beat assessment</button>}</>
+function AssessmentLinks({ branch, onSaved }: { branch: Branch; onSaved: (id: string) => void }) {
+  return <>{branch.mechanics.automatic_assessment && <p className="subtle">Scribe prepares chance after you accept text. Writing starts immediately, with a ready beat if available.</p>}
+    {branch.mechanics.assessment && <PreparedBeatStatus id={branch.mechanics.assessment.id} branchId={branch.id} onOpen={() => onSaved(branch.mechanics.assessment!.id)} />}</>
 }
 
 function ContinueButton({ busy, available, assessments, onClick }: { busy: boolean; available: number; assessments: number; onClick: () => Promise<void> }) {

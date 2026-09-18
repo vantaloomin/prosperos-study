@@ -38,7 +38,7 @@ def original_neighbors(edit, blocks, ids):
 def apply_edit(blocks, edit, stage):
     operation = edit['operation']
     if operation == 'insert':
-        block = {'id': edit['block_id'], 'kind': 'dialogue' if stage == 'scene-dialogue-patch' else 'prose', 'text': edit['after']}
+        block = {'id': edit['block_id'], 'kind': edit.get('kind') or ('dialogue' if stage == 'scene-dialogue-patch' else 'prose'), 'text': edit['after']}
         if block['kind'] == 'dialogue':
             block.update(speaker=edit['speaker'], instruction=edit['reason'])
         insert_after(blocks, block, edit['anchor_id'])

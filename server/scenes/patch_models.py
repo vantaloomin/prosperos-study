@@ -10,6 +10,7 @@ Text = Annotated[str, Field(min_length=1, max_length=4000)]
 class PatchEdit(Input):
     block_id: str = Field(min_length=1, max_length=100)
     operation: Literal['replace', 'delete', 'insert', 'move']
+    kind: Literal['prose', 'dialogue'] | None = Field(default=None, exclude_if=lambda value: value is None)
     before: str = Field(max_length=100000)
     after: str = Field(max_length=100000)
     anchor_id: str | None = None

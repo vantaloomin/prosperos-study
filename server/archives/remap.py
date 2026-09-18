@@ -5,6 +5,8 @@ from server.archives.memory_controls import remap_controls
 from server.database import decode, encode, identifier
 from server.library_formats.sources import source_record
 from server.mechanics.config import parse_settings
+from server.prompts import builtin_prompt
+from server.roles import ROLE_LABELS
 
 REFERENCES = {
     'source_branch_id', 'source_node_id', 'replacement_node_id', 'original_node_id',
@@ -15,6 +17,7 @@ REFERENCES = {
     "from_node_id", "through_node_id", "reroll_of", "last_opportunity_id", 'triage_job_id',
     'scene_id', 'commit_id', 'proposal_job_id',
     'selected_job_id', 'assessment_id', 'assessment_job_id',
+    'assessment_profile_id', 'assessment_prompt_version_id',
     'background_state_id', 'previous_id',
     'selected_state_id',
     'continuity_version_id', 'import_id', 'source_version_id', 'batch_id', 'memory_controls_version_id', 'knowledge_character_id',
@@ -51,7 +54,10 @@ def settings(value, mapping):
 def story_settings(value, document, mapping):
     source = deepcopy(value)
     source["primary_profile_id"] = source.get("primary_profile_id") or document["primary_profile_id"]
-    source["prompt_versions"] = {**document["prompt_heads"], **source.get("prompt_versions", {})}
+    versions = {item['id']: item for item in document['data']['prompt_versions']}
+    heads = {key: value for key, value in document['prompt_heads'].items()
+             if key in ROLE_LABELS or not builtin_prompt(versions[value])}
+    source["prompt_versions"] = {**heads, **source.get("prompt_versions", {})}
     randomness = parse_settings(source.get("randomness", {})).model_dump()
     heads = {row["id"]: row["version_id"] for row in document["data"]["roll_tables"]}
     randomness["table_versions"] = {**heads, **randomness["table_versions"]}

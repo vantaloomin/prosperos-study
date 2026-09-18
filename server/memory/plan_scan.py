@@ -67,7 +67,7 @@ def pending_sources(connection, branch, body):
 
 def plan_context(sources, entries, omitted):
     passages = [{key: value for key, value in source.items() if key != 'node_id'} for source in sources]
-    return {'task': TASK, 'passages': passages, 'existing_entries': entries, 'omitted_plans': omitted,
+    return {'task': 'continuity', 'task_direction': TASK, 'passages': passages, 'existing_entries': entries, 'omitted_plans': omitted,
             'sources': [{'id': 'scene:checked', 'kind': 'accepted prose', 'title': 'Accepted passages',
                          'text': '\n\n'.join(source['text'] for source in passages)}]}
 

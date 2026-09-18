@@ -9,6 +9,7 @@ from server.errors import require
 from server.manifests import manifest_view
 from server.memory.source_replay import validate_job_projection
 from server.memory.summary_excerpt import summary_items
+from server.roles import task_context
 from server.workflow.catalog import ROLE_MAP
 from server.workflow.context import scoped_sources, selected_path
 
@@ -28,6 +29,8 @@ def canon_assets(connection, manifest_id, snapshot):
 
 
 def validate_scene_projection(connection, origin, expected, snapshot):
+    if snapshot.get('role'):
+        expected = task_context(snapshot['step'], expected)
     require(not has_canon(snapshot) or origin.get('memory_policy', {}).get('mode') == 'long',
             'Full history cannot carry a selective Canon receipt.')
     assets = canon_assets(connection, origin['branch']['manifest_id'], snapshot)

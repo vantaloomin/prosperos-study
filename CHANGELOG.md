@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.6.2 - 2026-09-18
+
+Agent workflow consolidation. Application version: **0.6.2**.
+
+- Eleven roles replace the 31 specialist cards. Scene planner handles options, beats, and private background; Scribe handles continuity, memory summaries, Canon aids, and beat preparation; Library assistant handles drafting, critique, and tightening. Each task retains its validation and authority boundaries.
+- Two readers offer selectable lenses. The independent reader sees the proposed prose and at most two preceding prose contributions. The informed reader receives permitted references and checks approved beat coverage. Findings retain lens names and exact source quotations; comparisons remain explicit.
+- New scenes skip the separate continuity brief, coverage call, verification call, dialogue patch, and patch-check call. Triage checks claims against supplied evidence and leaves undecidable claims for the author. One patch can revise prose and dialogue. Selecting it records the author's choice; it does not claim an additional model check. Plan, revision package, and scene acceptance still require explicit decisions.
+- Optional beat assessment runs after accepted prose. Writing starts immediately, using a ready result for that exact Story state when available. Pending, failed, stopped, or stale preparation cannot attach itself later to a writing request. Frozen retries and inspected preparation history remain available.
+- Prompts and routing expose combined roles and retained task settings. Custom prompt versions, explicit Story pins, model assignments, and disabled tasks survive the update. Adopting combined instructions is deliberate. Historical scenes and specialist reports remain readable with their original stage names and inputs.
+- Archive format 32 adds combined defaults without replacing historical prompt versions or recorded request bytes. Older formats migrate additively. Model input and output remain JSON; the experimental XML memory protocol is not adopted.
+
+Validation: the full backend suite passed 1,120 tests. The final prompt-identity and historical-scene compatibility changes then passed 122 targeted checks, including ten new cases. All 86 UI-model tests, Ruff, ESLint, TypeScript, and the production build passed. Two upstream Starlette/AnyIO test-client deprecation warnings remain.
+
+Browser validation used isolated Chrome and deterministic protocol fixtures: a fresh scene completed in nine model calls, desktop and 390px layouts passed overflow checks with reduced motion, and a delayed assessment did not delay the next draft. Prompt editing, role routing, reader setup, approval, acceptance, keyboard dismissal, and focus return were exercised. These checks do not establish live-model output quality or provider latency.
+
 ## v0.6.1 - 2026-09-18
 
 First-user feedback update. Application version: **0.6.1**.

@@ -2,6 +2,8 @@ from server.agent_switches import agent_enabled
 from server.database import decode, encode, one
 from server.errors import require
 from server.profiles import primary_id, profile_snapshot
+from server.prompts import task_settings
+from server.roles import LEGACY_KEYS
 from server.stories import check_revision
 from server.workflow.catalog import STEPS
 
@@ -12,8 +14,10 @@ def routing_view(connection, story):
     overrides = settings.get("step_profiles", {})
     return {"story_revision": story["revision"], "primary_profile_id": settings.get("primary_profile_id"),
             "workspace_primary_id": primary_id(connection), "effective_primary_id": default,
-            "step_profiles": overrides, "steps": [{**step, "enabled": agent_enabled(connection, step["key"], story), "effective_profile_id": overrides.get(step["key"]) or default}
-                                                     for step in STEPS]}
+            "step_profiles": overrides, "steps": [{**step, "enabled": agent_enabled(connection, step["key"], story),
+                                                     "tasks": task_settings(connection, step['key'], story),
+                                                     "effective_profile_id": overrides.get(step["key"]) or default}
+                                                     for step in STEPS if step['key'] != 'library-assist']}
 
 
 class Routing:
@@ -28,7 +32,7 @@ class Routing:
         with self.database.connect(write=True) as connection:
             story = one(connection, "SELECT * FROM stories WHERE id=?", (story_id,))
             check_revision(story, body.expected_revision)
-            allowed = {step["key"] for step in STEPS}
+            allowed = {step["key"] for step in STEPS} | set(LEGACY_KEYS)
             require(set(body.step_profiles) <= allowed, "Choose a supported workflow step.")
             ids = set(body.step_profiles.values()) | ({body.primary_profile_id} if body.primary_profile_id else set())
             for profile_id in ids:

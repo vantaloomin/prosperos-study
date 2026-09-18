@@ -7,6 +7,7 @@ import { usePersistent } from '../../hooks/usePersistent'
 import type { Branch } from '../../types'
 import type { ModelProfile } from '../models/types'
 import { defaultReviewSteps, type ReviewPreview, type ReviewRequest, type Routing, type ReviewStep } from './types'
+import { ReaderLenses } from './ReaderChoices'
 
 export function ReviewSetup({ branch, routing, profiles, onStarted }: { branch: Branch; routing: Routing; profiles: ModelProfile[]; onStarted: (id: string) => void }) {
   const latest = [...branch.messages].reverse().find((message) => ['assistant', 'narrator'].includes(message.role))
@@ -33,10 +34,17 @@ export function ReviewSetup({ branch, routing, profiles, onStarted }: { branch: 
   </div>
 }
 
-export function ReviewRoles({ routing, profiles, steps, onChange }: { routing: Routing; profiles: ModelProfile[]; steps: ReviewStep[]; onChange: (steps: ReviewStep[]) => void }) {
+export function ReviewRoles({ routing, profiles, steps, onChange, scene = false }: { routing: Routing; profiles: ModelProfile[]; steps: ReviewStep[]; onChange: (steps: ReviewStep[]) => void; scene?: boolean }) {
   const roles = routing.steps.filter((step) => step.key.startsWith('review-'))
   const toggle = (key: string) => onChange(steps.some((step) => step.key === key) ? steps.filter((step) => step.key !== key) : [...steps, { key, profile_ids: [] }])
-  return <div className="review-roles">{roles.map((role) => { const selected = steps.find((step) => step.key === role.key); return <div className="review-role" key={role.key}><label className="check-row"><input type="checkbox" checked={role.enabled !== false && !!selected} disabled={role.enabled === false} onChange={() => toggle(role.key)} /><span>{role.name}{role.enabled === false && ' (disabled in Prompts)'}<small>{role.scope === 'blind' ? 'Independent reader · prose only' : 'Includes the permitted pinned references'}</small></span></label>{selected && role.enabled !== false && <ComparisonChoices profiles={profiles} selected={selected.profile_ids} onChange={(profile_ids) => onChange(steps.map((step) => step.key === role.key ? { ...step, profile_ids } : step))} />}</div> })}</div>
+  const replace = (updated: ReviewStep) => onChange(steps.map(step => step.key === updated.key ? updated : step))
+  const legacy = steps.filter(step => !roles.some(role => role.key === step.key))
+  return <div className="review-roles">{roles.map(role => <ReaderChoice key={role.key} role={role} selected={steps.find(step => step.key === role.key)} profiles={profiles} scene={scene} onToggle={() => toggle(role.key)} onChange={replace} />)}{legacy.map(step => <div className="review-role" key={step.key}><label className="check-row"><input type="checkbox" checked onChange={() => toggle(step.key)} />Retained selection · {step.key}</label><ComparisonChoices profiles={profiles} selected={step.profile_ids} onChange={profile_ids => replace({ ...step, profile_ids })} /><small>Uses its original specialist prompt. Deselect to adopt a combined reader above.</small></div>)}</div>
+}
+
+function ReaderChoice({ role, selected, profiles, scene, onToggle, onChange }: { role: Routing['steps'][number]; selected?: ReviewStep; profiles: ModelProfile[]; scene: boolean; onToggle: () => void; onChange: (step: ReviewStep) => void }) {
+  const enabled = role.enabled !== false
+  return <div className="review-role"><label className="check-row"><input type="checkbox" checked={enabled && !!selected} disabled={!enabled} onChange={onToggle} /><span>{role.name}{!enabled && ' (disabled in Prompts)'}<small>{role.scope === 'blind' ? 'Prose only' : 'Includes permitted pinned references'}</small></span></label>{selected && enabled && <><ReaderLenses role={role} selected={selected} scene={scene} onChange={onChange} /><ComparisonChoices profiles={profiles} selected={selected.profile_ids} onChange={profile_ids => onChange({ ...selected, profile_ids })} /></>}</div>
 }
 
 function PassageSelect({ label, value, branch, first, onChange }: { label: string; value: string; branch: Branch; first: string; onChange: (value: string) => void }) {

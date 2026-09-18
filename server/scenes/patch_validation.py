@@ -26,13 +26,19 @@ def validate_edit(edit, blocks, context):
         validate_insertion(edit, block, context)
         return
     require(block is not None and edit['before'] == block['text'], 'The patch must quote the complete original block exactly.', 502)
+    require(edit.get('kind', block['kind']) == block['kind'], 'An existing block cannot change kind.', 502)
     require(not edit['speaker'], 'An existing block cannot change speaker.', 502)
     validate_operation(edit, block, context)
 
 
 def validate_insertion(edit, block, context):
     require(block is None and not edit['before'] and bool(edit['after'].strip()), 'An insertion needs a new ID, empty before and nonempty after.', 502)
-    dialogue = context['stage'] == 'scene-dialogue-patch'
+    if context.get('unified_patch'):
+        require(edit.get('kind') in {'prose', 'dialogue'}, 'A new block needs its prose or dialogue kind.', 502)
+    else:
+        expected = 'dialogue' if context['stage'] == 'scene-dialogue-patch' else 'prose'
+        require(edit.get('kind', expected) == expected, 'This specialist cannot insert the other writer\'s blocks.', 502)
+    dialogue = edit.get('kind') == 'dialogue' if context.get('unified_patch') else context['stage'] == 'scene-dialogue-patch'
     require(bool(edit['speaker'].strip()) == dialogue, 'Only an inserted dialogue block needs a speaker.', 502)
 
 
@@ -42,7 +48,7 @@ def validate_operation(edit, block, context):
         require(context['stage'] == 'scene-patch' and edit['after'] == edit['before'], 'Only prose patching may move an unchanged block.', 502)
         return
     kind = 'dialogue' if context['stage'] == 'scene-dialogue-patch' else 'prose'
-    require(block['kind'] == kind, 'This specialist cannot rewrite the other writer\'s blocks.', 502)
+    require(context.get('unified_patch') or block['kind'] == kind, 'This specialist cannot rewrite the other writer\'s blocks.', 502)
     require(edit['anchor_id'] is None, 'Only insertions and moves accept a position.', 502)
     if operation == 'delete':
         require(not edit['after'], 'A deleted block must have empty after text.', 502)
@@ -58,7 +64,7 @@ def validate_resolutions(result, context):
     for item in result['resolutions']:
         require(item['status'] != 'addressed' or item['item_id'] in addressed, 'An addressed item needs a linked change.', 502)
         if item['status'] == 'defer-dialogue':
-            require(context['stage'] == 'scene-patch' and context['dialogue_split'], 'Only split prose patching may defer to dialogue.', 502)
+            require(not context.get('unified_patch') and context['stage'] == 'scene-patch' and context['dialogue_split'], 'Only legacy split prose patching may defer to dialogue.', 502)
 
 
 def change_texts(change):

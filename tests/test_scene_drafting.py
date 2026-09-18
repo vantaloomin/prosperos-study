@@ -175,6 +175,8 @@ def test_completed_draft_archive_restores_gate_and_can_redraft_without_mutating_
 
 
 def test_version_two_approved_plans_upgrade_and_continue_with_default_whole_prose(client, story):
+    from tests.prompt_fixtures import pin_historical_tasks
+    pin_historical_tasks(client, story, ['scene-options', 'scene-beats'])
     run_id, _ = approved_plan(client, story)
     _, document = backup(client, story)
     remove_assessments(document)

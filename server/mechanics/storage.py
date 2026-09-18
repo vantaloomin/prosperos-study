@@ -14,6 +14,14 @@ def pending_opportunity(connection, branch, story=None):
     if row is None:
         return None
     result = opportunity_view(dict(row))
+    assessment_id = result['snapshot'].get('assessment_id')
+    if assessment_id:
+        assessment = one(connection, 'SELECT * FROM assessment_runs WHERE id=?', (assessment_id,))
+        snapshot = decode(assessment['snapshot'])
+        if snapshot.get('purpose') == 'post-acceptance':
+            from server.assessment.preparation import preparation_stale
+            if assessment['stopped'] or preparation_stale(connection, snapshot):
+                return None
     story = story or one(connection, "SELECT * FROM stories WHERE id=?", (branch["story_id"],))
     explicit = result["snapshot"]["manual"] or result["snapshot"].get("reroll_of")
     if not read_settings(story).enabled and not explicit:

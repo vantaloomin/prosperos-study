@@ -1,7 +1,6 @@
 import hashlib
 import math
 
-from server.agent_switches import agent_enabled
 from server.branches import path_nodes
 from server.character_content import narrative_asset
 from server.continuity import continuity_sources, continuity_view
@@ -21,9 +20,10 @@ from server.memory.source_packet import assemble_sources
 from server.memory.summary_excerpt import summary_links
 from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
-from server.prompts import prompt_snapshot
+from server.roles import role_key, task_context
 from server.stories import check_revision
 from server.workflow.catalog import ROLE_MAP
+from server.workflow.readers import prompt_for_review, reader_context, reader_selections
 
 
 def selected_path(nodes, body):
@@ -56,7 +56,7 @@ def scoped_sources(connection, role, story, prior, draft, prefix, continuity_ver
     sources.extend(message_source(node, "previous") for node in prior_prose)
     sources.extend(reference_sources(connection, prefix[-1]["manifest_id"]))
     sources.extend(continuity_sources(continuity_view(connection, prefix[-1]['id'], continuity_version)))
-    if role["scope"] == "rules":
+    if role["scope"] in {"rules", "informed"}:
         sources.extend(message_source(node, "guidance") for node in prefix if node["role"] == "ooc")
         settings = decode(story["settings"])
         constraints = {key: settings[key] for key in ["genre", "tone", "pov", "tense", "persona", "player_agency", "rules", 'experience', 'response_length'] if key in settings}
@@ -66,10 +66,11 @@ def scoped_sources(connection, role, story, prior, draft, prefix, continuity_ver
     return placed_sources(sources, lore)
 
 
-def job_snapshot(connection, story, selection, context, *, validate_budget=True, memory_policy=None, summary_aids=None, manifest_id=None, freeze_sources=False, summary_bindings=None):
+def job_snapshot(connection, story, selection, context, *, validate_budget=True, memory_policy=None, summary_aids=None, manifest_id=None, freeze_sources=False, summary_bindings=None, prompt=None):
     require(len(selection.profile_ids) == len(set(selection.profile_ids)), "Select each comparison profile once.")
     profiles = [resolve_profile(connection, story, selection.key, value) for value in (selection.profile_ids or [None])]
-    prompt = prompt_snapshot(connection, selection.key, story)
+    prompt = prompt or prompt_for_review(connection, selection.key, story)
+    context = task_context(selection.key, context)
     original = context
     long_mode = bool(memory_policy and memory_policy.get('mode') == 'long')
     assets = manifest_view(connection, manifest_id) if long_mode and manifest_id and context.get('scope') != 'blind' else []
@@ -83,7 +84,7 @@ def job_snapshot(connection, story, selection, context, *, validate_budget=True,
     estimate = math.ceil(len((prompt["template"] + content).encode("utf-8")) / 3)
     if validate_budget:
         validate_job_budget(profiles, estimate)
-    return [{"step": selection.key, "profile": profile, "prompt": prompt,
+    return [{"step": selection.key, "role": role_key(selection.key), "profile": profile, "prompt": prompt,
              "content": content, "estimated_input_tokens": estimate,
              **({"source_memory": memory} if memory else {}),
              **(source_origins(original, assets) if (canon or derived_links) and freeze_sources else {}),
@@ -124,15 +125,14 @@ def review_snapshot(connection, branch_id, body):
     aids = reviewed_aids(connection, boundary, policy)
     decisions = decision_packet(control_view(connection, boundary))
     jobs = []
-    for step in body.steps:
-        if not agent_enabled(connection, step.key, story):
-            continue
+    for step in reader_selections(connection, story, body.steps):
         role = ROLE_MAP[step.key]
         sources = scoped_sources(connection, role, story, prior, draft, prefix, plan_head(connection, branch_id))
         context = {"task": "Review the draft sources; the other sources are context, not additional draft passages.",
                    "role": role["name"], "scope": role["scope"], "sources": sources}
         if decisions and role["scope"] != "blind":
             context["author_memory"] = decisions
+        context = reader_context(step, context)
         jobs.extend(job_snapshot(connection, story, step, context, memory_policy=policy.model_dump(), summary_aids=aids,
                                  manifest_id=boundary['manifest_id'], freeze_sources=True))
     require(bool(jobs), "All selected reviewers are disabled. Enable a reviewer in Settings > Prompts.", 409)

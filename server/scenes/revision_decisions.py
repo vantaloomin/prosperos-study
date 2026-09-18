@@ -37,7 +37,7 @@ def package_items(result, context, package, requested):
         chosen = [item for item in items if included(item, findings, package)]
     required = {item['id'] for item in items if mandatory(item, findings)}
     require(required <= {item['id'] for item in chosen}, 'The package must address every hard fix.')
-    require(all(item['disposition'] not in {'overrule', 'verify'} for item in chosen), 'Only resolved proposed changes can enter a package.')
+    require(all(item['disposition'] not in {'overrule', 'verify', 'undecidable'} for item in chosen), 'Only resolved proposed changes can enter a package.')
     return chosen
 
 
@@ -48,11 +48,11 @@ def mandatory(item, findings):
 
 def included(item, findings, package):
     disposition = item['disposition']
-    if disposition in {'overrule', 'verify'}:
+    if disposition in {'overrule', 'verify', 'undecidable'}:
         return False
     if disposition == 'hold':
         return package == 'C' or mandatory(item, findings)
-    canon = any(findings[ref]['role'] == 'review-continuity' for ref in item['finding_ids'])
+    canon = any(findings[ref]['role'] == 'review-continuity' or findings[ref].get('lens') == 'continuity' for ref in item['finding_ids'])
     return disposition == 'hard-fix' or canon or package in {'B', 'C'}
 
 
@@ -60,7 +60,7 @@ def approve_revision(connection, run, body):
     result = resolved_triage(connection, run)
     require(result and result['approach'] == 'patch', 'Choose a patchable triage result; a redraft recommendation returns to drafting.', 409)
     require(not run['state'].get('gate_b'), 'This revision package is already approved.', 409)
-    require(all(item['disposition'] != 'verify' for item in result['items']), 'Resolve every disputed item before the second director gate.', 409)
+    require(all(item['disposition'] not in {'verify', 'undecidable'} for item in result['items']), 'Resolve every disputed item before the second director gate.', 409)
     chosen = package_items(result, triage_context(connection, run), body.package, body.item_ids)
     holds = {item['id'] for item in chosen if item['disposition'] == 'hold'}
     require(holds == set(body.confirmed_hold_ids), 'Explicitly confirm every structural change included in this package.')

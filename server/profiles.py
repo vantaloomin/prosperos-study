@@ -3,6 +3,7 @@ from server.database import Database, decode, encode, identifier, many, now, one
 from server.errors import require
 from server.providers.config import ProfileCreate, ProfileUpdate, profile_ready
 from server.providers.vault import CredentialVault, credential_for
+from server.roles import configured_profile
 
 
 def same_connection(first, second):
@@ -51,7 +52,7 @@ def profile_snapshot(connection, profile_id: str) -> dict:
 def resolve_profile(connection, story: dict, step: str, override: str | None = None) -> dict:
     require_agent(connection, step, story)
     settings = decode(story["settings"])
-    step_profile = settings.get("step_profiles", {}).get(step)
+    step_profile = configured_profile(settings, step)
     default = settings.get("primary_profile_id") or primary_id(connection)
     resolved = override or step_profile or default
     require(bool(resolved), "Choose a Primary Writer in Settings before generating.", 409)

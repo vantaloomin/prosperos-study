@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.6.1 - first-user feedback update** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.6.2 - consolidated writing workflow** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -64,13 +64,15 @@ Publishing an edit creates a new version. Existing stories keep their selected v
 
 Open Collaborator to brainstorm, ask about a character's motivation, improve your next prompt, or review what you have written. The collaborator can consult story context and retrieve exact passages when needed. It cannot advance the story or apply its suggestions on its own. Its connection is shown above the conversation. **Change connection** saves the existing Collaborator assignment for this story; **Manage connections** opens model setup and returns to the same chat. Choose Docked, Floating, or Full workspace; window controls also support keyboard movement and resizing. Small windows or enlarged interfaces use Full workspace when needed.
 
-For a more structured session, the scene workflow brings together planning, drafting, dialogue, specialist reviews, revisions, and continuity proposals, with decisions left to you along the way.
+For a structured session, the scene planner proposes options and beats for your approval. Drafting and optional dialogue lead to two readers: an independent reader with eight selectable lenses, and an informed reader checking rules, continuity, and approved beat coverage. Triage resolves findings against supplied evidence; unresolved claims need your decision. One revision patch can change both prose and dialogue, then the Scribe proposes continuity to keep. You approve the plan, revision package, and final scene.
+
+The standard scene with split dialogue and both readers uses nine model requests. Model comparisons, separate character actors, and retained specialist settings can add requests; each preview shows the actual count. Optional beat assessment runs after accepted prose and prepares the next opportunity. Writing can begin immediately; pending, failed, or stale preparation supplies no chance result to that request.
 
 ### Make the room your own
 
 Choose from six palettes or preview custom accent, background, surface, and text colors. Interface size supports 85–200%, exact entry, presets, and reset; older settings retain their rendered size. Reading size and fonts remain independent. Reduced motion is available. Reading fonts include Literata, Arimo, Atkinson Hyperlegible, OpenDyslexic, Lora, and Source Serif 4. Fonts are bundled with the app.
 
-Prompts live in secondary editors when you want to customize them. Enable or disable individual agents or whole sections; a mixed section switches back to **Enable all** on the next interaction.
+Eleven roles have editable, versioned instructions in **Settings > Prompts**. The planner, Scribe, and Library assistant handle several named tasks. Enable or disable roles, tasks, or whole sections. Earlier custom prompts, Story pins, model assignments, and disabled tasks remain visible under their combined role. Choose to adopt the combined instructions explicitly; saved inputs and original retries retain their recorded versions.
 
 ## Coming from SillyTavern or another LLM chat app?
 
@@ -142,7 +144,7 @@ Stories and Library material are stored locally in the project's `data/` folder.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
 - **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.1. Archive format 31 preserves request activity and passage revisions; keep a pre-update backup if you need an older app version.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.2. Archive format 32 adds combined role defaults while preserving historical tasks, prompt versions, and request bytes. Keep a pre-update backup if you need an older app version.
 
 ## Questions
 

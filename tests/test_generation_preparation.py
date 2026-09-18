@@ -9,7 +9,6 @@ from tests.test_assessments import setup_assessment
 from tests.test_context_contract import revise_prompt
 from tests.test_context_inspector import database_dump
 from tests.test_generations import DraftProvider, finished
-from tests.test_history import append
 from tests.test_mechanics import prepare
 from tests.test_profiles import make_profile
 
@@ -56,12 +55,15 @@ def test_source_changes_during_preparation_fail_before_recording(client, story, 
                 'expected_version_id': profile['id'], 'name': 'Revised', 'config': profile['config']})
             assert response.status_code == 200
         if change == 'branch':
-            append(client, story['branch_id'], 'A new event.', 1)
+            from server.branches import Branches
+            from server.models import MessageCreate
+            Branches(client.app.state.database).append(story['branch_id'], MessageCreate(
+                operation_id=uuid4().hex, expected_revision=1, role='narrator', text='A new event.'))
         if change == 'opportunity':
             prepare(client, story['branch_id'], revision=1)
 
     during_assembly(monkeypatch, change_inputs)
-    monkeypatch.setattr('server.assessment.writing.seed_assessment', lambda *_: pytest.fail('Uncommitted request seeded'))
+    monkeypatch.setattr('server.assessment.preparation.seed_assessment', lambda *_: pytest.fail('Uncommitted request seeded'))
     response = client.post(f"/api/branches/{story['branch_id']}/generations", json={
         'operation_id': uuid4().hex, 'expected_revision': 1})
     assert response.status_code == 409, response.text

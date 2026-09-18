@@ -49,7 +49,7 @@ def validate_package(connection, run):
     validate_triage(result, context)
     if not gate:
         return
-    require(result['approach'] == 'patch' and all(item['disposition'] != 'verify' for item in result['items']),
+    require(result['approach'] == 'patch' and all(item['disposition'] not in {'verify', 'undecidable'} for item in result['items']),
             'An approved package has unresolved findings or needs redrafting.')
     requested = gate['item_ids'] if gate['package'] == 'custom' else []
     require(gate['package'] in {'A', 'B', 'C', 'custom'}, 'Unsupported revision package.')

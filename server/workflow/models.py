@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from server.models import Input
+from server.scenes.drafts import BeatCoverage
 
 
 class RoutingUpdate(Input):
@@ -14,6 +15,7 @@ class RoutingUpdate(Input):
 class ReviewStep(Input):
     key: str
     profile_ids: list[str] = Field(default_factory=list, max_length=4)
+    lenses: list[str] | None = Field(default=None, min_length=1, max_length=8, exclude_if=lambda value: value is None)
 
 
 class ReviewPreview(Input):
@@ -43,6 +45,7 @@ class SelectReview(Input):
 
 
 class Finding(Input):
+    lens: str | None = Field(default=None, exclude_if=lambda value: value is None)
     severity: Literal["hard", "soft", "cut", "hold"]
     source_id: str = Field(min_length=1, max_length=200)
     quote: str = Field(min_length=1, max_length=4000)
@@ -52,4 +55,5 @@ class Finding(Input):
 
 class ReviewOutput(Input):
     summary: str = Field(min_length=1, max_length=4000)
-    findings: list[Finding] = Field(max_length=10)
+    findings: list[Finding] = Field(max_length=20)
+    coverage: list[BeatCoverage] | None = Field(default=None, min_length=1, max_length=24, exclude_if=lambda value: value is None)

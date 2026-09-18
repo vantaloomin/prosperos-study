@@ -184,7 +184,7 @@ def test_planning_only_receives_private_guidance_in_allowed_stages(client):
     receipt = prepared(client, story, character)
     with client.app.state.database.connect() as connection:
         snapshot = create_snapshot(connection, story['branch_id'], SceneCreate(operation_id=uuid4().hex, expected_revision=1, title='Listen', direction='Listen.'))
-        run = {'snapshot': snapshot, 'state': {'selections': {}}}
+        run = {'id': 'unsaved-plan', 'snapshot': snapshot, 'state': {'selections': {}}}
         assert snapshot['background_state_id'] == receipt['id']
         assert 'private_background' in stage_inputs(connection, run, 'scene-options')
         assert all('private_background' not in source['text'] for source in snapshot['sources'])

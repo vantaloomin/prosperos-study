@@ -324,7 +324,8 @@ def test_character_scene_accepts_only_after_explicit_selection_and_director_revi
 def test_dialogue_prompt_revision_preserves_custom_heads_and_story_pins(client, story):
     from server.database import one
     from server.prompts import Prompts, PromptUpdate, initialize_prompts, prompt_snapshot
-    from server.scenes.catalog import CHARACTER_DIALOGUE_PROMPT, SCENE_PROMPTS
+    from server.role_prompts import ROLE_PROMPTS
+    from server.scenes.catalog import SCENE_PROMPTS
     database = client.app.state.database
     with database.connect(write=True) as connection:
         connection.execute("UPDATE prompt_heads SET version_id='scene-dialogue-default-v1' WHERE key='scene-dialogue'")
@@ -333,7 +334,7 @@ def test_dialogue_prompt_revision_preserves_custom_heads_and_story_pins(client, 
     initialize_prompts(database)
     with database.connect() as connection:
         current = prompt_snapshot(connection, 'scene-dialogue')
-        assert current['template'] == CHARACTER_DIALOGUE_PROMPT
+        assert current['template'] == ROLE_PROMPTS['scene-dialogue']
         pinned = one(connection, 'SELECT * FROM stories WHERE id=?', (story['story_id'],))
         assert prompt_snapshot(connection, 'scene-dialogue', pinned)['template'] == SCENE_PROMPTS['scene-dialogue']
     edited = Prompts(database).update('scene-dialogue', PromptUpdate(

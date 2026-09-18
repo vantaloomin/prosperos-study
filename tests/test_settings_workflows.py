@@ -61,11 +61,11 @@ def test_incomplete_profile_never_starts_generation(client, story):
 
 
 def test_section_switch_is_atomic_scoped_and_keeps_versions(client):
-    toggle(client, 'writer', False)
+    toggle(client, 'scene-draft', False)
     before = client.get('/api/prompts').json()
-    group = [row for row in before if row['group'] == 'Interactive writing']
+    group = [row for row in before if row['group'] == 'Scene drafting']
     assert len({row['enabled'] for row in group}) == 2
-    body = {'group': 'Interactive writing', 'enabled': True, 'expected_revision': group[0]['activation_revision']}
+    body = {'group': 'Scene drafting', 'enabled': True, 'expected_revision': group[0]['activation_revision']}
     assert client.put('/api/prompt-sections/activation', json=body).status_code == 200
     after = client.get('/api/prompts').json()
     assert all(row['enabled'] for row in after if row['group'] == body['group'])

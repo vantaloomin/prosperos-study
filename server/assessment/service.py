@@ -1,5 +1,6 @@
 from server.assessment.decision import finish_assessment
 from server.assessment.models import AssessmentDecision
+from server.assessment.preparation import finish_preparation, preparation_stale
 from server.database import decode, many, one
 from server.errors import require
 from server.generations import stale_target
@@ -21,6 +22,8 @@ class Assessments:
             run = one(connection, 'SELECT * FROM assessment_runs WHERE id=?', (run_id,))
             snapshot = decode(run['snapshot'])
             _, stale = stale_target(connection, snapshot['writer_snapshot'])
+            if snapshot.get('purpose') == 'post-acceptance':
+                stale = preparation_stale(connection, snapshot, check_written=not run['opportunity_id'])
             for profile in snapshot['writer_profiles']:
                 profile.pop('credential_ref', None)
             jobs = many(connection, 'SELECT * FROM assessment_jobs WHERE run_id=? ORDER BY rowid', (run_id,))
@@ -44,7 +47,8 @@ class Assessments:
             if run['generation_id']:
                 return {'id': run['generation_id']}
             require(not automatic or not run['stopped'], 'Assessment stopped; choose explicitly to continue.', 409)
-            result = finish_assessment(connection, run, body)
+            finish = finish_preparation if decode(run['snapshot']).get('purpose') == 'post-acceptance' else finish_assessment
+            result = finish(connection, run, body)
             return remember(connection, body.operation_id, 'choose_assessment', payload, result)
 
     def auto_finish(self, job_id):
@@ -65,6 +69,10 @@ class Assessments:
         with self.database.connect(write=True) as connection:
             job = one(connection, 'SELECT run_id FROM assessment_jobs WHERE id=?', (job_id,))
             run = one(connection, 'SELECT * FROM assessment_runs WHERE id=?', (job['run_id'],))
+            snapshot = decode(run['snapshot'])
+            if snapshot.get('purpose') == 'post-acceptance':
+                require(not run['opportunity_id'] and not preparation_stale(connection, snapshot, check_written=True),
+                        'This beat preparation was used, skipped or belongs to an earlier Story state.', 409)
             require(not run['generation_id'], 'This assessment already started its writer. Open the saved drafts.', 409)
             _, stale = stale_target(connection, decode(run['snapshot'])['writer_snapshot'])
             require(not stale, 'This assessment belongs to an earlier Story state.', 409)

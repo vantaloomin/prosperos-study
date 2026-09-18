@@ -9,7 +9,7 @@ import type { ModelProfile } from '../models/types'
 import { ReviewResults } from '../workflow/ReviewResults'
 import { ReviewEstimate, ReviewRoles } from '../workflow/ReviewSetup'
 import { defaultReviewSteps, type ReviewHistoryItem, type ReviewPreview, type ReviewRequest, type Routing } from '../workflow/types'
-import type { SceneRun } from './types'
+import { consolidatedScene, type SceneRun } from './types'
 
 type Props = { run: SceneRun; branch: Branch; routing: Routing; profiles: ModelProfile[] }
 
@@ -17,15 +17,19 @@ export function SceneReviews(props: Props) {
   const { run } = props
   const [selected, setSelected] = usePersistent(`roleplay:scene-review:${run.id}`, '')
   const [compose, setCompose] = useState(false)
-  const covered = run.coverage_passes || run.snapshot.disabled_steps?.includes('scene-coverage')
-  const ready = covered && !!run.draft?.complete && !run.stale
+  const ready = reviewReady(run)
   const started = (id: string) => { setSelected(id); setCompose(false) }
   return <section className="scene-reviews form-stack"><div><h3>Independent readers</h3><p className="subtle">Invite specialists to review this saved draft before it becomes Story text. Reports stay attached to the exact draft they read; choosing another draft preserves the earlier reports.</p></div>
-    {!ready && <p className="subtle">Complete the selected draft and its beat coverage on the current Story before requesting a review.</p>}
+    {!ready && <p className="subtle">Complete the selected draft on the current Story before requesting a review.</p>}
     <button className="button" disabled={!ready} aria-expanded={compose} onClick={() => setCompose(!compose)}>{compose ? 'Close review setup' : 'Review this saved draft'}</button>
     {compose && ready && <SceneReviewSetup key={`${run.id}:${run.revision}`} {...props} onStarted={started} />}
     <SceneReviewHistory {...props} selected={selected} onSelect={setSelected} />
   </section>
+}
+
+function reviewReady(run: SceneRun) {
+  const covered = consolidatedScene(run) || run.coverage_passes || run.snapshot.disabled_steps?.includes('scene-coverage')
+  return covered && !!run.draft?.complete && !run.stale
 }
 
 function SceneReviewHistory({ run, branch, routing, selected, onSelect }: Props & { selected: string; onSelect: (id: string) => void }) {
@@ -53,8 +57,8 @@ function SceneReviewSetup({ run, branch, routing, profiles, onStarted }: Props &
     const result = await api<{ id: string }>(endpoint, { ...preview.body, preview_hash: preview.data.preview_hash, operation_id: preview.operation })
     onStarted(result.id)
   })
-  return <div className="form-stack"><p className="subtle">Blind readers receive only the draft and at most two preceding prose contributions. Rules and continuity reviewers receive their permitted frozen references. Other reports and coverage judgments are excluded.</p>
-    <ReviewRoles routing={routing} profiles={profiles} steps={steps} onChange={(value) => { setSteps(value); setPreview(null) }} />
+  return <div className="form-stack"><p className="subtle">Blind readers receive only the draft and at most two preceding prose contributions. The informed reader receives frozen references and checks the approved beats. Readers do not see each other’s reports.</p>
+    <ReviewRoles scene routing={routing} profiles={profiles} steps={steps} onChange={(value) => { setSteps(value); setPreview(null) }} />
     <ErrorNotice message={action.error} /><button className="button" disabled={action.busy || !steps.length} onClick={prepare}>Preview draft review requests</button>
     {preview && <ReviewEstimate data={preview.data} busy={action.busy} onStart={start} />}
   </div>

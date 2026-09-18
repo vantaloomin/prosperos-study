@@ -30,7 +30,7 @@ def validate_review_target(connection, row, snapshot):
     require(not snapshot.get("from_node_id") and not snapshot.get("through_node_id"), "A draft review also names a Story passage.")
     frozen = {**origin, "state": target["state"], "revision": target["revision"]}
     validate_state(connection, frozen)
-    require(coverage_passes(selected_result(connection, frozen, "scene-coverage")) or "scene-coverage" in frozen["snapshot"].get("disabled_steps", []), "A draft review lacks completed coverage.")
+    require(frozen['snapshot'].get('workflow_version', 1) >= 2 or coverage_passes(selected_result(connection, frozen, "scene-coverage")) or "scene-coverage" in frozen["snapshot"].get("disabled_steps", []), "A draft review lacks completed coverage.")
     draft = draft_view(connection, frozen)
     require(draft and draft["complete"], "A draft review refers to incomplete prose.")
     return frozen, draft
@@ -44,6 +44,7 @@ def validate_draft_reviews(connection, document):
             continue
         if not snapshot.get("scene"):
             for job in many(connection, "SELECT * FROM review_jobs WHERE run_id=?", (row["id"],)):
+                require('approved_beats' not in decode(decode(job['snapshot'])['content']), 'Accepted-passage reviews cannot invent a scene plan.')
                 validate_historical_memory(connection, row, snapshot, job)
             continue
         frozen, draft = validate_review_target(connection, row, snapshot)
@@ -52,6 +53,8 @@ def validate_draft_reviews(connection, document):
             role = ROLE_MAP[job["step"]]
             inputs = decode(job["snapshot"])
             context = decode(inputs["content"])
+            if 'approved_beats' in context:
+                require(context['approved_beats'] == selected_result(connection, frozen, 'scene-beats'), 'The reader assessed a different beat plan.')
             decisions = frozen["snapshot"].get("author_memory") if role["scope"] != "blind" else None
             require(context.get("author_memory") == decisions, "A reviewer changed its frozen author decisions or role scope.")
             expected = scoped_scene_sources(connection, role, frozen, draft)

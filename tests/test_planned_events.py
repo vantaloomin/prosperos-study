@@ -183,6 +183,8 @@ def test_plan_shape_rejects_missing_details_duplicates_and_foreign_payloads():
 
 
 def test_format_28_restore_preserves_legacy_inputs(client, story):
+    from tests.prompt_fixtures import pin_historical_tasks
+    pin_historical_tasks(client, story, ['scene-options', 'scene-beats', 'scene-continuity'])
     run_id, _ = ready_continuity(client, story)
     response = client.post(f'/api/scenes/{run_id}/accept', json=acceptance_body(client, run_id))
     assert response.status_code == 200, response.text
@@ -204,15 +206,18 @@ def test_format_28_restore_preserves_legacy_inputs(client, story):
 
 
 def test_continuity_plan_prompt_preserves_custom_head_and_story_pin(client, story):
-    from server.prompts import initialize_prompts, prompt_snapshot
+    from server.prompts import initialize_prompts, original_prompt, prompt_snapshot
+    from server.role_prompts import ROLE_PROMPTS
     from server.scenes.catalog import BOUNDARY, SCENE_PROMPTS
     from server.scenes.continuity_catalog import PLANNED_CONTINUITY_PROMPT
 
     database = client.app.state.database
     with database.connect() as connection:
         current = prompt_snapshot(connection, 'scene-continuity')
+        assert current['template'] == ROLE_PROMPTS['scribe']
+        assert 'Use kind=plan' in current['template']
+        current = original_prompt(connection, 'scene-continuity')
         assert current['template'] == BOUNDARY + PLANNED_CONTINUITY_PROMPT
-        assert 'scene-continuity-default-v2' == current['id']
         pinned_story = {'settings': encode({'prompt_versions': {'scene-continuity': 'scene-continuity-default-v1'}})}
         assert prompt_snapshot(connection, 'scene-continuity', pinned_story)['template'] == SCENE_PROMPTS['scene-continuity']
     response = client.put('/api/prompts/scene-continuity', json={

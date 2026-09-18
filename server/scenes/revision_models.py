@@ -6,7 +6,7 @@ from server.memory.source_evidence import quotation_matches
 from server.models import Input
 from server.scenes.models import SceneApproval
 
-Disposition = Literal['hard-fix', 'fix', 'cut', 'overrule', 'verify', 'hold']
+Disposition = Literal['hard-fix', 'fix', 'cut', 'overrule', 'verify', 'hold', 'undecidable']
 
 
 class Evidence(Input):
@@ -81,11 +81,14 @@ def validate_triage(result, content):
     for item in result['items']:
         validate_resolution(item, content['sources'])
         hard = any(findings[ref]['severity'] == 'hard' for ref in item['finding_ids'])
-        require(not hard or item['disposition'] in {'hard-fix', 'overrule', 'verify', 'hold'},
+        require(not hard or item['disposition'] in {'hard-fix', 'overrule', 'verify', 'hold', 'undecidable'},
                 'A hard finding cannot silently become an optional fix.', 502)
         structural = any(findings[ref]['severity'] == 'hold' for ref in item['finding_ids'])
-        require(not structural or item['disposition'] in {'hold', 'overrule', 'verify'},
+        require(not structural or item['disposition'] in {'hold', 'overrule', 'verify', 'undecidable'},
                 'A structural finding needs explicit approval or an evidenced overrule.', 502)
+        if content.get('inline_verification'):
+            require(item['disposition'] != 'verify', 'Resolve a disputed claim inline or mark it undecidable.', 502)
+            require(item['disposition'] != 'hard-fix' or bool(item['evidence']), 'A hard fix needs primary-source evidence.', 502)
 
 
 def validate_verification(result, content):

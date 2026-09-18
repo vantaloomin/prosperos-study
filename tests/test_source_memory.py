@@ -19,7 +19,7 @@ from tests.test_scene_drafting import PROSE, DraftProvider
 from tests.test_scene_patches import PatchProvider, selected_stage
 from tests.test_scene_reviews import scene_body
 from tests.test_scene_revisions import RevisionProvider, rejected_claim
-from tests.test_scenes import choose, decide, get_plan, run_stage
+from tests.test_scenes import choose, decide, get_plan, legacy_scene_creation, run_stage
 
 
 def source_context():
@@ -132,9 +132,10 @@ def set_memory(client, story, mode):
 
 def create_long_scene(client, story, revision):
     client.app.state.scene_runner.provider = DraftProvider()
-    response = client.post(f"/api/branches/{story['branch_id']}/scenes", json={
-        'expected_revision': revision, 'operation_id': uuid4().hex, 'title': 'Observatory encounter',
-        'direction': 'Remember the promise about the brass observatory key.', 'propose_options': False})
+    with legacy_scene_creation():
+        response = client.post(f"/api/branches/{story['branch_id']}/scenes", json={
+            'expected_revision': revision, 'operation_id': uuid4().hex, 'title': 'Observatory encounter',
+            'direction': 'Remember the promise about the brass observatory key.', 'propose_options': False})
     assert response.status_code == 201, response.text
     return response.json()['id']
 

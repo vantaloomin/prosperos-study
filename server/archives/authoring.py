@@ -16,7 +16,7 @@ def collect_authoring(connection, data, complete):
 
 def validate_authoring(connection, document):
     data = document['data']
-    require(set(document['authoring_profiles']) <= AUTHORING_KEYS, 'Invalid Library assistant defaults.')
+    require(set(document['authoring_profiles']) <= AUTHORING_KEYS | {'library-assist', 'scribe'}, 'Invalid Library assistant defaults.')
     for profile_id in document['authoring_profiles'].values():
         one(connection, 'SELECT id FROM profiles WHERE id=?', (profile_id,))
     runs = {row['id']: validate_run(connection, row) for row in data['authoring_runs']}
@@ -24,7 +24,7 @@ def validate_authoring(connection, document):
     for job in jobs.values():
         snapshot = decode(job['snapshot'])
         run = runs[job['run_id']]
-        require(job['step'] == snapshot['step'] == run['step'] and snapshot['prompt']['key'] == job['step'], 'Invalid authoring role.')
+        require(job['step'] == snapshot['step'] == run['step'], 'Invalid authoring role.')
         require(snapshot['content'] == run['content'], 'Authoring comparisons must use the same frozen draft.')
         validate_configuration(connection, snapshot)
         validate_output(job, snapshot)

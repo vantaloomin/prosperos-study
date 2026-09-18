@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { ErrorNotice, Loading } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
 import type { Branch } from '../../types'
+import { reviewRoleName } from './reviewNames'
 import { working, type ReviewJob, type ReviewRun, type WorkflowStep } from './types'
 
 function useReview(id: string) {
@@ -39,7 +40,7 @@ function ReportTabs({ run, selected, steps, onSelect }: { run: ReviewRun; select
     keepReportVisible(node)
     return () => observer.disconnect()
   }, [selected])
-  return <div ref={strip} className="review-job-tabs" aria-label="Specialist reports">{run.jobs.map((job) => <button key={job.id} aria-pressed={selected === job.id} onClick={() => onSelect(job.id)}><strong>{steps.find((step) => step.key === job.step)?.name ?? job.step}</strong><span>{job.snapshot.profile.name}</span><small>{job.status}{run.selections[job.step] === job.id ? ' · preferred' : ''}</small></button>)}</div>
+  return <div ref={strip} className="review-job-tabs" aria-label="Specialist reports">{run.jobs.map((job) => <button key={job.id} aria-pressed={selected === job.id} onClick={() => onSelect(job.id)}><strong>{reviewRoleName(steps, job.step)}</strong><span>{job.snapshot.profile.name}</span><small>{job.status}{run.selections[job.step] === job.id ? ' · preferred' : ''}</small></button>)}</div>
 }
 
 export function ReviewResults({ id, branch, steps }: { id: string; branch: Branch; steps: WorkflowStep[] }) {
@@ -82,7 +83,7 @@ function ReviewReport({ job, run }: { job: ReviewJob; run: ReviewRun }) {
   return <section ref={panel} tabIndex={-1} aria-label={`Review from ${job.snapshot.profile.name}`} className="review-report form-stack"><div className="candidate-meta"><span>{job.snapshot.profile.config.model} · prompt v{job.snapshot.prompt.number}</span><span role="status">{job.status} · attempt {job.attempt}</span></div>
     <ErrorNotice message={action.error || job.error} />
     <SourceMemoryCoverage memory={job.snapshot.source_memory} />
-    {job.result && <><p className="review-summary">{job.result.summary}</p>{job.result.findings.map((finding, index) => <article className="review-finding" key={index}><span className={`finding-severity severity-${finding.severity}`}>{finding.severity}</span><blockquote>{finding.quote}</blockquote><p>{finding.explanation}</p><p><strong>Suggestion:</strong> {finding.suggestion}</p><small>Source: {finding.source_id}</small></article>)}{!job.result.findings.length && <p className="subtle">No findings were reported for the supplied material.</p>}<button className="button" disabled={action.busy || run.selections[job.step] === job.id} onClick={select}>{run.selections[job.step] === job.id ? 'Preferred report saved' : 'Mark preferred report'}</button><p className="subtle">This marks a comparison preference only. It does not apply any suggestion.</p></>}
+    {job.result && <><p className="review-summary">{job.result.summary}</p><ReviewCoverage job={job} /><ReviewFindings job={job} />{!job.result.findings.length && <p className="subtle">No findings were reported for the supplied material.</p>}<button className="button" disabled={action.busy || run.selections[job.step] === job.id} onClick={select}>{run.selections[job.step] === job.id ? 'Preferred report saved' : 'Mark preferred report'}</button><p className="subtle">This marks a comparison preference only. It does not apply any suggestion.</p></>}
     {working(job) && <><p className="subtle">The review runs independently. You can close this view and return to it later.</p><button className="button" disabled={action.busy} onClick={() => control('cancel')}>Stop this reviewer</button></>}
     {!working(job) && job.status !== 'done' && <button className="button" disabled={action.busy} onClick={() => control('retry')}>Retry original review inputs</button>}
     <details className="input-inspector"><summary>Inspect this review's exact sources, prompt and raw output</summary><p className="subtle">This may include attached Canon for privileged review roles. Estimated input: {job.snapshot.estimated_input_tokens.toLocaleString()} tokens.</p><h4>Role prompt</h4><pre>{job.snapshot.prompt.template}</pre><h4>Allowed sources</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><SourceMemoryDetails memory={job.snapshot.source_memory} /><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><h4>Reported usage</h4><pre>{JSON.stringify(job.usage, null, 2)}</pre></details>
@@ -95,4 +96,13 @@ function ReviewAttempts({ job }: { job: ReviewJob }) {
   const query = useQuery({ queryKey: ['review-attempts', job.id, job.attempt, job.status], queryFn: () => api<{ attempt: number; status: string; output: string; error: string }[]>(`/review-jobs/${job.id}/attempts`), enabled: open })
   if (job.attempt < 2) return null
   return <details className="input-inspector" onToggle={(event) => setOpen(event.currentTarget.open)}><summary>Preserved attempts</summary><ErrorNotice message={query.error?.message} />{query.data?.map((attempt) => <div key={attempt.attempt}><h4>Attempt {attempt.attempt} · {attempt.status}</h4><p>{attempt.error}</p><pre>{attempt.output || 'No text returned.'}</pre></div>)}</details>
+}
+
+function ReviewFindings({ job }: { job: ReviewJob }) {
+  return job.result?.findings.map((finding, index) => <article className="review-finding" key={index}><span className={`finding-severity severity-${finding.severity}`}>{finding.lens && `${finding.lens} · `}{finding.severity}</span><blockquote>{finding.quote}</blockquote><p>{finding.explanation}</p><p><strong>Suggestion:</strong> {finding.suggestion}</p><small>Source: {finding.source_id}</small></article>)
+}
+
+function ReviewCoverage({ job }: { job: ReviewJob }) {
+  if (!job.result?.coverage) return null
+  return <section className="form-stack"><h4>Approved beat coverage</h4>{job.result.coverage.map(beat => <article className="review-finding" key={beat.beat_id}><h5>{beat.beat_id} · {beat.status}</h5><p>{beat.explanation}</p>{beat.quotes.map((quote, index) => <blockquote key={index}>{quote}</blockquote>)}</article>)}</section>
 }

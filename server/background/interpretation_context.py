@@ -8,7 +8,7 @@ from server.background.storage import state_id
 from server.background.targets import private_targets
 from server.branches import path_nodes
 from server.continuity import continuity_sources, continuity_view
-from server.database import decode, encode, one
+from server.database import decode, one
 from server.errors import DomainError, require
 from server.memory.plan_state import plan_head
 from server.scenes.context import story_context
@@ -30,8 +30,9 @@ def interpretation_snapshot(connection, branch_id, body):
     sources.extend(continuity_sources(continuity_view(connection, branch['head_id'], plan_head(connection, branch['id']))))
     context = {'authority': AUTHORITY, 'story': story_context(story), 'targets': targets, 'sources': sources,
                'chronology': {'origin': setup['recipe']['origin'], 'day': setup['day']}, 'direction': body.direction}
+    jobs = job_snapshot(connection, story, body, context)
     return {'branch': branch, 'story_revision': story['revision'], 'background_state_id': setup_id,
-            'content': encode(context), 'jobs': job_snapshot(connection, story, body, context)}
+            'content': jobs[0]['content'], 'jobs': jobs}
 
 
 def preview_view(snapshot):

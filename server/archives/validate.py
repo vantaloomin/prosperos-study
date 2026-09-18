@@ -27,6 +27,7 @@ from server.archives.patches import validate_patches
 from server.archives.plans import validate_plan_edits
 from server.archives.reviews import validate_draft_reviews
 from server.archives.revisions import validate_revisions
+from server.archives.roles import validate_role_snapshot
 from server.archives.scenes import validate_scenes
 from server.archives.side_memory import validate_side_memory
 from server.archives.summaries import validate_summaries
@@ -41,7 +42,8 @@ from server.mechanics.config import configured_tables, read_settings
 from server.mechanics.models import TableDefinition
 from server.mechanics.tables import table_hash
 from server.models import AssetCreate, StoryCreate
-from server.prompts import PROMPT_LABELS, prompt_snapshot
+from server.prompts import ALL_PROMPT_LABELS as PROMPT_LABELS
+from server.prompts import original_prompt
 from server.providers.config import SavedProfileConfig
 
 
@@ -185,7 +187,7 @@ def validate_content(connection, document):
         configured_tables(connection, read_settings(row))
         validate_story_profiles(connection, settings)
         for key in PROMPT_LABELS:
-            prompt_snapshot(connection, key, row)
+            original_prompt(connection, key, row)
     for row in data["asset_versions"]:
         content = decode(row["content"])
         AssetCreate.model_validate({"kind": "lorebook", "name": row["name"], "content": content, "note": row["note"]})
@@ -219,7 +221,9 @@ def validate_models_and_tables(data):
             validate_profile(decode(row["profile"]))
     for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
         for row in data[table]:
-            validate_profile(decode(row["snapshot"])["profile"])
+            snapshot = decode(row['snapshot'])
+            validate_profile(snapshot['profile'])
+            validate_role_snapshot(snapshot, row['step'])
     for row in data['assessment_runs']:
         for profile in decode(row['snapshot'])['writer_profiles']:
             validate_profile(profile)

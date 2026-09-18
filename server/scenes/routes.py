@@ -2,7 +2,9 @@ import asyncio
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
+from server.assessment.preparation import after_acceptance
 from server.continuity import continuity_view
 from server.database import encode, one
 from server.memory.plan_state import plan_head
@@ -93,8 +95,9 @@ def repair(run_id: str, body: SceneApproval, request: Request):
 
 
 @router.post('/scenes/{run_id}/accept')
-def accept(run_id: str, body: SceneAcceptance, request: Request):
-    return Scenes(request.app.state.database).decide(run_id, body, 'accept')
+async def accept(run_id: str, body: SceneAcceptance, request: Request):
+    result = await run_in_threadpool(Scenes(request.app.state.database).decide, run_id, body, 'accept')
+    return await after_acceptance(request, result)
 
 
 @router.get('/branches/{branch_id}/continuity')

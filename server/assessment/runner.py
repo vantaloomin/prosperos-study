@@ -20,7 +20,7 @@ class AssessmentRunner(ReviewRunner):
         await super().run(job_id)
         try:
             result = Assessments(self.database).auto_finish(job_id)
-            if result:
+            if result and 'id' in result:
                 for candidate in self.writer.pending(result['id']):
                     self.writer.start(candidate['id'])
         except DomainError as error:

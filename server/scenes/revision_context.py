@@ -7,12 +7,13 @@ from server.scenes.drafts import assemble_draft, coverage_passes
 from server.scenes.state import reviewed_state, selected_result
 
 
-def revision_sources(connection, run):
+def revision_sources(connection, run, coverage=None):
     draft = assemble_draft(selected_result(connection, run, 'scene-draft'), selected_result(connection, run, 'scene-dialogue'))
-    covered = coverage_passes(selected_result(connection, run, 'scene-coverage')) or 'scene-coverage' in run['snapshot'].get('disabled_steps', [])
+    covered = coverage_passes(coverage or selected_result(connection, run, 'scene-coverage')) or 'scene-coverage' in run['snapshot'].get('disabled_steps', [])
     require(draft and draft['complete'] and covered,
             'Choose a complete draft and passing coverage before triage.', 409)
-    return planned_sources(run, [*run['snapshot']['sources'], *chance_sources(run), {'id': 'revision:draft', 'kind': 'draft',
+    chance = chance_sources(run) if run['snapshot'].get('workflow_version', 1) == 1 else []
+    return planned_sources(run, [*run['snapshot']['sources'], *chance, {'id': 'revision:draft', 'kind': 'draft',
             'title': 'Proposed scene, not accepted history', 'text': draft['text']}])
 
 
@@ -32,7 +33,13 @@ def triage_inputs(connection, run, job_ids):
     require(job_ids and len(job_ids) == len(set(job_ids)), 'Choose completed reports for triage, without duplicates.')
     reports = [review_report(connection, run, job_id, f'r{index + 1}') for index, job_id in enumerate(job_ids)]
     require(len({report['role'] for report in reports}) == len(reports), 'Choose one comparison result per reviewer role.')
-    sources = revision_sources(connection, run)
+    coverage = None
+    if run['snapshot'].get('workflow_version', 1) >= 2 and 'scene-coverage' not in run['snapshot'].get('disabled_steps', []):
+        from server.scenes.reader_coverage import selected_coverage
+        coverage = selected_coverage(connection, run, job_ids)
+        require(coverage_passes(coverage),
+                'Include a passing informed beat-coverage report for this draft; redraft missing or changed beats first.', 409)
+    sources = revision_sources(connection, run, coverage)
     available = []
     for job_id in job_ids:
         job = one(connection, 'SELECT snapshot FROM review_jobs WHERE id=?', (job_id,))
@@ -41,6 +48,7 @@ def triage_inputs(connection, run, job_ids):
             available.extend(decode(snapshot['content'])['sources'])
     sources = carry_evidence(sources, cited_ids(reports), available)
     return {'stage': 'scene-triage', 'sources': sources, 'reports': reports,
+            **({'inline_verification': True} if run['snapshot'].get('workflow_version', 1) >= 2 else {}),
             'findings': [finding for report in reports for finding in report['findings']],
             'approved_beats': selected_result(connection, run, 'scene-beats')}
 

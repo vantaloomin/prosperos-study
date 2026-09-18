@@ -16,6 +16,7 @@ from server.errors import DomainError
 from server.generation_models import GenerateRequest
 from server.providers.events import ProviderEvent
 from tests.archive_legacy import remove_assessments
+from tests.legacy_assessment import dispatch, legacy_create
 from tests.test_archives import backup, restore
 from tests.test_generations import DraftProvider, finished
 from tests.test_history import append
@@ -45,7 +46,10 @@ class AssessmentProvider:
 def setup_assessment(client, story, **options):
     profile = make_profile(client, 'Primary assessor', primary=True)
     configure(client, story, automatic_assessment=True, chance=100, cooldown=0)
-    append(client, story['branch_id'], 'The exchange is finished. The room falls quiet.', 0)
+    from server.branches import Branches
+    from server.models import MessageCreate
+    Branches(client.app.state.database).append(story['branch_id'], MessageCreate(
+        operation_id=uuid4().hex, expected_revision=0, text='The exchange is finished. The room falls quiet.'))
     client.app.state.assessment_runner.provider = AssessmentProvider(**options)
     client.app.state.runner.provider = DraftProvider()
     return profile
@@ -53,9 +57,7 @@ def setup_assessment(client, story, **options):
 
 def start(client, story, **values):
     body = {'operation_id': uuid4().hex, 'expected_revision': 1, **values}
-    response = client.post(f"/api/branches/{story['branch_id']}/generations", json=body)
-    assert response.status_code == 201, response.text
-    return response.json()
+    return dispatch(client, legacy_create(client.app.state.database, story['branch_id'], GenerateRequest(**body)))
 
 
 def settled(client, run_id):
@@ -84,7 +86,9 @@ def test_automatic_assessment_freezes_one_roll_and_requires_prose_acceptance(cli
     second = finished(client, repeated['id'])
     assert generation['snapshot']['content'] == second['snapshot']['content']
     candidate = generation['candidates'][0]['id']
-    assert client.post(f'/api/candidates/{candidate}/accept', json={'operation_id': uuid4().hex}).status_code == 200
+    from server.generation_models import AcceptCandidate
+    from server.generations import Generations
+    Generations(client.app.state.database).accept(candidate, AcceptCandidate(operation_id=uuid4().hex))
     assert client.get(f"/api/branches/{story['branch_id']}").json()['mechanics']['state']['beat'] == 1
 
 
@@ -127,7 +131,7 @@ def test_stop_prevents_auto_dispatch_and_stale_decision_rejects(client, story):
     setup_assessment(client, story)
     db = client.app.state.database
     request = GenerateRequest(operation_id=uuid4().hex, expected_revision=1)
-    run_id = WritingRequests(db).create(story['branch_id'], request)['assessment_id']
+    run_id = legacy_create(db, story['branch_id'], request)['assessment_id']
     service = Assessments(db)
     job_id = service.pending(run_id)[0]['id']
     service.stop(run_id)
@@ -203,7 +207,7 @@ def test_explicit_bypass_stops_pending_assessment_dispatch(client, story):
     database = client.app.state.database
     requests = WritingRequests(database)
     original = GenerateRequest(operation_id=uuid4().hex, expected_revision=1)
-    run_id = requests.create(story['branch_id'], original)['assessment_id']
+    run_id = legacy_create(database, story['branch_id'], original)['assessment_id']
     bypass = GenerateRequest(operation_id=uuid4().hex, expected_revision=1, assess_beat=False)
     generation = requests.create(story['branch_id'], bypass)
     assert 'id' in generation
@@ -231,7 +235,7 @@ def test_recovered_queued_assessment_requires_explicit_retry(client, story):
     setup_assessment(client, story)
     database = client.app.state.database
     request = GenerateRequest(operation_id=uuid4().hex, expected_revision=1)
-    run_id = WritingRequests(database).create(story['branch_id'], request)['assessment_id']
+    run_id = legacy_create(database, story['branch_id'], request)['assessment_id']
     file, _ = backup(client, story)
     _, mapping = restore(client, file)
     recovered = Assessments(database).detail(mapping[run_id])

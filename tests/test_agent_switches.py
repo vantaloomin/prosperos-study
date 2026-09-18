@@ -2,6 +2,7 @@ import json
 from copy import deepcopy
 from uuid import uuid4
 
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_history import append
 from tests.test_scene_drafting import DraftProvider
@@ -9,8 +10,7 @@ from tests.test_scenes import choose, decide, get_plan, run_stage, setup_plan
 
 
 def toggle(client, key, enabled=False):
-    prompts = client.get('/api/prompts').json()
-    row = next(item for item in prompts if item['key'] == key)
+    row = saved_prompt(client, key)
     response = client.put(f'/api/prompts/{key}/activation', json={'enabled': enabled, 'expected_revision': row['activation_revision']})
     assert response.status_code == 200, response.text
     return row
@@ -18,7 +18,7 @@ def toggle(client, key, enabled=False):
 
 def test_switches_preserve_prompt_versions_and_reject_stale_updates(client):
     original = toggle(client, 'writer')
-    after = next(item for item in client.get('/api/prompts').json() if item['key'] == 'writer')
+    after = saved_prompt(client, 'writer')
     assert not after['enabled'] and after['id'] == original['id'] and after['template'] == original['template']
     assert client.put('/api/prompts/writer/activation', json={'enabled': True, 'expected_revision': original['activation_revision']}).status_code == 409
     assert client.put('/api/prompts/unknown/activation', json={'enabled': False, 'expected_revision': after['activation_revision']}).status_code == 404

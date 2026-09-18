@@ -11,6 +11,7 @@ from server.background.interpretation_models import InterpretationStart
 from server.background.interpretations import Interpretations
 from server.database import decode, one
 from server.providers.events import ProviderEvent
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_background import prepared, revealed, setup_story, update
 from tests.test_profiles import make_profile
@@ -103,12 +104,12 @@ def test_profile_override_prompt_version_and_preview_staleness(client):
     prefix = f"/api/branches/{story['branch_id']}/background/interpretations"
     body = {'expected_revision': 1}
     preview = client.post(prefix + '/preview', json=body).json()
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'background-interpretation')
+    prompt = saved_prompt(client, 'background-interpretation')
     changed = client.put('/api/prompts/background-interpretation', json={'expected_version_id': prompt['id'], 'template': prompt['template'] + '\nKeep the setting quiet.'})
     assert changed.status_code == 200
     response = client.post(prefix, json={**body, 'operation_id': uuid4().hex, 'preview_hash': preview['preview_hash']})
     assert response.status_code == 409
-    assert client.get(f"/api/background-interpretations/{run['id']}?reveal=true").json()['jobs'][0]['snapshot']['prompt']['id'] == prompt['id']
+    assert client.get(f"/api/background-interpretations/{run['id']}?reveal=true").json()['jobs'][0]['snapshot']['prompt'] == run['jobs'][0]['snapshot']['prompt']
 
 
 def test_invalid_targets_and_fabricated_evidence_fail_without_mutation(client):

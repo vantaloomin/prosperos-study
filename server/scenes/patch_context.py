@@ -13,7 +13,13 @@ from server.scenes.state import selected_result
 
 
 def patch_keys(run):
+    if run['snapshot'].get('workflow_version', 1) >= 2:
+        return ['scene-patch']
     return [key for key in PATCH_KEYS if key != 'scene-dialogue-patch' or run['snapshot'].get('dialogue_split', False)]
+
+
+def patch_writers(run):
+    return [key for key in patch_keys(run) if key != 'scene-patch-check']
 
 
 def patch_view(connection, run):
@@ -22,18 +28,20 @@ def patch_view(connection, run):
         return None
     draft = assemble_draft(selected_result(connection, run, 'scene-draft'), selected_result(connection, run, 'scene-dialogue'))
     blocks, changes, resolutions = draft['blocks'], [], []
-    for key in patch_keys(run)[:-1]:
+    for key in patch_writers(run):
         result = selected_result(connection, run, key)
         if result:
             blocks, added = apply_edits(blocks, result['edits'], key)
             changes.extend(added)
             resolutions = result['resolutions']
-    complete = not gate['items'] or all(key in run['state']['selections'] for key in patch_keys(run)[:-1])
+    complete = not gate['items'] or all(key in run['state']['selections'] for key in patch_writers(run))
     blocked = any(item['status'] in {'blocked', 'defer-dialogue'} for item in resolutions)
     check = selected_result(connection, run, 'scene-patch-check')
+    director = run['snapshot'].get('workflow_version', 1) >= 2
     return {'blocks': blocks, 'text': compose(blocks), 'changes': passage_changes(changes, blocks),
             'resolutions': resolutions, 'complete': complete, 'blocked': blocked, 'check': check,
-            'checked': not gate['items'] or (complete and not blocked and patch_check_passes(check)),
+            'checked': not gate['items'] or (complete and not blocked and (director or patch_check_passes(check))),
+            **({'check_kind': 'director'} if director else {}),
             'no_changes_required': not gate['items']}
 
 
@@ -50,6 +58,8 @@ def patch_inputs(connection, run, key, version=1):
     context = {'stage': key, 'package': package, 'sources': planned_sources(run, [*run['snapshot']['sources'], *chance_sources(run)]),
                'approved_beats': selected_result(connection, run, 'scene-beats'),
                'continuity_brief': selected_result(connection, run, 'scene-brief')}
+    if run['snapshot'].get('workflow_version', 1) >= 2:
+        context['unified_patch'] = True
     if version:
         ids = {ref for item in gate['items'] for ref in item['finding_ids']}
         context.update(context_version=version, approved_findings=[finding for finding in triage_context(connection, run)['findings'] if finding['id'] in ids])

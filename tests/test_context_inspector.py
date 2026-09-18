@@ -4,10 +4,6 @@ from uuid import uuid4
 
 import pytest
 
-from server.assessment.context import assessment_snapshot
-from server.database import one
-from server.generation_context import generation_snapshot
-from server.generation_models import GenerateRequest
 from tests.test_assessments import setup_assessment
 from tests.test_background import prepared
 from tests.test_generations import DraftProvider, finished
@@ -128,16 +124,11 @@ def test_profile_version_change_invalidates_old_preview(client, story):
 
 def test_assessment_preview_uses_real_request_budget_without_seed_or_jobs(client, story, monkeypatch):
     setup_assessment(client, story)
-    with client.app.state.database.connect() as connection:
-        body = GenerateRequest(operation_id=uuid4().hex, expected_revision=1)
-        writer, profiles = generation_snapshot(connection, story['branch_id'], body)
-        saved_story = one(connection, 'SELECT * FROM stories WHERE id=?', (story['story_id'],))
-        expected = assessment_snapshot(connection, saved_story, writer, profiles, body)['jobs'][0]
     before = database_dump(client)
     monkeypatch.setattr('server.assessment.context.secrets.token_hex', lambda *_: pytest.fail('Preview created seed'))
     report, _ = preview(client, story, expected_revision=1)
-    assert report['assessment']['status'] == 'new'
-    assert report['assessment']['budgets'][0]['estimated_input_tokens'] == expected['estimated_input_tokens']
+    assert report['assessment']['status'] == 'none'
+    assert report['assessment']['budgets'] == []
     assert database_dump(client) == before
     assert client.app.state.assessment_runner.provider.calls == []
     skipped, _ = preview(client, story, expected_revision=1, assess_beat=False)

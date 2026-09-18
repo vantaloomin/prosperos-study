@@ -9,14 +9,20 @@ from server.database import decode, encode, identifier, now, one
 from server.errors import DomainError, require
 from server.memory.source_evidence import quotation_matches
 from server.workflow.models import ReviewOutput
+from server.workflow.readers import coverage_report, validate_reader
 
 
 def parse_review(output, content):
+    context = decode(content)
     try:
-        result = ReviewOutput.model_validate(json.loads(output))
+        data = json.loads(output)
+        if context.get('reader_contract') == 'coverage-v1':
+            data = coverage_report(data, context)
+        result = ReviewOutput.model_validate(data)
     except (ValueError, ValidationError) as error:
         raise DomainError("The reviewer did not return the required structured report. Its text is preserved; check the role prompt or retry.", 502) from error
-    sources = {source["id"]: source for source in decode(content)["sources"]}
+    validate_reader(result, context)
+    sources = {source["id"]: source for source in context["sources"]}
     for finding in result.findings:
         require(finding.source_id in sources, "The reviewer cited a source outside its permitted inputs. The report is not validated.", 502)
         require(quotation_matches(sources[finding.source_id], finding.quote), "A review quotation does not match its cited source. The report is not validated.", 502)

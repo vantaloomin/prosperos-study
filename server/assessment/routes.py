@@ -20,6 +20,8 @@ def detail(run_id: str, request: Request):
 async def decide(run_id: str, body: AssessmentDecision, request: Request):
     service = Assessments(request.app.state.database)
     result = service.decide(run_id, body)
+    if 'id' not in result:
+        return result
     for job in service.stop(run_id):
         request.app.state.assessment_runner.cancel(job['id'])
     for candidate in request.app.state.runner.pending(result['id']):

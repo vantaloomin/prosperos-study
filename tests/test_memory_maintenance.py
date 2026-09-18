@@ -11,6 +11,7 @@ from server.database import decode, encode
 from server.errors import DomainError
 from server.main import create_app
 from tests.archive_legacy import remove_maintenance
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_memory import small_profile
 from tests.test_profiles import make_profile
@@ -167,7 +168,7 @@ def test_stop_and_explicit_resume_preserve_attempts_and_frozen_inputs(client):
     stopped = client.get('/api/summary-batches/' + batch_id).json()
     assert stopped['status'] == 'cancelled' and len(provider.calls) == 1
     first_call = provider.calls[0]
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     assert client.put('/api/prompts/memory-summary', json={'expected_version_id': prompt['id'], 'template': 'Later instructions'}).status_code == 200
     provider.wait = False
     request = {'operation_id': uuid4().hex, 'expected_status': 'cancelled'}
@@ -190,7 +191,7 @@ def test_failure_stops_following_calls_and_disabled_prompt_pauses_dispatch(clien
     assert client.portal.call(wait_status, client, batch_id) == 'error'
     client.portal.call(asyncio.sleep, .4)
     assert len(provider.calls) == 1
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     assert client.put('/api/prompts/memory-summary/activation', json={'enabled': False, 'expected_revision': prompt['activation_revision']}).status_code == 200
     assert client.post('/api/summary-batches/' + batch_id + '/resume', json={'operation_id': uuid4().hex, 'expected_status': 'error'}).status_code == 409
 
@@ -307,7 +308,7 @@ def test_disabling_prompt_during_a_batch_pauses_before_the_next_provider_call(cl
     body, prepared = preview(client, story['branch_id'], batch_size=1, max_batches=3)
     batch_id = start(client, story['branch_id'], body, prepared)
     client.portal.call(asyncio.wait_for, provider.started.wait(), 5)
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     response = client.put('/api/prompts/memory-summary/activation', json={
         'enabled': False, 'expected_revision': prompt['activation_revision']})
     assert response.status_code == 200
@@ -316,7 +317,7 @@ def test_disabling_prompt_during_a_batch_pauses_before_the_next_provider_call(cl
     batch = client.get('/api/summary-batches/' + batch_id).json()
     assert [job['status'] for job in batch['requests']] == ['done', 'queued', 'queued']
     assert len(provider.calls) == 1
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     assert client.put('/api/prompts/memory-summary/activation', json={
         'enabled': True, 'expected_revision': prompt['activation_revision']}).status_code == 200
     response = client.post('/api/summary-batches/' + batch_id + '/resume', json={

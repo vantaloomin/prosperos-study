@@ -49,5 +49,5 @@ class AuthoringOutput(Input):
 
 
 class AuthoringDefault(Input):
-    step: Literal['authoring-draft', 'authoring-critique', 'authoring-tighten', 'authoring-enrich']
+    step: Literal['library-assist', 'scribe', 'authoring-draft', 'authoring-critique', 'authoring-tighten', 'authoring-enrich']
     profile_id: str | None = None

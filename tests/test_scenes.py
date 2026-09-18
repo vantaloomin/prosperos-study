@@ -1,10 +1,13 @@
 import asyncio
 import json
+from contextlib import nullcontext
 from copy import deepcopy
+from unittest.mock import patch
 from uuid import uuid4
 
 from server.database import decode, encode, one
 from server.providers.events import ProviderEvent
+from tests.prompt_fixtures import saved_prompt
 from tests.test_history import append
 from tests.test_profiles import make_profile
 
@@ -43,7 +46,17 @@ class WaitingSceneProvider:
         await asyncio.sleep(60)
 
 
-def setup_plan(client, story, options=True, dialogue=False):
+def legacy_scene_creation():
+    """Insert a pre-consolidation scene, without changing immutable saved records."""
+    from server.scenes.service import create_snapshot
+    def legacy_snapshot(*args):
+        snapshot = create_snapshot(*args)
+        snapshot.pop('workflow_version', None)
+        return snapshot
+    return patch('server.scenes.service.create_snapshot', legacy_snapshot)
+
+
+def setup_plan(client, story, options=True, dialogue=False, *, legacy=True):
     make_profile(client, "Planner", primary=True)
     provider = SceneProvider()
     client.app.state.scene_runner.provider = provider
@@ -52,7 +65,8 @@ def setup_plan(client, story, options=True, dialogue=False):
     body = {"operation_id": uuid4().hex, "expected_revision": revision + 1, "title": "The letter", "direction": "Consider the letter.",
             "propose_options": options, "dialogue_split": dialogue}
     route = f"/api/branches/{story['branch_id']}/scenes"
-    response = client.post(route, json=body)
+    with legacy_scene_creation() if legacy else nullcontext():
+        response = client.post(route, json=body)
     assert response.status_code == 201, response.text
     assert client.post(route, json=body).json() == response.json()
     return response.json()["id"], provider
@@ -169,7 +183,7 @@ def test_invalid_brief_keeps_output_and_retry_uses_frozen_prompt(client, story):
     client.app.state.scene_runner.provider = InvalidSceneProvider()
     job = run_stage(client, run_id, "scene-brief")[0]
     assert job["status"] == "error" and "outside" in job["error"] and "foreign:secret" in job["output"]
-    prompt = next(item for item in client.get("/api/prompts").json() if item["key"] == "scene-brief")
+    prompt = saved_prompt(client, "scene-brief")
     client.put("/api/prompts/scene-brief", json={"expected_version_id": prompt["id"], "template": "Changed after the error."})
     client.app.state.scene_runner.provider = provider
     assert client.post(f"/api/scene-jobs/{job['id']}/retry").status_code == 200
@@ -198,7 +212,7 @@ def test_preview_changes_are_rejected_before_paid_calls_and_routing_is_per_step(
     body = {"expected_revision": 0, "key": "scene-beats"}
     preview = client.post(f"/api/scenes/{run_id}/preview", json=body).json()
     assert preview["jobs"][0]["profile_name"] == "Beat specialist"
-    prompt = next(item for item in client.get("/api/prompts").json() if item["key"] == "scene-beats")
+    prompt = saved_prompt(client, "scene-beats")
     client.put("/api/prompts/scene-beats", json={"expected_version_id": prompt["id"], "template": "Changed before dispatch."})
     request = {**body, "preview_hash": preview["preview_hash"], "operation_id": uuid4().hex}
     assert client.post(f"/api/scenes/{run_id}/stages", json=request).status_code == 409

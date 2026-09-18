@@ -13,7 +13,9 @@ from server.authoring.catalog import AUTHORING_KEYS
 from server.errors import require
 from server.library_formats.sources import source_record
 from server.memory.summary_catalog import SUMMARY_KEYS
-from server.prompts import DEFAULT_PROMPTS, PROMPT_LABELS
+from server.prompts import DEFAULT_PROMPTS
+from server.prompts import LEGACY_PROMPT_LABELS as PROMPT_LABELS
+from server.role_prompts import ROLE_PROMPTS
 from server.scenes.catalog import DRAFT_KEYS, PLAN_KEYS, SCENE_PROMPTS
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
 from server.scenes.patch_catalog import PATCH_KEYS
@@ -200,6 +202,20 @@ def upgrade_twenty_eight(document):
         document['data']['candidate_activity'] = []
         document['data']['path_revisions'] = []
         document['version'] = 31
+    return upgrade_thirty_one(document)
+
+
+def upgrade_thirty_one(document):
+    if document['version'] == 31:
+        require(set(document['prompt_heads']) == set(PROMPT_LABELS), 'Version 31 needs its original supported prompts.')
+        for key in sorted(set(ROLE_PROMPTS) - set(PROMPT_LABELS)):
+            version_id = f'{key}-archive-upgrade-v31'
+            document['data']['prompt_versions'].append({
+                'id': version_id, 'key': key, 'number': 1, 'template': ROLE_PROMPTS[key],
+                'created_at': document['created_at'],
+            })
+            document['prompt_heads'][key] = version_id
+        document['version'] = 32
     return document
 
 

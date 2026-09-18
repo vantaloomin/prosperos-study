@@ -22,6 +22,7 @@ from tests.test_scenes import (
     decide,
     finish_plan,
     get_plan,
+    legacy_scene_creation,
     ready_plan,
     run_stage,
 )
@@ -156,8 +157,9 @@ def test_prepared_manual_beat_is_reused_with_automatic_chance_off(client, story)
     append(client, story['branch_id'], 'Fixture: a completed introduction.', 0)
     prepared = prepare(client, story['branch_id'], revision=1, manual=True)
     client.app.state.scene_runner.provider = SceneProvider()
-    created = client.post(f"/api/branches/{story['branch_id']}/scenes", json={'operation_id': uuid4().hex,
-        'expected_revision': 1, 'title': 'Reuse the prepared opening', 'direction': 'Fixture only.', 'propose_options': False}).json()
+    with legacy_scene_creation():
+        created = client.post(f"/api/branches/{story['branch_id']}/scenes", json={'operation_id': uuid4().hex,
+            'expected_revision': 1, 'title': 'Reuse the prepared opening', 'direction': 'Fixture only.', 'propose_options': False}).json()
     run_id = created['id']
     for key in ('scene-beats', 'scene-brief'):
         choose(client, run_id, run_stage(client, run_id, key)[0])

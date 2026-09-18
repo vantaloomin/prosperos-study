@@ -24,10 +24,10 @@ export function AuthoringDefaults({ step, profiles, onChange }: { step: Authorin
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const action = useAction()
   const save = (id: string) => action.run(async () => { await api('/authoring/defaults', { step, profile_id: id || null }, 'PUT'); onChange() })
-  const edit = () => action.run(async () => { const prompts = await api<Prompt[]>('/prompts'); setPrompt(prompts.find((item) => item.key === step) ?? null) })
+  const edit = () => action.run(async () => { const prompts = await api<Prompt[]>('/prompts'); setPrompt(prompts.find((item) => item.key === (step === 'authoring-enrich' ? 'scribe' : 'library-assist')) ?? null) })
   return <details className="advanced-settings"><summary>Instructions & saved model for this action</summary><div className="form-stack authoring-history">
-    <p className="subtle">These Library settings apply across the workspace. Each action inherits Primary Writer unless you choose a saved default here. Request selections override it once.</p>
-    {defaults.data && <label className="field"><span>Saved model for this action</span><select value={defaults.data[step] ?? ''} disabled={action.busy} onChange={(event) => save(event.target.value)}><option value="">Primary Writer</option><ProfileOptions profiles={profiles} /></select></label>}
+    <p className="subtle">These Library settings apply across the workspace. Actions inherit the Library role model unless you choose a task override here. Request selections override it once.</p>
+    {defaults.data && <label className="field"><span>Saved model for this action</span><select value={defaults.data[step] ?? ''} disabled={action.busy} onChange={(event) => save(event.target.value)}><option value="">Use Library role model</option><ProfileOptions profiles={profiles} /></select></label>}
     <button className="text-button" onClick={edit} aria-disabled={action.busy}>Edit action instructions</button><ErrorNotice message={action.error || defaults.error?.message} />
     {prompt && <PromptEditor prompt={prompt} onClose={() => { setPrompt(null); onChange() }} />}
   </div></details>

@@ -8,6 +8,7 @@ from server.database import decode, one
 from server.errors import DomainError
 from server.providers.events import ProviderEvent
 from server.workflow.runner import parse_review
+from tests.prompt_fixtures import saved_prompt
 from tests.test_history import append
 from tests.test_library import create_book, publish, with_book
 from tests.test_profiles import make_profile
@@ -123,7 +124,7 @@ def test_preview_rejects_changed_inputs_before_any_provider_request(client, stor
     body = review_body()
     route = f"/api/branches/{story['branch_id']}/reviews"
     preview = client.post(f"{route}/preview", json=body).json()
-    prompt = next(item for item in client.get("/api/prompts").json() if item["key"] == "review-plausibility")
+    prompt = saved_prompt(client, "review-plausibility")
     assert client.put("/api/prompts/review-plausibility", json={"expected_version_id": prompt["id"], "template": "Changed instructions."}).status_code == 200
     result = client.post(route, json={**body, "operation_id": uuid4().hex, "preview_hash": preview["preview_hash"]})
     assert result.status_code == 409
@@ -174,8 +175,9 @@ def test_saved_step_profiles_inherit_primary_and_retain_explicit_overrides(clien
     assert client.put("/api/profiles/primary", json={"profile_id": third["profile_id"]}).status_code == 200
     view = client.get(route).json()
     steps = {step["key"]: step["effective_profile_id"] for step in view["steps"]}
-    assert steps["writer"] == steps["review-rules"] == third["profile_id"]
-    assert steps["review-dialogue"] == second["profile_id"]
+    assert steps["writer"] == steps["review-informed"] == third["profile_id"]
+    blind = next(step for step in view["steps"] if step["key"] == "review-blind")
+    assert next(task for task in blind["tasks"] if task["key"] == "review-dialogue")["profile_id"] == second["profile_id"]
     assert first["profile_id"] != view["effective_primary_id"]
     assert client.put(route, json={"expected_revision": 0, "step_profiles": {}}).status_code == 409
 

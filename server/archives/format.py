@@ -6,7 +6,7 @@ from pydantic import Field, StringConstraints
 
 from server.models import Input
 
-ARCHIVE_VERSION = 31
+ARCHIVE_VERSION = 32
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 V1_TABLES = (
     "stories", "assets", "asset_versions", "manifests", "branches", "nodes", "adoptions",
@@ -67,7 +67,7 @@ JSON_FIELDS = {
 
 class ArchiveDocument(Input):
     format: Literal["roleplay-archive"] = "roleplay-archive"
-    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31] = ARCHIVE_VERSION
+    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32] = ARCHIVE_VERSION
     scope: Literal["story", "workspace"]
     title: str = Field(min_length=1, max_length=200)
     created_at: str

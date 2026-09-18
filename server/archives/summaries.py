@@ -15,7 +15,7 @@ def validate_summaries(connection, data):
     jobs = {row['id']: row for row in data['summary_jobs']}
     for job in jobs.values():
         snapshot = decode(job['snapshot'])
-        require(job['step'] == snapshot['step'] == snapshot['prompt']['key'] == SUMMARY_KEY, 'Invalid summary role.')
+        require(job['step'] == snapshot['step'] == SUMMARY_KEY, 'Invalid summary role.')
         require(snapshot['content'] == runs[job['run_id']]['content'], 'Summary comparisons need identical accepted sources.')
         validate_configuration(connection, snapshot)
         validate_output(job, snapshot)
@@ -34,7 +34,8 @@ def validate_run(connection, row):
     head = one(connection, 'SELECT story_id FROM nodes WHERE id=?', (snapshot['branch']['head_id'],))
     require(head['story_id'] == branch['story_id'], 'A summary head crosses Stories.')
     content = decode(snapshot['content'])
-    require(set(content) == {'task', 'authority', 'sources'}, 'Unsupported summary context.')
+    fields = {'task', 'authority', 'sources'} | ({'task_direction'} if content.get('task') == 'summary' else set())
+    require(set(content) == fields, 'Unsupported summary context.')
     sources, links = content['sources'], snapshot['source_links']
     require(1 <= len(sources) <= 8 and len(sources) == len(links), 'Invalid summary source count.')
     require(len({link['id'] for link in links}) == len(links), 'Summary sources must be distinct.')

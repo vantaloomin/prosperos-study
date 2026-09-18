@@ -1,5 +1,4 @@
 """Independent reviews of proposed prose without inserting it into Story history."""
-from server.agent_switches import agent_enabled
 from server.database import encode, one
 from server.errors import require
 from server.lore.scene import planned_sources
@@ -10,6 +9,7 @@ from server.scenes.state import reviewed_state, run_record, selected_result
 from server.stories import check_revision
 from server.workflow.catalog import ROLE_MAP
 from server.workflow.context import job_snapshot
+from server.workflow.readers import reader_context, reader_selections
 
 
 def review_target(connection, branch_id, body):
@@ -19,7 +19,7 @@ def review_target(connection, branch_id, body):
     require(not stale_plan(connection, run), "The Story changed. Preserve these reports and start a new plan.", 409)
     draft = draft_view(connection, run)
     require(bool(run["state"]["gate_a"]) and draft and draft["complete"], "Approve a plan and complete its selected draft first.", 409)
-    require(coverage_passes(selected_result(connection, run, "scene-coverage")) or "scene-coverage" in run["snapshot"].get("disabled_steps", []),
+    require(run['snapshot'].get('workflow_version', 1) >= 2 or coverage_passes(selected_result(connection, run, "scene-coverage")) or "scene-coverage" in run["snapshot"].get("disabled_steps", []),
             "Choose a complete beat-coverage assessment before independent scene review.", 409)
     return run, draft
 
@@ -39,8 +39,11 @@ def scoped_scene_sources(connection, role, run, draft):
         return sources + [{**source, "kind": "previous"} for source in prior[-2:]]
     sources.extend({**source, "kind": "previous"} for source in prior)
     sources.extend(source for source in run["snapshot"]["sources"] if source["kind"] == "reference")
-    if role["scope"] == "rules":
-        sources.extend(chance_sources(run))
+    if role['scope'] == 'informed':
+        sources.extend(source for source in run['snapshot']['sources'] if source['kind'] in {'accepted continuity', 'world reference'})
+    if role["scope"] in {"rules", "informed"}:
+        if role['scope'] == 'rules':
+            sources.extend(chance_sources(run))
         sources.extend({**source, "kind": "guidance"} for source in nodes if source["title"] == "ooc contribution")
         sources.append({"id": "story:constraints", "kind": "constraints", "title": "Frozen Story constraints",
                         "text": encode(run["snapshot"]["story_context"])})
@@ -57,15 +60,14 @@ def scene_review_snapshot(connection, branch_id, body):
     keys = [step.key for step in body.steps]
     require(len(keys) == len(set(keys)) and set(keys) <= set(ROLE_MAP), "Choose each supported review step once.")
     jobs = []
-    for step in body.steps:
-        if not agent_enabled(connection, step.key, story) or step.key in run["snapshot"].get("disabled_steps", []):
-            continue
+    for step in reader_selections(connection, story, body.steps, scene=True, disabled=run['snapshot'].get('disabled_steps', [])):
         role = ROLE_MAP[step.key]
         context = {"task": "Review only the proposed draft. Its events and details are not accepted Story facts.",
                    "role": role["name"], "scope": role["scope"],
                    "sources": scoped_scene_sources(connection, role, run, draft)}
         if run['snapshot'].get('author_memory') and role['scope'] != 'blind':
             context['author_memory'] = run['snapshot']['author_memory']
+        context = reader_context(step, context, selected_result(connection, run, 'scene-beats'))
         jobs.extend(job_snapshot(connection, story, step, context, memory_policy=run['snapshot'].get('memory_policy'),
                                  summary_aids=run['snapshot'].get('summary_aids'), manifest_id=run['snapshot']['branch']['manifest_id'],
                                  summary_bindings=run['snapshot'].get('summary_aid_links')))

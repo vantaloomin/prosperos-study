@@ -1,7 +1,9 @@
 from copy import deepcopy
 from uuid import uuid4
 
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.migrations import upgrade
+from tests.archive_legacy import remove_v062_prompts
 from tests.test_archives import backup, restore
 from tests.test_generations import DraftProvider, WaitingProvider, finished, generate
 from tests.test_profiles import make_profile
@@ -59,13 +61,14 @@ def test_activity_archive_round_trip_and_v30_migration(client, story):
     run = generate(client, story)
     candidate = finished(client, run['id'])['candidates'][0]
     file, document = backup(client, story)
-    assert document['version'] == 31
+    assert document['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     restored = client.get(f"/api/generations/{mapping[run['id']]}").json()['candidates'][0]
     assert restored['activity'] == {**candidate['activity'], 'candidate_id': mapping[candidate['id']]}
     legacy = deepcopy(document)
     legacy['version'] = 30
+    remove_v062_prompts(legacy)
     del legacy['data']['candidate_activity']
     del legacy['data']['path_revisions']
     upgraded = upgrade(legacy)
-    assert upgraded['version'] == 31 and upgraded['data']['candidate_activity'] == []
+    assert upgraded['version'] == ARCHIVE_VERSION and upgraded['data']['candidate_activity'] == []

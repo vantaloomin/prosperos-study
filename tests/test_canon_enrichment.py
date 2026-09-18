@@ -11,6 +11,7 @@ from server.errors import DomainError
 from server.memory.enrichment import parse_enrichment
 from server.providers.events import ProviderEvent
 from tests.archive_legacy import remove_summaries
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_authoring import settle
 from tests.test_library import with_book
@@ -139,8 +140,7 @@ def test_defaults_disabling_and_changed_prompt_invalidate_preview(client):
     stale = {**prepared['request'], 'preview_hash': prepared['preview_hash'], 'operation_id': uuid4().hex}
     assert client.post('/api/authoring', json=stale).status_code == 409
     assert preview(client, book)['jobs'][0]['profile_name'] == second['name']
-    prompts = client.get('/api/prompts').json()
-    prompt = next(item for item in prompts if item['key'] == 'authoring-enrich')
+    prompt = saved_prompt(client, 'authoring-enrich')
     response = client.put('/api/prompts/authoring-enrich/activation', json={'expected_revision': prompt['activation_revision'], 'enabled': False})
     assert response.status_code == 200, response.text
     assert client.post('/api/authoring/preview', json=prepared['request']).status_code == 409

@@ -1,6 +1,7 @@
 """Workspace agent switches affect new work without changing recorded prompts."""
 from server.database import decode, encode
 from server.errors import require
+from server.roles import LEGACY_KEYS
 
 
 def switch_state(connection):
@@ -14,6 +15,7 @@ def disabled_agents(connection, story=None):
     inherited = settings.get('disabled_prompts', [])
     if isinstance(inherited, list):
         disabled.update(key for key in inherited if isinstance(key, str))
+    disabled.update(key for key, role in LEGACY_KEYS.items() if role in disabled)
     return disabled
 
 

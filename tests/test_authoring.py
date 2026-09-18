@@ -14,6 +14,7 @@ from server.database import decode, many
 from server.errors import DomainError
 from server.providers.events import ProviderEvent
 from tests.archive_legacy import remove_authoring
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_library import create_book, with_book
 from tests.test_profiles import make_profile
@@ -28,7 +29,7 @@ class AuthoringProvider:
         self.calls.append((profile, prompt, content))
         target = json.loads(content)['target']['text']
         result = {'summary': 'QA fixture: a focused prose suggestion.',
-            'proposal': None if 'Keep proposal null.' in prompt else f"{profile['name']}: rain settles over the harbor.\n\nThe lamps stay lit.\n",
+            'proposal': None if json.loads(content).get('action') == 'critique' else f"{profile['name']}: rain settles over the harbor.\n\nThe lamps stay lit.\n",
             'findings': [{'quote': target[:30], 'explanation': 'QA fixture observation.', 'suggestion': 'Review the rhythm.'}] if target else []}
         yield ProviderEvent(text='invalid fixture output' if self.invalid else json.dumps(result), done=True)
 
@@ -94,10 +95,10 @@ def test_defaults_prompt_versions_and_stale_preview(client, story):
     run = start(client, body)
     assert run['jobs'][0]['snapshot']['profile']['profile_id'] == second['profile_id']
     preview = client.post('/api/authoring/preview', json=body).json()
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == body['step'])
+    prompt = saved_prompt(client, body['step'])
     assert client.put(f"/api/prompts/{body['step']}", json={'expected_version_id': prompt['id'], 'template': prompt['template'] + '\nBe concise.'}).status_code == 200
     assert client.post('/api/authoring', json={**stale, 'preview_hash': preview['preview_hash']}).status_code == 409
-    assert run['jobs'][0]['snapshot']['prompt']['id'] == prompt['id']
+    assert run['jobs'][0]['snapshot']['prompt']['id'] == 'library-assist-default-v062'
     assert not any(item['key'].startswith('authoring-') for item in client.get(f"/api/prompts?story_id={story['story_id']}").json())
     assert client.put('/api/authoring/defaults', json={'step': body['step'], 'profile_id': None}).json() == {}
 

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from server.adoptions import Adoptions
+from server.assessment.preparation import after_acceptance
 from server.branch_timing import BranchTimings
 from server.branches import Branches
 from server.library import Library
@@ -72,8 +74,9 @@ def get_branch(branch_id: str, request: Request):
 
 
 @router.post("/branches/{branch_id}/messages", status_code=201)
-def create_message(branch_id: str, body: MessageCreate, request: Request):
-    return Branches(request.app.state.database).append(branch_id, body)
+async def create_message(branch_id: str, body: MessageCreate, request: Request):
+    result = await run_in_threadpool(Branches(request.app.state.database).append, branch_id, body)
+    return await after_acceptance(request, result)
 
 
 @router.post("/branches/{branch_id}/forks", status_code=201)

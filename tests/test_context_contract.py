@@ -13,9 +13,10 @@ from server.mechanics.models import TablePublish
 from server.mechanics.tables import Tables
 from server.memory.budget import token_estimate
 from server.operations import remember
+from tests.prompt_fixtures import saved_prompt
 from tests.test_agent_switches import toggle
 from tests.test_archives import backup, restore
-from tests.test_assessments import settled, setup_assessment
+from tests.test_assessments import setup_assessment
 from tests.test_context_inspector import database_dump, preview
 from tests.test_generations import DraftProvider, finished
 from tests.test_history import append
@@ -25,7 +26,7 @@ from tests.test_profiles import make_profile
 
 
 def revise_prompt(client, key='writer'):
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == key)
+    prompt = saved_prompt(client, key)
     response = client.put(f'/api/prompts/{key}', json={'expected_version_id': prompt['id'],
                           'template': '!' + prompt['template'][1:]})
     assert response.status_code == 200, response.text
@@ -132,29 +133,29 @@ def test_assessment_contract_detects_same_size_prompt_table_and_activation_chang
     if change == 'disabled':
         toggle(client, 'beat-assessment')
     refreshed, _ = preview(client, story, expected_revision=1)
-    assert refreshed['fingerprint'] != report['fingerprint']
-    if change == 'prompt':
-        assert refreshed['assessment']['budgets'] == report['assessment']['budgets']
-    if change == 'disabled':
-        assert refreshed['assessment']['status'] == 'none'
-    monkeypatch.setattr('server.assessment.context.secrets.token_hex', lambda *_: pytest.fail('Stale preview drew seed'))
-    before = database_dump(client)
+    assert refreshed['fingerprint'] == report['fingerprint']
+    assert refreshed['assessment']['status'] == 'none'
+    assert refreshed['assessment']['budgets'] == []
+    monkeypatch.setattr('server.assessment.context.secrets.token_hex', lambda *_: pytest.fail('Writing drew seed'))
     response = client.post(f"/api/branches/{story['branch_id']}/generations", json=guarded_body(report, body))
-    assert response.status_code == 409 and database_dump(client) == before
+    assert response.status_code == 201, response.text
+    assert finished(client, response.json()['id'])['candidates'][0]['status'] == 'done'
     assert client.app.state.assessment_runner.provider.calls == []
 
 
-def test_guard_is_transport_metadata_and_saved_assessment_can_reopen_without_it(client, story):
+def test_guard_is_transport_metadata_and_pending_assessment_does_not_block_writing(client, story):
+    from tests.legacy_assessment import legacy_create
     setup_assessment(client, story)
     report, body = preview(client, story, expected_revision=1)
+    pending = legacy_create(client.app.state.database, story['branch_id'], GenerateRequest(**body, operation_id=uuid4().hex))
+    assert pending['assessment_id']
+    refreshed, _ = preview(client, story, expected_revision=1)
+    assert refreshed['assessment']['status'] == 'none'
     service = WritingRequests(client.app.state.database)
-    response = service.create(story['branch_id'], GenerateRequest(**guarded_body(report, body)))
-    reopened = service.create(story['branch_id'], GenerateRequest(**body, operation_id=uuid4().hex))
-    assert reopened == response
-    saved, _ = preview(client, story, expected_revision=1)
-    assert saved['assessment']['status'] == 'saved'
-    with pytest.raises(DomainError, match='already saved'):
-        service.create(story['branch_id'], GenerateRequest(**guarded_body(saved, body)))
+    request = GenerateRequest(**guarded_body(refreshed, body))
+    result = service.create(story['branch_id'], request)
+    assert result['id'] and 'assessment_id' not in result
+    assert service.create(story['branch_id'], request) == result
 
 
 def test_guarded_assessment_saves_final_memory_digest_and_archive_provenance(client, story):
@@ -164,17 +165,23 @@ def test_guarded_assessment_saves_final_memory_digest_and_archive_provenance(cli
         settings = {**decode(row['settings']), 'memory': {'mode': 'long'}}
         connection.execute('UPDATE stories SET settings=?,revision=revision+1 WHERE id=?',
                            (encode(settings), story['story_id']))
+    from server.assessment.preparation import prepare_accepted
+    from server.assessment.service import Assessments
+    from tests.test_post_acceptance import complete
+    branch = client.get(f"/api/branches/{story['branch_id']}").json()
+    preparation = prepare_accepted(client.app.state.database, story['branch_id'], branch['head_id'])
+    assessment = complete(client, Assessments(client.app.state.database).detail(preparation['assessment_id']))
+    assert assessment['opportunity_id'] and not assessment['generation_id']
     report, body = preview(client, story, expected_revision=1)
     response = client.post(f"/api/branches/{story['branch_id']}/generations", json=guarded_body(report, body))
     assert response.status_code == 201, response.text
-    assessment = settled(client, response.json()['assessment_id'])
-    run = finished(client, assessment['generation_id'])
+    run = finished(client, response.json()['id'])
     snapshot = run['snapshot']
-    assert snapshot['reviewed_context']['stage'] == 'before_assessment'
+    assert snapshot['reviewed_context']['stage'] == 'writer'
     assert snapshot['reviewed_context']['fingerprint'] == report['fingerprint']
     assert snapshot['memory']['content_sha256'] == hashlib.sha256(snapshot['content'].encode()).hexdigest()
-    assert snapshot['memory']['content_sha256'] != report['memory']['content_sha256']
-    assert list(decode(snapshot['content']))[-1] == 'direction'
+    assert snapshot['memory']['content_sha256'] == report['memory']['content_sha256']
+    assert decode(snapshot['content'])['direction'] == body.get('direction', '')
     file, _ = backup(client, story)
     _, mapping = restore(client, file)
     restored = client.get(f"/api/generations/{mapping[run['id']]}").json()['snapshot']
@@ -214,7 +221,7 @@ def test_pinned_random_tables_remain_stable_after_unadopted_publication(client, 
     refreshed, _ = preview(client, story, expected_revision=1)
     assert refreshed['fingerprint'] == report['fingerprint']
     response = WritingRequests(client.app.state.database).create(story['branch_id'], GenerateRequest(**guarded_body(report, body)))
-    assert response['assessment_id']
+    assert response['id']
 
 
 def test_earlier_saved_assessment_receipts_keep_their_original_serialization():

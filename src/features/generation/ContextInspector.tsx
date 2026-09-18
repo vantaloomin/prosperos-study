@@ -33,15 +33,11 @@ function ReportView({ report, branchId, request }: { report: ContextReport; bran
 }
 
 function AssessmentNotice({ assessment }: { assessment: ContextReport['assessment'] }) {
-  if (assessment.status === 'saved') return <p className="context-budget-warning">A beat assessment is already saved here. Reopen it from the story before proceeding; its frozen inputs and choices govern continuation. This shows the current prospective writer context.</p>
-  if (assessment.status !== 'new') return null
-  return <details className="context-assessment"><summary>Beat assessment comes first · {assessment.budgets.length} additional request(s)</summary>
-    <p className="subtle">These checks use their own inputs and exclude private background. Using this preview protects the starting inputs. The assessment may then add a prepared beat or change selected Canon entries; the final writer input is checked for fit and saved separately. No assessment is started by this preview.</p>
-    {assessment.budgets.map((budget) => <ContextBudgetView key={budget.version_id} budget={budget} />)}</details>
+  return assessment.status === 'completed' ? <p className="subtle">A ready beat is included in these exact inputs. Writing makes no additional assessment request.</p> : null
 }
 
 function usablePreview(report?: ContextReport) {
-  return !!report && report.assessment.status !== 'saved' && [...report.budgets, ...report.assessment.budgets].every((budget) => budget.fits)
+  return !!report && report.budgets.every(budget => budget.fits)
 }
 
 function ReferenceScope({ character }: { character: boolean }) {

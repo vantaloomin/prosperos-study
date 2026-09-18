@@ -6,6 +6,7 @@ import pytest
 from server.database import Database, one
 from server.models import StoryCreate
 from server.prompts import DEFAULT_WRITER, LEGACY_WRITER, initialize_prompts, prompt_snapshot
+from server.role_prompts import ROLE_PROMPTS
 from server.stories import Stories
 from tests.test_generations import DraftProvider, finished, generate
 from tests.test_profiles import make_profile
@@ -33,10 +34,10 @@ def test_writer_default_upgrade_is_versioned_idempotent_and_preserves_explicit_c
         latest = one(connection, "SELECT * FROM prompt_versions WHERE id='writer-default-v2'")
         assert legacy['template'] == LEGACY_WRITER and legacy['created_at'] == '2026-01-01'
         assert latest['template'] == DEFAULT_WRITER and latest['number'] == (3 if custom_head else 2)
-        assert prompt_snapshot(connection, 'writer')['id'] == ('my-writer' if custom_head else latest['id'])
+        assert prompt_snapshot(connection, 'writer')['id'] == ('my-writer' if custom_head else 'writer-default-v062')
         stored = one(connection, 'SELECT * FROM stories WHERE id=?', (story['story_id'],))
         assert prompt_snapshot(connection, 'writer', stored) == legacy
-        assert connection.execute("SELECT COUNT(*) FROM prompt_versions WHERE key='writer'").fetchone()[0] == latest['number']
+        assert connection.execute("SELECT COUNT(*) FROM prompt_versions WHERE key='writer'").fetchone()[0] == latest['number'] + 1
     assert Stories(database).detail(story['story_id']) == before
 
 
@@ -57,8 +58,8 @@ def test_writing_mode_and_note_are_frozen_for_the_writer_without_accepting_prose
     assert context['story']['settings']['experience'] == experience
     assert context['story']['settings']['player_agency'] == agency
     assert context['history'][0]['role'] == 'ooc'
-    assert frozen['prompt']['id'] == 'writer-default-v2'
-    assert provider.calls[0][1] == DEFAULT_WRITER
+    assert frozen['prompt']['id'] == 'writer-default-v062'
+    assert provider.calls[0][1] == ROLE_PROMPTS['writer']
     assert client.get(f"/api/branches/{story['branch_id']}").json() == before
     updated = client.get(f"/api/stories/{story['story_id']}").json()
     updated['settings']['experience'] = 'roleplay' if experience != 'roleplay' else 'directed'

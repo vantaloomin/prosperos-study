@@ -5,6 +5,8 @@ from uuid import uuid4
 from pytest import MonkeyPatch
 
 from server.database import decode
+from server.generation_models import GenerateRequest
+from tests.legacy_assessment import dispatch, legacy_create
 from tests.test_assessments import AssessmentProvider, settled
 from tests.test_generations import DraftProvider, finished
 from tests.test_mechanics import configure
@@ -51,10 +53,10 @@ def assessed_alternatives(client, story, profiles, count):
     run_ids = []
     for _ in range(count):
         revision = client.get(f"/api/branches/{story['branch_id']}").json()['revision']
-        response = client.post(f"/api/branches/{story['branch_id']}/generations", json={
-            'operation_id': uuid4().hex, 'expected_revision': revision, 'profile_ids': profiles})
-        assert response.status_code == 201, response.text
-        run = settled(client, response.json()['assessment_id'])
+        result = legacy_create(client.app.state.database, story['branch_id'], GenerateRequest(
+            operation_id=uuid4().hex, expected_revision=revision, profile_ids=profiles))
+        dispatch(client, result)
+        run = settled(client, result['assessment_id'])
         assert run['generation_id'], run
         generation = finished(client, run['generation_id'])
         candidate_id = generation['candidates'][0]['id']
@@ -77,6 +79,12 @@ def sidebar_history(client, story, count):
 def seed_workflow(client, story, profiles, size):
     configure(client, story, automatic_assessment=True, chance=100, cooldown=0)
     with MonkeyPatch.context() as patch:
+        # This benchmark models recorded v0.6.1 workflow history. New acceptance
+        # hooks are exercised separately and must not change its measured workload.
+        async def historical_acceptance(_request, result):
+            return result
+        for module in ('server.routes', 'server.generation_routes', 'server.scenes.routes'):
+            patch.setattr(module + '.after_acceptance', historical_acceptance)
         seed = no_event_seed(client)
         patch.setattr('server.scenes.chance.secrets.token_hex', lambda _length: seed)
         patch.setitem(PLAN['beats'][0], 'chance', dict(BOUNDARY))

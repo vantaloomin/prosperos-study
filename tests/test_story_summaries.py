@@ -11,6 +11,7 @@ from server.errors import DomainError
 from server.memory.summary_context import parse_summary
 from server.providers.events import ProviderEvent
 from tests.archive_legacy import remove_summaries
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archives import backup, restore
 from tests.test_profiles import make_profile
 
@@ -194,7 +195,7 @@ def test_failed_retry_keeps_original_inputs_after_prompt_change_and_no_automatic
     run = started(client, story['branch_id'])
     job = run['jobs'][0]
     assert job['status'] == 'error' and job['output'] == 'Malformed but preserved'
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     changed = client.put('/api/prompts/memory-summary', json={'expected_version_id': prompt['id'], 'template': 'NEW instructions'})
     assert changed.status_code == 200, changed.text
     provider.fail = False
@@ -324,7 +325,7 @@ def test_summary_preview_defaults_disable_and_no_duplicate_paid_work(client):
     duplicate = client.post('/api/branches/' + branch_id + '/summaries', json={**body, 'operation_id': uuid4().hex})
     assert duplicate.status_code == 201 and duplicate.json() == {'id': run['id'], 'job_ids': []}
     assert len(client.app.state.summary_runner.provider.calls) == 1
-    prompt = next(item for item in client.get('/api/prompts').json() if item['key'] == 'memory-summary')
+    prompt = saved_prompt(client, 'memory-summary')
     response = client.put('/api/prompts/memory-summary/activation', json={'expected_revision': prompt['activation_revision'], 'enabled': False})
     assert response.status_code == 200, response.text
     preview_body = {key: value for key, value in body.items() if key not in {'operation_id', 'preview_hash'}}

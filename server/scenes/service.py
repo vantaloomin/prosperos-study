@@ -142,7 +142,7 @@ def edit(_connection, run, body):
 
 def approve(connection, run, body):
     require(not run["state"]["gate_a"], "This plan is already approved.", 409)
-    require(next_step(run) is None, "Choose a beat plan and continuity brief before approving.", 409)
+    require(next_step(run) is None, "Choose the enabled planning results before approving.", 409)
     state = run["state"]
     state["gate_a"] = {"approved_at": now(), "note": body.note, "selections": dict(state["selections"]),
                        "option_id": state["option_id"], "beat_edit": state["beat_edit"]}

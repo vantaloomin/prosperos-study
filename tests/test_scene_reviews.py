@@ -13,7 +13,7 @@ from tests.test_profiles import make_profile
 from tests.test_reviews import InvalidReviewProvider, ReviewProvider, finished_review, start
 from tests.test_scene_archives import SceneRetrievalProvider
 from tests.test_scene_drafting import PROSE, DraftProvider, approved_plan
-from tests.test_scenes import choose, decide, get_plan, run_stage
+from tests.test_scenes import choose, decide, get_plan, legacy_scene_creation, run_stage
 from tests.test_sidebar import ask, settle, thread
 
 
@@ -35,7 +35,8 @@ def plan_after_history(client, story, revision):
     make_profile(client, "Scene reviewer", primary=True)
     client.app.state.scene_runner.provider = DraftProvider()
     body = {"expected_revision": revision, "operation_id": uuid4().hex, "title": "A frozen scene", "direction": "Consider the letter.", "propose_options": False}
-    response = client.post(f"/api/branches/{story['branch_id']}/scenes", json=body)
+    with legacy_scene_creation():
+        response = client.post(f"/api/branches/{story['branch_id']}/scenes", json=body)
     assert response.status_code == 201, response.text
     scene_id = response.json()["id"]
     for key in ("scene-beats", "scene-brief"):

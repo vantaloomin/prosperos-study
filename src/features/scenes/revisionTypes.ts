@@ -1,6 +1,6 @@
 import type { ReviewFinding } from '../workflow/types'
 
-export const dispositions = ['hard-fix', 'fix', 'cut', 'overrule', 'verify', 'hold'] as const
+export const dispositions = ['hard-fix', 'fix', 'cut', 'overrule', 'verify', 'hold', 'undecidable'] as const
 export type Disposition = typeof dispositions[number]
 export interface Evidence { source_id: string; quote: string }
 export interface Resolution { disposition: Disposition; reason: string; action: string; evidence: Evidence[] }

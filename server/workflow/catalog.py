@@ -2,9 +2,10 @@ from server.assessment.catalog import ASSESSMENT_PROMPT, ASSESSMENT_STEP
 from server.authoring.catalog import AUTHORING_PROMPTS
 from server.background.catalog import INTERPRETATION_PROMPT, INTERPRETATION_STEP
 from server.memory.summary_catalog import SUMMARY_KEY, SUMMARY_PROMPT, SUMMARY_STEP
+from server.roles import ROLES
 from server.scenes.catalog import SCENE_PROMPTS, SCENE_STEPS
 
-REVIEW_ROLES = [
+LEGACY_REVIEW_ROLES = [
     {"key": "review-rules", "name": "Rules & agency", "scope": "rules", "source": "rules-reviewer",
      "focus": "Check the supplied story constraints, player agency, viewpoint, and character voice. Do not invent universal style bans. Distinguish clear contradictions from preferences."},
     {"key": "review-continuity", "name": "Continuity", "scope": "continuity", "source": "panel-wren",
@@ -26,12 +27,25 @@ REVIEW_ROLES = [
     {"key": "review-setting", "name": "Setting & register", "scope": "blind", "source": "panel-local",
      "focus": "Review internal consistency of setting, institutions, geography and register. Do not pretend to have lived experience or verified external facts. State uncertainty and distinguish research questions from textual contradictions."},
 ]
-ROLE_MAP = {role["key"]: role for role in REVIEW_ROLES}
+LENSES = {role['key'].removeprefix('review-'): {
+    'key': role['key'].removeprefix('review-'), 'name': role['name'], 'focus': role['focus'],
+} for role in LEGACY_REVIEW_ROLES}
+LENSES['coverage'] = {'key': 'coverage', 'name': 'Beat coverage',
+                      'focus': 'Check every approved beat in order, with exact draft quotations and player decisions left open.'}
+REVIEW_ROLES = [
+    {'key': 'review-blind', 'name': 'Independent reader', 'scope': 'blind',
+     'lenses': [LENSES[key] for key in ('plausibility', 'cuts', 'dialogue', 'genre', 'patterns', 'pacing', 'counterpoint', 'setting')]},
+    {'key': 'review-informed', 'name': 'Informed reader', 'scope': 'informed',
+     'lenses': [LENSES[key] for key in ('rules', 'continuity', 'coverage')]},
+]
+ROLE_MAP = {role['key']: role for role in LEGACY_REVIEW_ROLES + REVIEW_ROLES}
+ROLE_MAP['scene-coverage'] = {'key': 'scene-coverage', 'name': 'Beat coverage', 'scope': 'informed'}
 CORE_STEPS = [
     {"key": "writer", "name": "Primary prose", "scope": "writer"},
     {"key": "collaborator", "name": "Sidebar Collaborator", "scope": "side conversation"},
 ]
-STEPS = CORE_STEPS + [ASSESSMENT_STEP, INTERPRETATION_STEP, SUMMARY_STEP] + SCENE_STEPS + REVIEW_ROLES
+LEGACY_STEPS = CORE_STEPS + [ASSESSMENT_STEP, INTERPRETATION_STEP, SUMMARY_STEP] + SCENE_STEPS + LEGACY_REVIEW_ROLES
+STEPS = [{**role, **ROLE_MAP.get(role['key'], {})} for role in ROLES]
 
 OUTPUT_CONTRACT = """
 Your input contains only sources allowed for your role. Review them independently; other reviewers' results,
@@ -44,7 +58,7 @@ structural decision requiring the user. Quote exactly. At most ten findings. An 
 Do not invent a defect to fill a quota. Never claim your suggestions have been applied.
 """
 DEFAULT_PROMPTS = {role["key"]: f"You are the {role['name']} specialist.\n{role['focus']}\n{OUTPUT_CONTRACT}"
-                   for role in REVIEW_ROLES}
+                   for role in LEGACY_REVIEW_ROLES}
 DEFAULT_PROMPTS.update(SCENE_PROMPTS)
 DEFAULT_PROMPTS.update(AUTHORING_PROMPTS)
 DEFAULT_PROMPTS[SUMMARY_KEY] = SUMMARY_PROMPT

@@ -1,24 +1,21 @@
-from server.authoring.catalog import AUTHORING_STEPS
-from server.scenes.catalog import DRAFT_KEYS, PLAN_KEYS
-from server.scenes.continuity_catalog import CONTINUITY_KEYS
-from server.scenes.patch_catalog import PATCH_KEYS
-from server.scenes.revision_catalog import REVISION_KEYS
-from server.workflow.catalog import REVIEW_ROLES
-
 GROUPS = [
-    ('Interactive writing', ['beat-assessment', 'writer']),
-    ('Scene planning', ['background-interpretation', *PLAN_KEYS]),
-    ('Scene drafting', DRAFT_KEYS),
-    ('Independent review', [role['key'] for role in REVIEW_ROLES]),
-    ('Revision', REVISION_KEYS + PATCH_KEYS),
-    ('Continuity', CONTINUITY_KEYS),
-    ('Story memory', ['memory-summary']),
+    ('Interactive writing', ['writer']),
+    ('Scene planning', ['scene-plan']),
+    ('Scene drafting', ['scene-draft', 'scene-dialogue']),
+    ('Independent review', ['review-blind', 'review-informed']),
+    ('Revision', ['scene-triage', 'scene-patch']),
+    ('Scribe', ['scribe']),
     ('Alongside your writing', ['collaborator']),
-    ('Library assistance', [step['key'] for step in AUTHORING_STEPS]),
+    ('Library assistance', ['library-assist']),
 ]
 FLOW = {key: {'group': group, 'order': index} for index, (group, key) in enumerate(
     (group, key) for group, keys in GROUPS for key in keys)}
 NOTES = {
+    'scene-plan': 'Plans scene options, beats and private background. Each task keeps its own evidence and choices.',
+    'review-blind': 'Reads prose through selected lenses without seeing Canon, rules, rolls or other reports.',
+    'review-informed': 'Checks rules, continuity and approved beat coverage against the supplied primary sources.',
+    'scribe': 'Proposes continuity, memory summaries and Canon search aids; prepares optional beat assessment after acceptance.',
+    'library-assist': 'Drafts, critiques or tightens one Library field. Applying or publishing a suggestion remains your choice.',
     'memory-summary': 'Summarizes accepted prose with exact quotations. Supports explicit batches and opt-in maintenance; saving still requires review.',
     'authoring-enrich': 'Suggests summaries, topics and aliases for selected Canon excerpts. Applying them requires review; original prose stays intact.',
     'writer': 'Drafts the next passage. When disabled, write in the composer yourself.',

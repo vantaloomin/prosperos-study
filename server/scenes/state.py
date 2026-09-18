@@ -1,5 +1,6 @@
 from server.database import decode, encode, identifier, now, one
 from server.errors import require
+from server.roles import RETIRED_STAGES
 from server.scenes.catalog import DRAFT_KEYS, PLAN_KEYS, SCENE_KEYS
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
 from server.scenes.models import SceneState
@@ -17,6 +18,9 @@ def selected_result(connection, run, key):
         return run["state"]["beat_edit"]
     job_id = run["state"]["selections"].get(key)
     if not job_id:
+        if key == 'scene-coverage' and run['snapshot'].get('workflow_version', 1) >= 2:
+            from server.scenes.reader_coverage import selected_coverage
+            return selected_coverage(connection, run)
         return None
     return decode(one(connection, "SELECT result FROM scene_jobs WHERE id=?", (job_id,))["result"])
 
@@ -37,6 +41,9 @@ def stage_keys(run):
 
 
 def dependency_keys(run, key):
+    if run['snapshot'].get('workflow_version', 1) >= 2 and key in CONTINUITY_KEYS + PATCH_KEYS:
+        needed = ['scene-patch'] if key in CONTINUITY_KEYS and (run['state'].get('gate_b') or {}).get('items') else []
+        return stage_keys(run) + ['scene-triage'] + needed
     if key in CONTINUITY_KEYS:
         patches = [step for step in PATCH_KEYS if step != 'scene-dialogue-patch' or run['snapshot'].get('dialogue_split', False)]
         needed = patches if (run['state'].get('gate_b') or {}).get('items') else []
@@ -75,6 +82,8 @@ def upstream(run, key):
 
 
 def require_step(run, key):
+    require(run['snapshot'].get('workflow_version', 1) < 2 or key not in RETIRED_STAGES,
+            'This stage was consolidated into the current scene workflow.', 409)
     require(key not in run["snapshot"].get("disabled_steps", []), "This stage was disabled when the scene began. Start a new scene to change its workflow.", 409)
     approved = bool(run["state"]["gate_a"])
     require(not (key in PLAN_KEYS and approved), "This plan is approved. Start another plan to explore changes.", 409)

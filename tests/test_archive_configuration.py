@@ -4,7 +4,8 @@ from uuid import uuid4
 import pytest
 
 from server.database import decode, encode
-from server.prompts import PROMPT_LABELS
+from server.prompts import ALL_PROMPT_LABELS
+from tests.prompt_fixtures import saved_prompt
 from tests.test_archive_recovery import saved_work
 from tests.test_archives import backup, restore
 from tests.test_generations import DraftProvider, finished, generate
@@ -15,7 +16,7 @@ from tests.test_scenes import ready_plan
 
 def edit_prompt(client, key, story=None, template=None):
     query = f"?story_id={story['story_id']}" if story else ""
-    old = next(row for row in client.get(f"/api/prompts{query}").json() if row["key"] == key)
+    old = saved_prompt(client, key, story["story_id"] if story else None)
     response = client.put(f"/api/prompts/{key}{query}", json={
         "expected_version_id": old["id"], "template": template or old["template"] + "\nFuture version."})
     assert response.status_code == 200, response.text
@@ -47,7 +48,7 @@ def test_repeated_story_recovery_does_not_accumulate_workspace_history(client, s
     before = client.get(f"/api/branches/{story['branch_id']}").json()
     defaults = client.get("/api/prompts").json()
     file, document = backup(client, story)
-    expected = {"profiles": 1, "profile_versions": 1, "prompt_versions": len(PROMPT_LABELS), "roll_table_versions": 30}
+    expected = {"profiles": 1, "profile_versions": 1, "prompt_versions": len(ALL_PROMPT_LABELS), "roll_table_versions": 30}
     assert config_counts(document) == expected
     first_size = file["byte_count"]
     current = story
@@ -60,7 +61,7 @@ def test_repeated_story_recovery_does_not_accumulate_workspace_history(client, s
     assert client.get(f"/api/branches/{story['branch_id']}").json() == before
     assert client.get("/api/prompts").json() == defaults
     _, workspace = backup(client)
-    assert len(workspace["data"]["prompt_versions"]) > len(PROMPT_LABELS) * 5
+    assert len(workspace["data"]["prompt_versions"]) > len(ALL_PROMPT_LABELS) * 5
     assert len(workspace["data"]["roll_table_versions"]) == 250
 
 

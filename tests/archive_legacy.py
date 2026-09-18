@@ -62,6 +62,21 @@ def remove_controls(document):
 
 
 def remove_v061_records(document):
+    remove_v062_prompts(document)
     # Reconstruct the exact older format, which had no activity or omission rows.
     document['data'].pop('candidate_activity')
     assert document['data'].pop('path_revisions') == []
+
+
+def remove_v062_prompts(document):
+    from server.database import decode, encode
+    from server.prompts import LEGACY_PROMPT_LABELS
+    keys = set(document['prompt_heads']) - set(LEGACY_PROMPT_LABELS)
+    for key in keys:
+        document['prompt_heads'].pop(key)
+    document['data']['prompt_versions'] = [row for row in document['data']['prompt_versions'] if row['key'] not in keys]
+    for story in document['data']['stories']:
+        settings = decode(story['settings'])
+        if 'prompt_versions' in settings:
+            settings['prompt_versions'] = {key: value for key, value in settings['prompt_versions'].items() if key not in keys}
+        story['settings'] = encode(settings)
