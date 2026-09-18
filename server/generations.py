@@ -3,6 +3,7 @@ from server.background.storage import bind
 from server.branches import insert_node, touch_branch
 from server.database import decode, encode, identifier, many, now, one
 from server.errors import require
+from server.generation_activity import activity_rows, generation_summaries
 from server.generation_preparation import prepare_writer
 from server.mechanics.storage import accepted_state
 from server.operations import previous, remember
@@ -62,8 +63,9 @@ class Generations:
             candidates = many(connection, "SELECT * FROM candidates WHERE generation_id=? ORDER BY rowid", (generation_id,))
             snapshot = decode(generation["snapshot"])
             _, stale = stale_target(connection, snapshot)
+            activity = activity_rows(connection, generation_id)
             return {**generation, "snapshot": snapshot, "stale": stale,
-                    "candidates": [candidate_view(row) for row in candidates]}
+                    "candidates": [{**candidate_view(row), 'activity': activity.get(row['id'])} for row in candidates]}
 
     def alternate(self, candidate_id, body):
         payload = {"candidate_id": candidate_id, **body.model_dump()}
@@ -80,8 +82,7 @@ class Generations:
 
     def list(self, branch_id):
         with self.database.connect() as connection:
-            return many(connection, "SELECT id,branch_id,created_at FROM generations WHERE branch_id=? "
-                        "ORDER BY created_at DESC", (branch_id,))
+            return generation_summaries(connection, branch_id)
 
     def attempts(self, candidate_id):
         with self.database.connect() as connection:

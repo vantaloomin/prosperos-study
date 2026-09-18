@@ -54,6 +54,15 @@ class ForkCreate(Input):
     replacement: str | None = Field(default=None, min_length=1, max_length=100000)
 
 
+class PassageRevision(Input):
+    operation_id: str = Field(min_length=8, max_length=100)
+    expected_revision: int
+    node_id: str
+    action: Literal['remove', 'restore']
+    name: str = Field(min_length=1, max_length=120)
+    acknowledge_state_reset: Literal[True]
+
+
 class AssetCreate(Input):
     kind: Literal["character", "lorebook", "persona"]
     name: str = Field(min_length=1, max_length=120)

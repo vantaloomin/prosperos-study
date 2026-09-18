@@ -9,7 +9,9 @@ import { MessageCard } from './MessageCard'
 import { ContextDock } from './ContextDock'
 import { StoryDetails } from '../stories/StoryDetails'
 import { GenerationControls } from '../generation/GenerationControls'
-import { Collaborator } from '../collaborator/Collaborator'
+import { WritingRecovery, WritingSurface } from '../generation/WritingSurface'
+import { CollaboratorWindow } from '../collaborator/Collaborator'
+import { useCollaboratorLayout } from '../collaborator/useCollaboratorLayout'
 import type { DraftTransfer } from './Composer'
 import { loadBranch, useBranchReadiness } from './navigationTiming'
 import { TranscriptPosition } from './readingPosition'
@@ -49,28 +51,36 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   const openMap = () => { setMapOpenedAt(performance.now()); setMap(true) }
   const [details, setDetails] = useState(false)
   const [side, setSide] = useState(false)
+  const layout = useCollaboratorLayout()
+  const fullscreen = side && layout.presentation === 'full'
   const [randomness, setRandomness] = useState(false)
   const [workflow, setWorkflow] = useState(false)
   const [transfer, setTransfer] = useState<DraftTransfer | null>(null)
   const toggleContext = () => { setContext(!context); setSide(false); setTools(false) }
   const toggleSide = () => { setSide(!side); setContext(false); setTools(false) }
   const toggleTools = () => { setTools(!tools); setContext(false); setSide(false) }
-  const withDock = [context, side, tools].some(Boolean)
+  const withDock = [side && layout.presentation === 'docked', tools].some(Boolean)
   const readMessage = (messageId: string) => {
     if (reading.request(branch.id, messageId)) setContext(false)
   }
-  const closeTools = () => { setTools(false); workspace.current?.querySelector<HTMLButtonElement>('[aria-label="Writing tools"]')?.focus() }
-  return <div ref={workspace} data-active-branch={branch.id} className={`chat-workspace ${withDock ? 'with-context' : ''}`}><GenerationControls key={`generation:${branch.id}`} branch={branch} onBranch={onBranch} open={tools} onClose={closeTools}><main className="chat-main">
+  const closeTools = () => { setTools(false); focusTools(workspace.current) }
+  return <div ref={workspace} data-active-branch={branch.id} className={`chat-workspace ${withDock ? 'with-context' : ''}`}><GenerationControls key={`generation:${branch.id}`} branch={branch} onBranch={onBranch} open={tools} onClose={closeTools} onOpen={() => setTools(true)}><main className="chat-main" inert={fullscreen} aria-hidden={fullscreen}>
     <ChatHeading story={story} branchName={branch.name} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
     {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript reader={reading.connect} key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript reader={reading.connect} key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
-    <Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
+    <WritingRecovery /><Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
   </main></GenerationControls>{context && <ContextDock onReadMessage={readMessage} story={story} branch={branch} onClose={() => setContext(false)} />}
-    {side && <Collaborator story={story} branch={branch} onClose={() => setSide(false)} onInsert={(text) => setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text })} />}
+    <CollaboratorWindow open={side} layout={layout} story={story} branch={branch} onClose={() => setSide(false)} onInsert={(text) => { setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text }); requestAnimationFrame(() => workspace.current?.querySelector<HTMLTextAreaElement>('[aria-label="Story message"]')?.focus()) }} />
     {map && <BranchMap branches={story.branches} selected={branch.id} onSelect={onBranch} onClose={() => setMap(false)} openedAt={mapOpenedAt} />}
     {details && <StoryDetails story={story} branchId={branch.id} onOpen={onOpen} onClose={() => setDetails(false)} />}
     {randomness && <Modal open title="A little room for chance" description="Shape the unexpected. A reply is not automatically a beat, and a roll is only a proposal until its draft is accepted." onClose={() => setRandomness(false)} wide><Suspense fallback={<Loading label="Opening your tables…" />}><Randomness branch={branch} onBranch={onBranch} /></Suspense></Modal>}
     {workflow && <Modal open title="Story workflow" description="Plan a scene, invite independent readers, and choose the right partner for each step." onClose={() => setWorkflow(false)} wide><Suspense fallback={<Loading label="Opening the workflow…" />}><Workflow key={branch.id} branch={branch} onBranch={(id) => { setWorkflow(false); onBranch(id) }} /></Suspense></Modal>}
   </div>
+}
+
+function focusTools(workspace: HTMLElement | null) {
+  const controls = Array.from(workspace?.querySelectorAll<HTMLElement>('[aria-label="Writing tools"]') ?? [])
+  const target = controls.find(control => control.getClientRects().length && !control.closest('details:not([open])')) ?? workspace?.querySelector<HTMLElement>('.workspace-actions-menu > summary')
+  target?.focus({ preventScroll: true })
 }
 
 function Transcript({ branch, mode, onBranch, reader }: { branch: Branch; mode: StoryMode; onBranch: (id: string) => void; reader: Ref<PassageReader> }) {
@@ -94,6 +104,6 @@ function Transcript({ branch, mode, onBranch, reader }: { branch: Branch; mode: 
     return true
   } }), [branch.id, branch.messages])
   return <div className="transcript" data-transcript-ready="true" ref={container} tabIndex={0} role="region" aria-label="Story history">
-    {branch.messages.length === 0 ? <Empty title="The next sentence is yours."><p>Write a passage, set the scene, or leave a note for your writer.<br />Every possibility has a place here.</p><span className="empty-rule" /></Empty> : <div className="reading-column"><div className="chapter-mark"><span />A beginning, and what followed<span /></div>{branch.messages.map((message) => <MessageCard key={message.id} message={message} label={labels[message.role]} branch={branch} onBranch={onBranch} />)}<div className="end-mark">· · ·</div></div>}
+    {branch.messages.length === 0 ? <><Empty title="The next sentence is yours."><p>Write a passage, set the scene, or leave a note for your writer.<br />Every possibility has a place here.</p><span className="empty-rule" /></Empty><div className="reading-column"><WritingSurface after={null} /></div></> : <div className="reading-column"><div className="chapter-mark"><span />A beginning, and what followed<span /></div>{branch.messages.map((message) => <div key={message.id}><MessageCard message={message} label={labels[message.role]} branch={branch} onBranch={onBranch} /><WritingSurface after={message.id} /></div>)}<WritingSurface after={null} /><div className="end-mark">· · ·</div></div>}
   </div>
 }

@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 CREATE INDEX IF NOT EXISTS nodes_parent ON nodes(parent_id);
 CREATE INDEX IF NOT EXISTS branches_story ON branches(story_id);
+CREATE TABLE IF NOT EXISTS path_revisions (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL REFERENCES branches(id),
+    source_branch_id TEXT NOT NULL REFERENCES branches(id),
+    source_node_id TEXT NOT NULL REFERENCES nodes(id),
+    replacement_node_id TEXT NOT NULL REFERENCES nodes(id),
+    action TEXT NOT NULL CHECK(action IN ('remove','restore')), created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_path_revisions BEFORE UPDATE ON path_revisions
+BEGIN SELECT RAISE(ABORT, 'Path revisions are immutable'); END;
 CREATE TABLE IF NOT EXISTS operations (
     id TEXT PRIMARY KEY, kind TEXT NOT NULL, fingerprint TEXT NOT NULL,
     result TEXT NOT NULL, created_at TEXT NOT NULL
@@ -87,6 +96,11 @@ CREATE TABLE IF NOT EXISTS generation_attempts (
     id TEXT PRIMARY KEY, candidate_id TEXT NOT NULL REFERENCES candidates(id),
     attempt INTEGER NOT NULL, status TEXT NOT NULL, output TEXT NOT NULL, usage TEXT NOT NULL,
     error TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS candidate_activity (
+    candidate_id TEXT NOT NULL REFERENCES candidates(id), attempt INTEGER NOT NULL CHECK(attempt >= 1),
+    started_at TEXT NOT NULL, first_text_at TEXT, last_event_at TEXT, finished_at TEXT,
+    error_kind TEXT NOT NULL DEFAULT '', PRIMARY KEY(candidate_id, attempt)
 );
 CREATE TRIGGER IF NOT EXISTS immutable_prompts BEFORE UPDATE ON prompt_versions
 BEGIN SELECT RAISE(ABORT,'Prompt history is immutable'); END;

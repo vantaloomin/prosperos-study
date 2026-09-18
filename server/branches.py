@@ -10,11 +10,12 @@ from server.operations import previous, remember
 from server.stories import check_revision
 
 
-def path_nodes(connection, head_id: str | None) -> list[dict]:
+def path_nodes(connection, head_id: str | None, *, include_removed=False) -> list[dict]:
     rows = many(connection, "WITH RECURSIVE path AS (SELECT *, 0 AS depth FROM nodes WHERE id=? "
                 "UNION ALL SELECT n.*, p.depth+1 FROM nodes n JOIN path p ON p.parent_id=n.id) "
                 "SELECT * FROM path ORDER BY depth DESC", (head_id,))
-    return [{**row, "metadata": decode(row["metadata"])} for row in rows]
+    nodes = [{**row, "metadata": decode(row["metadata"])} for row in rows]
+    return nodes if include_removed else [node for node in nodes if not node['metadata'].get('removed')]
 
 
 def insert_node(connection, branch: dict, text: str, role: str, metadata: dict, mechanics_state=None) -> str:
@@ -59,7 +60,7 @@ class Branches:
         with self.database.connect() as connection:
             branch = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
             timing.mark("lookup")
-            messages = path_nodes(connection, branch["head_id"])
+            messages = path_nodes(connection, branch["head_id"], include_removed=True)
             timing.mark("path")
             attachments = manifest_view(connection, branch["manifest_id"])
             timing.mark("attachments")

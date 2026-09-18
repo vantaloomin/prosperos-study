@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowUp } from 'lucide-react'
 import { readyProfiles } from '../models/profileReadiness'
@@ -8,13 +7,10 @@ import { useAction } from '../../hooks/useAction'
 import { usePersistent } from '../../hooks/usePersistent'
 import type { Branch, Story } from '../../types'
 import type { ProfileList } from '../models/types'
+import type { SideSettings as Settings } from './sideSettings'
 
-interface Settings { profiles: string[]; compare: boolean; paths: string[]; disclosure: string; reads: number }
-const defaults: Settings = { profiles: [], compare: false, paths: [], disclosure: 'spoiler-conscious', reads: 3 }
-
-export function SideComposer({ threadId, branch, story, working }: { threadId: string; branch: Branch; story: Story; working: boolean }) {
+export function SideComposer({ threadId, branch, story, working, settings, onSettings }: { threadId: string; branch: Branch; story: Story; working: boolean; settings: Settings; onSettings: (settings: Settings) => void }) {
   const [text, setText] = usePersistent(`roleplay:side-draft:${threadId}`, '')
-  const [settings, setSettings] = useState(defaults)
   const action = useAction()
   const ask = () => action.run(async () => {
     await api(`/side-conversations/${threadId}/questions`, { operation_id: operationId(), branch_id: branch.id,
@@ -26,7 +22,7 @@ export function SideComposer({ threadId, branch, story, working }: { threadId: s
   return <form className="side-composer" onSubmit={(e) => { e.preventDefault(); void ask() }}><ErrorNotice message={action.error} />
     <textarea aria-label="Message to collaborator" placeholder="Think out loud. Nothing here advances the story." rows={3} value={text} onChange={(e) => setText(e.target.value)} />
     <div className="side-send"><span className="subtle">Separate from the narrative</span><button className="send-button" type="submit" aria-label="Ask collaborator" disabled={!text.trim() || working || action.busy || invalidComparison}><ArrowUp size={18} /></button></div>
-    <SideOptions branch={branch} story={story} settings={settings} onChange={setSettings} />
+    <SideOptions branch={branch} story={story} settings={settings} onChange={onSettings} />
   </form>
 }
 
@@ -36,7 +32,7 @@ function SideOptions({ branch, story, settings, onChange }: { branch: Branch; st
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles })
   const patch = (next: Partial<Settings>) => onChange({ ...settings, ...next })
   return <details className="side-options"><summary>Model, sources & disclosure</summary><ErrorNotice message={profiles.error?.message} />
-    <label className="field"><span>Collaborator profile</span><select aria-label="Collaborator profile" disabled={settings.compare} value={settings.profiles[0] ?? ''} onChange={(e) => patch({ profiles: e.target.value ? [e.target.value] : [] })}><option value="">Primary Writer / step default</option>{profiles.data?.profiles.map((profile) => <option key={profile.profile_id} value={profile.profile_id}>{profile.display_name ?? profile.name}</option>)}</select></label>
+    <label className="field"><span>Request profile override</span><select aria-label="Collaborator request profile override" disabled={settings.compare} value={settings.profiles[0] ?? ''} onChange={(e) => patch({ profiles: e.target.value ? [e.target.value] : [] })}><option value="">Use connection shown above</option>{profiles.data?.profiles.map((profile) => <option key={profile.profile_id} value={profile.profile_id}>{profile.display_name ?? profile.name}</option>)}</select></label>
     <label className="check-row"><input type="checkbox" checked={settings.compare} onChange={(e) => patch({ compare: e.target.checked, profiles: [] })} />Compare replies from several profiles</label>
     {settings.compare && <div className="side-profile-choices">{profiles.data?.profiles.map((profile) => <label key={profile.profile_id} className="check-row"><input type="checkbox" checked={settings.profiles.includes(profile.profile_id)} onChange={() => patch({ profiles: toggle(settings.profiles, profile.profile_id) })} />{profile.display_name ?? profile.name}</label>)}<small>Choose 2–4 profiles. Select one reply for the following discussion.</small></div>}
     <label className="field"><span>Disclosure</span><select aria-label="Collaborator disclosure" value={settings.disclosure} onChange={(e) => patch({ disclosure: e.target.value })}><option value="spoiler-conscious">Spoiler-conscious presentation</option><option value="full-disclosure">Full disclosure, including hidden lore</option></select></label>

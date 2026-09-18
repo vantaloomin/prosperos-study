@@ -7,6 +7,7 @@ from server.library_formats.sources import source_record
 from server.mechanics.config import parse_settings
 
 REFERENCES = {
+    'source_branch_id', 'source_node_id', 'replacement_node_id', 'original_node_id',
     "id", "story_id", "asset_id", "latest_version_id", "manifest_id", "head_id", "parent_id", "forked_from",
     "fork_node_id", "operation_id", "old_manifest_id", "new_manifest_id", "profile_id", "generation_id",
     "accepted_branch_id", "accepted_node_id", "candidate_id", "branch_id", "node_id", "run_id", "job_id",

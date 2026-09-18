@@ -65,8 +65,8 @@ function view() {
     removeEventListener: (key) => listeners.delete(key) }
   const anchors = [1000, 2000, 3000].map((top, index) => ({ top, height: 400, dataset: { readingAnchor: `m${index}:header` },
     getBoundingClientRect() { return { top: this.top - element.scrollTop, bottom: this.top + this.height - element.scrollTop, height: this.height } } }))
-  const rendered = { indices: [0, 1, 2], visibility: 'visible' }
-  element.querySelectorAll = (selector) => rendered.indices.map((index) => selector === '.message'
+  const rendered = { indices: [0, 1, 2], visibility: 'visible', drafts: [] }
+  element.querySelectorAll = (selector) => selector === '.inline-draft' ? rendered.drafts : rendered.indices.map((index) => selector === '.message'
     ? { visibility: rendered.visibility, getBoundingClientRect: () => anchors[index].getBoundingClientRect(), querySelectorAll: () => [anchors[index]] }
     : anchors[index])
   return { element, anchors, rendered, listeners, emit: (key, event) => listeners.get(key)?.(event) }
@@ -82,12 +82,40 @@ test('an offscreen saved paragraph is retained until its window mounts', (t) => 
   assert.notEqual(page.element.dataset.transcriptReady, 'true')
   page.rendered.indices = [1, 2]
   environment.observers.mutation()
+  environment.tick() // Wait for the virtual list's measurement frame.
   environment.tick()
   environment.tick()
   assert.equal(page.element.scrollTop, 2200)
   assert.equal(page.element.dataset.transcriptReady, 'true')
   controller.dispose()
   assert.deepEqual(environment.saved(), saved)
+})
+
+test('measurement compensation settles before correcting the saved paragraph', (t) => {
+  const environment = browser(t, passagePosition('m1')), page = view()
+  const controller = new VirtualReadingPosition(page.element, 'branch', 'm2')
+  environment.tick()
+  page.anchors[1].top = 2500
+  environment.observers.mutation()
+  environment.tick()
+  assert.equal(page.element.scrollTop,2000)
+  page.anchors[1].top = 2600
+  environment.observers.mutation()
+  environment.tick()
+  assert.equal(page.element.scrollTop,2000)
+  environment.tick()
+  assert.equal(page.element.scrollTop,2600)
+  controller.dispose()
+})
+
+test('an inline draft at the end can establish readiness without visible accepted prose', (t) => {
+  const environment = browser(t,null), page = view()
+  page.rendered.drafts = [{visibility:'visible', getBoundingClientRect:()=>({top:0,bottom:400})}]
+  const controller = new VirtualReadingPosition(page.element,'branch','m2')
+  environment.tick()
+  environment.tick()
+  assert.equal(page.element.dataset.transcriptReady,'true')
+  controller.dispose()
 })
 
 test('reader scrolling replaces the anchor and resize preserves its paragraph fraction', (t) => {
@@ -161,12 +189,14 @@ test('measurement-driven window replacement remounts the saved passage before de
   assert.equal(page.element.dataset.transcriptReady, 'true')
   page.rendered.indices = [0]
   environment.observers.mutation()
+  environment.tick() // Wait for the virtual list's measurement frame.
   environment.tick()
   assert.equal(page.element.dataset.transcriptReady, 'false')
   assert.deepEqual(requested, [saved])
   assert.deepEqual(environment.saved(), saved)
   page.rendered.indices = [1, 2]
   environment.observers.mutation()
+  environment.tick() // Wait for the virtual list's measurement frame.
   environment.tick()
   environment.tick()
   assert.equal(page.element.dataset.transcriptReady, 'true')
@@ -193,6 +223,7 @@ test('mounted but hidden prose is not ready and cannot replace the saved reading
   assert.deepEqual(environment.saved(), saved)
   page.rendered.visibility = 'visible'
   environment.observers.mutation()
+  environment.tick() // Wait for the virtual list's measurement frame.
   environment.tick()
   environment.tick()
   assert.equal(page.element.dataset.transcriptReady, 'true')
@@ -210,6 +241,7 @@ test('a list hidden between positioning and the ready frame must wait for visibl
   assert.notEqual(page.element.dataset.transcriptReady, 'true')
   page.rendered.visibility = 'visible'
   environment.observers.mutation()
+  environment.tick() // Wait for the virtual list's measurement frame.
   environment.tick()
   environment.tick()
   assert.equal(page.element.dataset.transcriptReady, 'true')

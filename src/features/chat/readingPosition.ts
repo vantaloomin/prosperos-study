@@ -70,6 +70,7 @@ export class TranscriptPosition {
   private position: ReadingPosition | null
   private frame = 0
   private restoredPixels: number | null = null
+  private userScrolling = false
   private observer: ResizeObserver
   private column: Element | null = null
   private element: HTMLElement
@@ -83,6 +84,10 @@ export class TranscriptPosition {
     this.observer.observe(element)
     this.refresh()
     element.addEventListener('scroll', this.onScroll, { passive: true })
+    element.addEventListener('wheel', this.allowScroll, { passive: true })
+    element.addEventListener('pointerdown', this.allowScroll, { passive: true })
+    element.addEventListener('touchstart', this.allowScroll, { passive: true })
+    element.addEventListener('keydown', this.onKey)
     window.addEventListener('pagehide', this.save)
   }
 
@@ -103,6 +108,7 @@ export class TranscriptPosition {
   }
 
   private restorePosition = () => {
+    this.userScrolling = false
     restore(this.element, this.byId, this.position)
     this.restoredPixels = this.element.scrollTop
   }
@@ -111,9 +117,16 @@ export class TranscriptPosition {
     // Layout and our own restoration emit scroll events too. Preserve the saved
     // passage while contained messages expand; only a different scroll adopts it.
     if (this.restoredPixels !== null && Math.abs(this.element.scrollTop - this.restoredPixels) < 1) return
+    if (!this.userScrolling) return
     this.restoredPixels = null
     this.position = capture(this.element, this.blocks)
     if (!this.frame) this.frame = requestAnimationFrame(this.save)
+  }
+
+  private allowScroll = () => { this.userScrolling = true }
+
+  private onKey = (event: KeyboardEvent) => {
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', 'Tab'].includes(event.key)) this.allowScroll()
   }
 
   private save = () => {
@@ -127,6 +140,10 @@ export class TranscriptPosition {
     this.save()
     this.observer.disconnect()
     this.element.removeEventListener('scroll', this.onScroll)
+    this.element.removeEventListener('wheel', this.allowScroll)
+    this.element.removeEventListener('pointerdown', this.allowScroll)
+    this.element.removeEventListener('touchstart', this.allowScroll)
+    this.element.removeEventListener('keydown', this.onKey)
     window.removeEventListener('pagehide', this.save)
   }
 }

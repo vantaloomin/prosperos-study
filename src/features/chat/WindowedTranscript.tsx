@@ -8,10 +8,11 @@ import { loadPosition } from './readingPosition'
 import { hasReadingAnchor, initialMessageIndex, passagePosition } from './transcriptWindow'
 import { VirtualReadingPosition } from './VirtualReadingPosition'
 import { PassageFinder } from './PassageFinder'
+import { WritingSurface } from '../generation/WritingSurface'
 import '../../styles/transcript-window.css'
 
 function ChapterMark() { return <div className="reading-column windowed-mark"><div className="chapter-mark"><span />A beginning, and what followed<span /></div></div> }
-function EndMark() { return <div className="reading-column windowed-mark"><div className="end-mark">· · ·</div></div> }
+function EndMark() { return <div className="reading-column windowed-mark"><WritingSurface after={null} /><div className="end-mark">· · ·</div></div> }
 const components = { Header: ChapterMark, Footer: EndMark }
 
 export function WindowedTranscript({ branch, mode, onBranch, reader }: { branch: Branch; mode: StoryMode; onBranch: (id: string) => void; reader: Ref<PassageReader> }) {
@@ -49,10 +50,10 @@ export function WindowedTranscript({ branch, mode, onBranch, reader }: { branch:
   return <div className="transcript-window"><div className="transcript-tools"><span>{branch.messages.length.toLocaleString()} contributions</span><button className="text-button" onClick={() => go(0)}>First</button><button className="text-button" onClick={latest}>Latest</button><button className="text-button" onClick={() => setFinder(true)}>Find a passage</button></div>
     <Virtuoso ref={virtuoso} className="transcript virtual-transcript" tabIndex={0} role="region" aria-label="Story history" data-transcript-ready="false"
       data={branch.messages} computeItemKey={(_, message) => message.id} scrollerRef={scroller} components={components}
-      defaultItemHeight={300} increaseViewportBy={{ top: 700, bottom: 700 }} atBottomThreshold={80} followOutput="auto"
+      defaultItemHeight={300} increaseViewportBy={{ top: 700, bottom: 700 }} atBottomThreshold={80}
       initialTopMostItemIndex={{ index: initialMessageIndex(initial.messages, initial.position), align: initial.position?.atEnd === false ? 'start' : 'end' }}
       totalListHeightChanged={() => reading.current?.refresh()}
-      itemContent={(index, message) => <div className="reading-column windowed-message" data-message-index={index}><MessageCard message={message} label={labels[message.role]} position={`Contribution ${index + 1} of ${branch.messages.length}`} branch={branch} onBranch={onBranch} /></div>} />
+      itemContent={(index, message) => <div className="reading-column windowed-message" data-message-index={index}><MessageCard message={message} label={labels[message.role]} position={`Contribution ${index + 1} of ${branch.messages.length}`} branch={branch} onBranch={onBranch} /><WritingSurface after={message.id} /></div>} />
     {finder && <PassageFinder messages={branch.messages} onClose={() => setFinder(false)} onSelect={go} />}
   </div>
 }

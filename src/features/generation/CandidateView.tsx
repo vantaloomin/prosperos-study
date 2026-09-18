@@ -5,25 +5,32 @@ import { useAction } from '../../hooks/useAction'
 import { isWorking } from './types'
 import type { Candidate, Generation } from './types'
 import { AttemptHistory } from './AttemptHistory'
+import { RequestStatus } from './RequestStatus'
+import { useRecovery } from './useRecovery'
+import { recoverRequest, type SavedRequest } from './requestRecovery'
 
 export function CandidateView({ candidate, generation, onBranch, onClose, onAlternate }: { candidate: Candidate; generation: Generation; onBranch: (id: string) => void; onClose: () => void; onAlternate: (id: string) => void }) {
   const action = useAction()
+  const recovery = useRecovery<SavedRequest>(`roleplay:alternate:${candidate.id}`)
   const accept = (asNewBranch: boolean) => action.run(async () => {
     const result = await api<{ branch_id: string }>(`/candidates/${candidate.id}/accept`, { operation_id: operationId(), as_new_branch: asNewBranch, branch_name: `${candidate.profile.name} · another telling` })
     onBranch(result.branch_id)
     onClose()
   })
-  const control = (kind: 'cancel' | 'retry') => action.run(async () => { await api(`/candidates/${candidate.id}/${kind}`, {}) })
+  const control = (kind: 'cancel' | 'retry') => action.run(async () => { await api(`/candidates/${candidate.id}/${kind}`, kind === 'retry'
+    ? { operation_id: `retry-${candidate.id}-${candidate.attempt}`, expected_attempt: candidate.attempt } : {}) })
   const alternate = () => action.run(async () => {
-    const result = await api<{ candidate_id: string }>(`/candidates/${candidate.id}/alternatives`, { operation_id: operationId() })
+    const request: SavedRequest = recovery.latest() ?? { kind: 'alternate', path: `/candidates/${candidate.id}/alternatives`, body: { operation_id: operationId() } }
+    recovery.store(request)
+    const result = await recoverRequest<{ candidate_id: string }>(request, api)
     onAlternate(result.candidate_id)
+    recovery.store(null)
   })
-  return <section className="candidate-view"><div className="candidate-meta"><span>{candidate.profile.config.model}</span><span role="status">{candidate.status} · attempt {candidate.attempt}</span></div><CandidateText candidate={candidate} />
-    <ErrorNotice message={candidate.error || action.error} />
+  return <section className="candidate-view"><RequestStatus candidate={candidate} /><CandidateText candidate={candidate} />
+    <ErrorNotice message={recovery.problem || candidate.error || action.error} />
     <CandidateActions candidate={candidate} stale={generation.stale} busy={action.busy} onAccept={accept} onControl={control} />
-    {candidate.status === 'done' && <div className="alternate-action"><button className="text-button" onClick={alternate} disabled={action.busy}><RotateCcw size={14} />Generate another telling</button><p className="subtle">One request with this profile's saved settings, prompt, context and rolls. Existing text and continuations remain available.</p></div>}
-    <Usage usage={candidate.usage} />
-    <AttemptHistory candidateId={candidate.id} attempt={candidate.attempt} />
+    {candidate.status === 'done' && <div className="alternate-action"><button className="text-button" onClick={alternate} disabled={action.busy}><RotateCcw size={14} />Try another</button><p className="subtle">One request with this profile's saved settings, prompt, context and rolls. Existing text and continuations remain available.</p></div>}
+    <details className="request-details"><summary>Request details</summary><p>Saved request limit: {candidate.profile.config.timeout_seconds} seconds.</p>{candidate.activity?.error_kind && <p>Result: {candidate.activity.error_kind.replaceAll('_', ' ')}</p>}<Usage usage={candidate.usage} /><AttemptHistory candidateId={candidate.id} attempt={candidate.attempt} /></details>
   </section>
 }
 
@@ -36,7 +43,7 @@ function CandidateActions({ candidate, stale, busy, onAccept, onControl }: { can
   if (isWorking(candidate)) return <div className="candidate-actions"><button className="button" onClick={() => onControl('cancel')} disabled={busy}><Square size={13} />Stop generation</button><span className="subtle">You can close this view; the draft will keep running.</span></div>
   if (candidate.accepted_branch_id) return <div className="candidate-actions"><button className="button primary" onClick={() => onAccept(false)}><Check size={15} />Open accepted path</button></div>
   if (candidate.status !== 'done') return <div className="candidate-actions"><button className="button" onClick={() => onControl('retry')} disabled={busy}><RotateCcw size={15} />Retry original inputs</button><p className="subtle">Uses the original model settings, including the output limit. After changing a profile, close this draft and start a new continuation.</p></div>
-  return <div className="candidate-actions">{!stale && <button className="button primary" disabled={busy} onClick={() => onAccept(false)}><Check size={15} />Accept & continue</button>}<button className="button" disabled={busy} onClick={() => onAccept(true)}><GitBranch size={15} />Keep as a new branch</button>{stale && <p className="subtle">The original story has moved on. A new branch preserves this draft's starting point.</p>}</div>
+  return <div className="candidate-actions">{!stale && <button className="button primary" disabled={busy} onClick={() => onAccept(false)}><Check size={15} />Keep</button>}<button className="button" disabled={busy} onClick={() => onAccept(true)}><GitBranch size={15} />Keep on new branch</button>{stale && <p className="subtle">The original story has moved on. A new branch preserves this draft's starting point.</p>}</div>
 }
 
 function Usage({ usage }: { usage: Record<string, unknown> }) {

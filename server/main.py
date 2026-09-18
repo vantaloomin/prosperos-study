@@ -87,7 +87,7 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.6.0", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.6.1", lifespan=lifespan)
     app.state.database = Database(database_path)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)

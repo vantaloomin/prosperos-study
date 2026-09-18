@@ -6,6 +6,7 @@ export class VirtualReadingPosition {
   private locked = true
   private frame = 0
   private readyFrame = 0
+  private measurementPending = false
   private resize: ResizeObserver
   private mutations: MutationObserver
   private width = 0
@@ -24,7 +25,7 @@ export class VirtualReadingPosition {
     this.position = loadPosition(branchId)
     if (this.position?.block && hasAnchor && !hasAnchor(this.position.block)) this.position = { ...this.position, block: null }
     this.resize = new ResizeObserver(this.onResize)
-    this.mutations = new MutationObserver(this.refresh)
+    this.mutations = new MutationObserver(this.onContentChange)
     this.resize.observe(element)
     this.mutations.observe(element, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] })
     element.addEventListener('scroll', this.refresh, { passive: true })
@@ -52,6 +53,12 @@ export class VirtualReadingPosition {
 
   private unlock = () => { this.locked = false }
 
+  private onContentChange = () => {
+    this.measurementPending = true
+    if (this.position?.atEnd !== false) this.locked = true
+    this.refresh()
+  }
+
   private onKey = (event: KeyboardEvent) => {
     if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', 'Tab'].includes(event.key)) this.unlock()
   }
@@ -66,6 +73,13 @@ export class VirtualReadingPosition {
 
   private reconcile = () => {
     this.frame = 0
+    // Let Virtuoso finish its measurement compensation before applying our
+    // paragraph offset. Correcting an intermediate transform creates a loop.
+    if (this.measurementPending) {
+      this.measurementPending = false
+      this.frame = requestAnimationFrame(this.reconcile)
+      return
+    }
     const messages = Array.from(this.element.querySelectorAll<HTMLElement>('.message'))
     if (!messages.length) { this.mountTarget(); return }
     if (this.locked) {
@@ -112,12 +126,20 @@ export class VirtualReadingPosition {
     this.readyFrame = requestAnimationFrame(() => {
       if (this.disposed) return
       // Initial positioning can finish after the last size or DOM notification.
-      if (this.hasVisiblePassage()) {
+      if (this.hasVisiblePassage() || this.hasVisibleDraft()) {
         this.element.dataset.transcriptReady = 'true'
         this.element.dataset.readingTarget = this.position?.block ?? 'end'
       } else {
         this.refresh()
       }
+    })
+  }
+
+  private hasVisibleDraft() {
+    const top = this.element.getBoundingClientRect().top
+    return Array.from(this.element.querySelectorAll<HTMLElement>('.inline-draft')).some(draft => {
+      const rect = draft.getBoundingClientRect()
+      return rect.bottom > top && rect.top < top + this.element.clientHeight && getComputedStyle(draft).visibility === 'visible'
     })
   }
 

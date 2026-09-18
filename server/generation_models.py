@@ -29,5 +29,10 @@ class AlternateRequest(Input):
     operation_id: str = Field(min_length=8, max_length=100)
 
 
+class RetryCandidate(Input):
+    operation_id: str = Field(min_length=8, max_length=100)
+    expected_attempt: int = Field(ge=0)
+
+
 def semantic_request(body):
     return body.model_dump(exclude={'operation_id', 'reviewed_fingerprint'}, exclude_none=True)

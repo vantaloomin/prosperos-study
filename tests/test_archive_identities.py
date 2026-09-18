@@ -150,6 +150,8 @@ def test_original_v27_archive_upgrades_without_inventing_lost_identities(client,
     append(client, story['branch_id'], 'Original source.', 0)
     _, document = backup(client, story)
     document['version'] = 27
+    from tests.archive_legacy import remove_v061_records
+    remove_v061_records(document)
     del document['data']['archive_identities']
     for table in PLAN_TABLES:
         assert document['data'].pop(table) == []

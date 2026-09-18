@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.6 - memory management preview** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.6.1 - first-user feedback update** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -18,9 +18,9 @@ The interesting part often comes after the first response: a better line, a diff
 | --- | --- |
 | Try the other ending | Branch from an earlier passage, explore alternate responses, and find your way back with a visual branch map. |
 | Keep earlier events within reach | Long story memory recalls older passages locally; review plans and commitments without rewriting the manuscript. |
-| Keep control of the draft | Generated prose arrives separately for review. Accept it, keep an alternative on another branch, or leave it aside. |
+| Keep control of the draft | Generated prose appears inline as an unaccepted draft. Keep it, keep it on a new branch, try another, or dismiss it. |
 | Build a world across several stories | Reuse Characters and Canon collections. Each story keeps its chosen versions until you decide to update it. |
-| Talk through an idea | A sidebar collaborator can discuss the story, critique a passage, or help with a prompt without advancing the narrative. |
+| Talk through an idea | A docked, floating, or full-workspace Collaborator can discuss the story, critique a passage, or help with a prompt without advancing the narrative. |
 | Give different jobs to different models | Choose a Primary Writer, override individual steps, and deliberately compare several models on the same inputs. |
 | Make room for surprise | Optional narrative tables introduce atmosphere, encounters, complications, and other prompts. Turn individual systems on or off. |
 
@@ -30,13 +30,19 @@ Start with **Write a story** for prose and author direction, **Build a scene** f
 
 Submitting a passage can automatically request the next draft. Prefer to write uninterrupted? Turn off **Continue after sending** and generate when you are ready. Manual writing works without a model connection.
 
+**Story brief** supplies the premise and standing guidance. **Author’s note** adds non-fiction instructions at a point on a path and can influence later requests while included by the selected context policy. **Scene goal** directs a particular planned scene. Stories collapse when you enter a workspace; use **Stories** to reopen the list. **Context** opens a spacious reference dialog. On narrow screens, **Tools** contains the workspace actions.
+
+Generation shows the current stage, model, elapsed time, and Stop. **Keep** accepts a finished draft without starting another request. Failed attempts preserve partial text; **Retry original inputs** reuses frozen settings and context. To use edited model settings, choose **Try with current settings** and start a new continuation in Writing tools. If a save or request response is lost, the recovery controls check its saved receipt before retrying.
+
 ### Explore without losing your favorite version
 
 Edit an earlier passage to create a new branch. Browse alternative responses, return to an accepted telling, and keep different continuations alive. The branch map makes those paths visible; changing your mind does not require replacing the story you already have.
 
+**Remove passage from this path** creates a revised path with a removal marker and **Undo**. Later prose stays in order. The original path and private archives retain the original text. Future context and readable exports exclude the removed passage. Dependent memory, plans, and chance/background state from that point onward stay on the original path; acknowledge the reset to the state before the passage and review later prose before continuing. No model requests or rolls are replayed.
+
 ### Keep the past, and what is still to come
 
-In **Story details > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows what each writing request includes. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
+In **Story setup > Writing preferences > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows what each writing request includes. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
 
 Open **Context > Memory** to record **Plans & commitments**: who agreed, who withdrew, what was postponed, and what actually happened. A planned camping trip stays distinct from a completed trip; one person's refusal does not automatically cancel everyone else's plans. Records keep supporting passages and version history on the relevant branch.
 
@@ -44,7 +50,7 @@ Open **Context > Memory** to record **Plans & commitments**: who agreed, who wit
 
 Memory is selective and can miss indirect references, changing motives, or important evidence. Model-generated suggestions and summaries can misinterpret a passage even when their quotations are exact. Inspect the supplied context and keep author review part of your workflow. This release does not promise perfect recall.
 
-See [what changed in v0.6](CHANGELOG.md#v06---2026-09-18) for release details.
+See [what changed in v0.6.1](CHANGELOG.md#v061---2026-09-18) for release details.
 
 ### Give your world a home
 
@@ -56,13 +62,13 @@ Publishing an edit creates a new version. Existing stories keep their selected v
 
 ### Keep a collaborator in the wings
 
-Open the sidebar to brainstorm, ask about a character's motivation, improve your next prompt, or review what you have written. The collaborator can consult story context and retrieve exact passages when needed. It cannot advance the story or apply its suggestions on its own.
+Open Collaborator to brainstorm, ask about a character's motivation, improve your next prompt, or review what you have written. The collaborator can consult story context and retrieve exact passages when needed. It cannot advance the story or apply its suggestions on its own. Its connection is shown above the conversation. **Change connection** saves the existing Collaborator assignment for this story; **Manage connections** opens model setup and returns to the same chat. Choose Docked, Floating, or Full workspace; window controls also support keyboard movement and resizing. Small windows or enlarged interfaces use Full workspace when needed.
 
 For a more structured session, the scene workflow brings together planning, drafting, dialogue, specialist reviews, revisions, and continuity proposals, with decisions left to you along the way.
 
 ### Make the room your own
 
-Choose from six palettes, separate interface and reading fonts, independent text sizes, and reduced motion. Reading fonts include Literata, Arimo, Atkinson Hyperlegible, OpenDyslexic, Lora, and Source Serif 4. Fonts are bundled with the app.
+Choose from six palettes or preview custom accent, background, surface, and text colors. Interface size supports 85–200%, exact entry, presets, and reset; older settings retain their rendered size. Reading size and fonts remain independent. Reduced motion is available. Reading fonts include Literata, Arimo, Atkinson Hyperlegible, OpenDyslexic, Lora, and Source Serif 4. Fonts are bundled with the app.
 
 Prompts live in secondary editors when you want to customize them. Enable or disable individual agents or whole sections; a mixed section switches back to **Enable all** on the next interaction.
 
@@ -130,13 +136,13 @@ The shell workflow has automated tests; installation, browser opening, and Keych
 
 ## Your work stays yours
 
-Stories and Library material are stored locally in the project's `data/` folder. Cloud generation sends the context needed for a request to the provider you select; local model connections keep that inference on your own machine. API keys are stored separately in the operating system's credential vault.
+Stories and Library material are stored locally in the project's `data/` folder. Cloud generation sends the context needed for a request to the provider you select; local model connections keep that inference on your own machine. API keys are stored separately in the operating system’s credential vault. Add or replace a key through explicit visible token entry; saved keys are never fetched back into the editor. The regular-Chrome check showed no password suggestions. Bitwarden was unavailable for testing, so its behavior remains unverified.
 
 - **Export transcript** creates readable Markdown for a selected branch or passage.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
 - **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.1. Archive format 31 preserves request activity and passage revisions; keep a pre-update backup if you need an older app version.
 
 ## Questions
 
@@ -162,7 +168,7 @@ No. Randomness starts off, individual systems are optional, and prompts/agents c
 
 Yes. Stories select versions independently, and publishing an edit does not silently change existing stories.
 
-**Is v0.6 a finished product?**
+**Is v0.6.1 a finished product?**
 
 It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. Companion Mode, social feeds, built-in image generation, and automated backups are future ideas, not features of this release.
 

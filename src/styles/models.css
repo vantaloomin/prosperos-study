@@ -138,6 +138,24 @@
 .composer-bottom { flex-wrap: wrap; }
 .composer-bottom .auto-continue { font-size: .6875rem; color: var(--muted); gap: 6px; }
 .auto-continue input { accent-color: var(--accent); margin: 0; }
+.inline-draft { border: 1px solid var(--accent-border); border-radius: 12px; padding: 22px; margin: 20px 0 32px; background: var(--surface); min-width: 0; }
+.inline-draft > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.inline-draft > header p { color: var(--muted); font-size: .8125rem; margin-top: 8px; }
+.inline-draft .candidate-prose { max-height: none; padding-block: 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.inline-draft .candidate-actions, .inline-draft-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.inline-draft-tools { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 18px; }
+.request-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: .8125rem; color: var(--accent); }
+.request-status > span { display: inline-flex; align-items: center; gap: 8px; }
+.request-status small { flex-basis: 100%; color: var(--muted); overflow-wrap: anywhere; line-height: 1.6; }
+.request-details { color: var(--muted); font-size: .75rem; margin-top: 16px; line-height: 1.6; }
+.request-details summary { cursor: pointer; }
+.request-recovery { margin: 10px 20px; padding: 14px; border: 1px solid var(--accent-border); border-radius: 8px; background: var(--surface); font-size: .8125rem; line-height: 1.6; }
+.request-recovery .button, .request-recovery .text-button { margin: 8px 10px 0 0; }
+.status-dot.working { animation: request-pulse 1.5s ease-in-out infinite; }
+@keyframes request-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .status-dot.working { animation: none; } }
+[data-reduce-motion='true'] .status-dot.working { animation: none; }
+@media (max-width: 560px) { .inline-draft { padding: 14px; } .request-recovery { margin-inline: 12px; } }
 .chat-heading > div:first-child { min-width: 0; }
 @media (max-width: 560px) {
   .chat-heading { flex-wrap: wrap; padding: 12px 14px; }

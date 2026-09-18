@@ -26,8 +26,11 @@ def check_status(response: httpx.Response):
     descriptions = {401: "Authentication failed. Check the profile's API key.",
                     403: "This account cannot access the selected service or model.",
                     429: "The service reached a rate or usage limit. Retry when it is available."}
-    require(response.is_success, descriptions.get(response.status_code,
-            f"The service rejected this request (HTTP {response.status_code}). Check its model and settings."), 502)
+    if not response.is_success:
+        codes = {401: 'authentication', 403: 'access', 429: 'rate_limit'}
+        raise DomainError(descriptions.get(response.status_code,
+                          f"The service rejected this request (HTTP {response.status_code}). Check its model and settings."),
+                          502, codes.get(response.status_code, 'provider'))
 
 
 async def sse_data(response: httpx.Response) -> AsyncIterator[dict]:
@@ -67,9 +70,9 @@ class HttpProvider:
                     async for event in self._request(client, config, key, path, body):
                         yield event
         except (httpx.TimeoutException, TimeoutError) as error:
-            raise DomainError("The service timed out. The partial draft is saved; retry is explicit.", 504) from error
+            raise DomainError("The configured request time limit was reached. Partial text is saved.", 504, 'timeout') from error
         except httpx.RequestError as error:
-            raise DomainError("Cannot reach this service. Check the server address and connection.", 502) from error
+            raise DomainError("Cannot reach this service. Check the server address and connection.", 502, 'connection') from error
 
     async def _request(self, client, config, key, path, body):
         if config["provider"] == "kobold":

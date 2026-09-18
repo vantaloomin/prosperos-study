@@ -12,6 +12,7 @@ export interface Candidate {
   attempt: number
   accepted_branch_id: string | null
   accepted_node_id: string | null
+  activity?: { started_at: string; first_text_at: string | null; last_event_at: string | null; finished_at: string | null; error_kind: string } | null
 }
 export interface Generation {
   id: string
@@ -29,5 +30,5 @@ export interface Generation {
     reviewed_context?: { fingerprint: string; stage: 'writer' | 'before_assessment' }
   }
 }
-export interface GenerationSummary { id: string; branch_id: string; created_at: string }
+export interface GenerationSummary { id: string; branch_id: string; created_at: string; statuses: Candidate['status'][]; unaccepted: boolean }
 export const isWorking = (candidate: Candidate) => candidate.status === 'running' || candidate.status === 'queued'

@@ -1,5 +1,6 @@
-export interface Appearance { reducedMotion: boolean; fontSize: number; theme: string; font?: string; interfaceFont?: string; interfaceSize?: number }
-export const defaultAppearance: Appearance = { reducedMotion: false, fontSize: 17, theme: 'ink', font: 'literata', interfaceFont: 'ibm-plex', interfaceSize: 16 }
+import { paletteStyles, type Palette } from './palette.ts'
+export interface Appearance { reducedMotion: boolean; fontSize: number; theme: string; font?: string; interfaceFont?: string; interfaceSize?: number; interfaceScale?: number; customPalette?: Palette }
+export const defaultAppearance: Appearance = { reducedMotion: false, fontSize: 17, theme: 'ink', font: 'literata', interfaceFont: 'ibm-plex', interfaceScale: 100 }
 export const readingFonts = [
   { id: 'literata', name: 'Literata', description: 'The original · contemporary book serif', family: "'Literata', Georgia, serif" },
   { id: 'arimo', name: 'Arimo', description: 'Clean sans serif · familiar Arial proportions', family: "'Arimo', Arial, sans-serif" },
@@ -22,9 +23,16 @@ export function interfaceFont(id?: string): string {
 }
 export function appearanceStyles(appearance: Appearance) {
   return {
+    ...(appearance.theme === 'custom' ? paletteStyles(appearance.customPalette) : {}),
     '--prose-size': `${appearance.fontSize}px`, '--prose-font': readingFont(appearance.font),
     '--interface-font': interfaceFont(appearance.interfaceFont),
     '--interface-heading-font': !appearance.interfaceFont || appearance.interfaceFont === 'ibm-plex' ? readingFont('literata') : interfaceFont(appearance.interfaceFont),
-    '--interface-size': `${Math.max(14, Math.min(20, appearance.interfaceSize ?? 16))}px`,
+    '--interface-size': `${interfaceScale(appearance) * .16}px`,
   }
+}
+
+export function interfaceScale(appearance: Appearance) {
+  const legacy = Math.max(14, Math.min(20, appearance.interfaceSize ?? 16)) / 16 * 100
+  const value = appearance.interfaceScale ?? legacy
+  return Number.isFinite(value) ? Math.max(85, Math.min(200, value)) : 100
 }

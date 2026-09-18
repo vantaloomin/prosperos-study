@@ -13,6 +13,7 @@ from server.profiles import primary_id
 
 STORY_TABLES = ("manifests", "branches", "nodes", "adoptions", "mechanic_opportunities", "side_threads", 'background_states')
 RELATED = (
+    ('path_revisions', 'branch_id', 'branches'),
     ('continuity_edits', 'branch_id', 'branches'), ('branch_continuity_edits', 'branch_id', 'branches'),
     ('memory_control_versions', 'branch_id', 'branches'), ('branch_memory_controls', 'branch_id', 'branches'),
     ('summary_pending', 'branch_id', 'branches'), ('summary_wakeups', 'branch_id', 'branches'),
@@ -21,6 +22,7 @@ RELATED = (
     ('summary_attempts', 'job_id', 'summary_jobs'), ('summary_versions', 'run_id', 'summary_runs'),
     ("generations", "branch_id", "branches"), ("candidates", "generation_id", "generations"),
     ("generation_attempts", "candidate_id", "candidates"), ("node_mechanics", "node_id", "nodes"),
+    ('candidate_activity', 'candidate_id', 'candidates'),
     ("review_runs", "branch_id", "branches"), ("review_jobs", "run_id", "review_runs"),
     ("review_attempts", "job_id", "review_jobs"), ("side_turns", "thread_id", "side_threads"),
     ("side_replies", "turn_id", "side_turns"),

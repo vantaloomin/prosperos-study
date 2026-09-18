@@ -22,6 +22,6 @@ test('a resumed note or legacy draft cannot silently become narration after navi
     assert.equal(composerRole(null, true, mode), 'user')
     assert.equal(composerRole({ role: 'narrator' }, true, mode), 'user')
   }
-  assert.equal(composerCopy('directed', 'ooc').submit, 'Add author note')
+  assert.equal(composerCopy('directed', 'ooc').submit, 'Add author’s note')
   assert.equal(messageLabels('roleplay').ooc, 'Out of character')
 })

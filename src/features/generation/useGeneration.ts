@@ -4,14 +4,14 @@ import { api } from '../../api'
 import { isWorking } from './types'
 import type { Generation } from './types'
 
-export function useGeneration(id: string) {
+export function useGeneration(id: string, events = true) {
   const cache = useQueryClient()
   const query = useQuery({ queryKey: ['generation', id], queryFn: () => api<Generation>(`/generations/${id}`),
     refetchInterval: (current) => current.state.data?.candidates.some(isWorking) ? 1500 : false,
   })
   const active = query.data?.candidates.some(isWorking) ?? false
   useEffect(() => {
-    if (!active) return
+    if (!active || !events) return
     const stream = new EventSource(`/api/generations/${id}/events`)
     stream.onmessage = (event) => {
       try {
@@ -22,6 +22,6 @@ export function useGeneration(id: string) {
       }
     }
     return () => stream.close()
-  }, [id, active, cache])
+  }, [id, active, cache, events])
   return query
 }

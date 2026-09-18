@@ -16,12 +16,16 @@ interface Props {
 }
 
 export function ChatHeading({ story, branchName, context = false, side = false, tools = false, onTools, onMap, onWorkflow, onDetails, onContext, onSide }: Props) {
+  const actions = <>
+    <button className="icon-button" aria-label="Writing tools" aria-pressed={tools} onClick={onTools}><Feather size={18} /><span className="action-label">Writing tools</span></button>
+    <button className="icon-button" aria-label="Story workflow" disabled={!onWorkflow} onClick={onWorkflow}><ListChecks size={18} /><span className="action-label">Workflow</span></button>
+    <button className="icon-button" aria-label="Story setup" disabled={!onDetails} onClick={onDetails}><SlidersHorizontal size={18} /><span className="action-label">Story setup</span></button>
+    <button className="icon-button" aria-label="Toggle context" aria-pressed={context} disabled={!onContext} onClick={onContext}><PanelRight size={18} /><span className="action-label">Context</span></button>
+    <button className="icon-button" aria-label="Open collaborator" aria-pressed={side} disabled={!onSide} onClick={onSide}><MessageSquareText size={18} /><span className="action-label">Collaborator</span></button>
+  </>
   return <header className="chat-heading"><div><span className="eyebrow">{branchName}</span><h1>{story.title}</h1></div><div className="header-actions">
     <button className="button quiet" aria-label={`Branches (${story.branches.length})`} onClick={onMap}><GitBranch size={16} /><span>Branches</span><small>{story.branches.length}</small></button>
-    <button className="icon-button" aria-label="Writing tools" title="Writing tools" aria-pressed={tools} onClick={onTools}><Feather size={18} /></button>
-    <button className="icon-button" aria-label="Story workflow" title="Story workflow" disabled={!onWorkflow} onClick={onWorkflow}><ListChecks size={18} /></button>
-    <button className="icon-button" aria-label="Story details" disabled={!onDetails} onClick={onDetails}><SlidersHorizontal size={18} /></button>
-    <button className="icon-button" aria-label="Toggle context" aria-pressed={context} disabled={!onContext} onClick={onContext}><PanelRight size={18} /></button>
-    <button className="icon-button" aria-label="Open collaborator" aria-pressed={side} disabled={!onSide} onClick={onSide}><MessageSquareText size={18} /></button>
+    <div className="workspace-actions-inline">{actions}</div>
+    <details className="workspace-actions-menu" onClick={event => { if ((event.target as Element).closest('button')) event.currentTarget.open = false }}><summary aria-label="Workspace tools">Tools</summary><div>{actions}</div></details>
   </div></header>
 }

@@ -5,8 +5,10 @@ import { BookOpen, Menu, Feather, Plus, Settings2 } from 'lucide-react'
 import { api } from './api'
 import { Modal } from './components/Modal'
 import { StudyMark } from './components/StudyMark'
+import { Tooltips } from './components/Tooltips'
 import { ErrorNotice, Loading } from './components/Feedback'
 import { usePersistent } from './hooks/usePersistent'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import type { Selection, StorySummary } from './types'
 import { StoryList } from './features/stories/StoryList'
 import { Chat } from './features/chat/Chat'
@@ -26,10 +28,13 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = appearance.theme
     document.documentElement.dataset.reduceMotion = String(appearance.reducedMotion)
-    for (const [name, value] of Object.entries(appearanceStyles(appearance))) document.documentElement.style.setProperty(name, value)
+    const values = Object.entries(appearanceStyles(appearance))
+    for (const [name, value] of values) document.documentElement.style.setProperty(name === 'colorScheme' ? 'color-scheme' : name, value)
+    return () => { for (const [name] of values) document.documentElement.style.removeProperty(name === 'colorScheme' ? 'color-scheme' : name) }
   }, [appearance])
   const [creating, setCreating] = useState(false)
-  const [mobileStories, setMobileStories] = useState(false)
+  const [mobileStories, setMobileStories] = useState(!selection.storyId)
+  const narrow = useMediaQuery('(max-width: 900px)')
   const stories = useQuery({ queryKey: ['stories'], queryFn: () => api<StorySummary[]>('/stories') })
   const select = (storyId: string) => { setSelection({ storyId, branchId: '' }); setPage('chat'); setMobileStories(false) }
   const branch = (branchId: string) => {
@@ -37,10 +42,11 @@ export default function App() {
     setSelection({ ...selection, branchId })
   }
   return <MotionConfig reducedMotion={appearance.reducedMotion ? 'always' : 'user'}><div className="app-shell" data-theme={appearance.theme} data-reduce-motion={appearance.reducedMotion} style={appearanceStyles(appearance) as CSSProperties}>
-    <Rail page={page} onPage={setPage} onStories={() => setMobileStories(true)} />
-    <Workspace page={page} stories={stories.data ?? []} pending={stories.isPending} error={stories.error?.message} selection={selection} appearance={appearance} onAppearance={setAppearance} onSelect={select} onBranch={branch} onOpen={(next) => { beginBranchNavigation(next.branchId, !!cache.getQueryData(['branch', next.branchId])); setSelection(next); setPage('chat') }} onNew={() => setCreating(true)} />
-    {creating && <Suspense fallback={<Loading label="Opening Story setup…" />}><NewStory onClose={() => setCreating(false)} onCreated={(next) => { setSelection(next); setPage('chat') }} /></Suspense>}
-    {mobileStories && <MobileStories stories={stories.data ?? []} selected={selection.storyId} onClose={() => setMobileStories(false)} onSelect={select} onNew={() => { setMobileStories(false); setCreating(true) }} />}
+    <Rail page={page} onPage={setPage} onStories={() => { setPage('chat'); setMobileStories(!mobileStories) }} />
+    <Workspace page={page} storiesOpen={mobileStories && !narrow} onCollapse={() => setMobileStories(false)} stories={stories.data ?? []} pending={stories.isPending} error={stories.error?.message} selection={selection} appearance={appearance} onAppearance={setAppearance} onSelect={select} onBranch={branch} onOpen={(next) => { beginBranchNavigation(next.branchId, !!cache.getQueryData(['branch', next.branchId])); setSelection(next); setPage('chat'); setMobileStories(false) }} onNew={() => setCreating(true)} />
+    {creating && <Suspense fallback={<Loading label="Opening Story setup…" />}><NewStory onClose={() => setCreating(false)} onCreated={(next) => { setSelection(next); setPage('chat'); setMobileStories(false) }} /></Suspense>}
+    {mobileStories && narrow && <MobileStories stories={stories.data ?? []} selected={selection.storyId} onClose={() => setMobileStories(false)} onSelect={select} onNew={() => { setMobileStories(false); setCreating(true) }} />}
+    <Tooltips />
   </div></MotionConfig>
 }
 
@@ -51,13 +57,14 @@ function MobileStories({ stories, selected, onSelect, onNew, onClose }: { storie
 }
 
 function Rail({ page, onPage, onStories }: { page: Page; onPage: (page: Page) => void; onStories: () => void }) {
-  return <nav className="app-rail" aria-label="Workspace navigation"><a className="study-home" href="#" onClick={(e) => { e.preventDefault(); onPage('chat') }} aria-label="Prospero’s Study home" title="Prospero’s Study"><StudyMark /></a><button className="icon-button mobile-menu" aria-label="Show stories" onClick={onStories}><Menu /></button>
+  return <nav className="app-rail" aria-label="Workspace navigation"><a className="study-home" href="#" onClick={(e) => { e.preventDefault(); onPage('chat') }} aria-label="Prospero’s Study home" title="Prospero’s Study"><StudyMark /></a><button aria-label="Show stories" onClick={onStories}><Menu /><span>Stories</span></button>
     <div className="rail-links"><button aria-label="Write" aria-current={page === 'chat' ? 'page' : undefined} onClick={() => onPage('chat')}><Feather /><span>Write</span></button><button aria-label="Library" aria-current={page === 'library' ? 'page' : undefined} onClick={() => onPage('library')}><BookOpen /><span>Library</span></button></div>
     <button className="rail-settings" aria-label="Settings" aria-current={page === 'settings' ? 'page' : undefined} onClick={() => onPage('settings')}><Settings2 /><span>Settings</span></button>
   </nav>
 }
 
 interface WorkspaceProps {
+  storiesOpen: boolean; onCollapse: () => void
   page: Page; stories: StorySummary[]; pending: boolean; error?: string; selection: Selection
   appearance: Appearance; onAppearance: (next: Appearance) => void
   onSelect: (id: string) => void; onBranch: (id: string) => void; onNew: () => void
@@ -67,7 +74,7 @@ interface WorkspaceProps {
 function Workspace(props: WorkspaceProps) {
   if (props.page === 'library') return <Suspense fallback={<Loading label="Opening the Library…" />}><Library /></Suspense>
   if (props.page === 'settings') return <Suspense fallback={<Loading label="Opening settings…" />}><Settings appearance={props.appearance} onChange={props.onAppearance} selection={props.selection} onOpen={props.onOpen} /></Suspense>
-  return <><div className="desktop-stories"><StoryList stories={props.stories} selected={props.selection.storyId} onSelect={props.onSelect} onNew={props.onNew} /></div><StorySurface {...props} /></>
+  return <>{props.storiesOpen && <div className="desktop-stories"><button className="text-button collapse-stories" onClick={props.onCollapse}>Collapse stories</button><StoryList stories={props.stories} selected={props.selection.storyId} onSelect={props.onSelect} onNew={props.onNew} /></div>}<StorySurface {...props} /></>
 }
 
 function StorySurface({ pending, error, selection, onBranch, onNew, onOpen }: WorkspaceProps) {

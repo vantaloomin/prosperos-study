@@ -152,6 +152,8 @@ def legacy_portable(client):
     copied_story = {'story_id': mapping[story['story_id']], 'branch_id': mapping[story['branch_id']]}
     _, document = backup(client, copied_story)
     document['version'] = 27
+    from tests.archive_legacy import remove_v061_records
+    remove_v061_records(document)
     for table in ('continuity_edits', 'branch_continuity_edits'):
         assert document['data'].pop(table) == []
     del document['data']['archive_identities']  # Exact shape written by the pre-identity app after a restore.

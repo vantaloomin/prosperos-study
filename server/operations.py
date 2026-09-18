@@ -21,3 +21,10 @@ def remember(connection, operation_id: str, kind: str, payload: dict, result: di
     connection.execute("INSERT INTO operations VALUES (?,?,?,?,?)",
                        (operation_id, kind, fingerprint(kind, payload), encode(result), now()))
     return result
+
+
+def receipt(connection, operation_id: str):
+    row = connection.execute('SELECT kind,result FROM operations WHERE id=?', (operation_id,)).fetchone()
+    if row is None:
+        return {'kind': None, 'result': None}
+    return {'kind': row['kind'], 'result': decode(row['result'])}

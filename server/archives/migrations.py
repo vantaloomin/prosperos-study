@@ -194,6 +194,12 @@ def upgrade_twenty_eight(document):
         require(set(document['data']) == set(V29_TABLES), 'Version 29 needs its original record groups.')
         document['data'].update({table: [] for table in PLAN_TABLES})
         document['version'] = 30
+    if document['version'] == 30:
+        from server.archives.format import V30_TABLES
+        require(set(document['data']) == set(V30_TABLES), 'Version 30 needs its original record groups.')
+        document['data']['candidate_activity'] = []
+        document['data']['path_revisions'] = []
+        document['version'] = 31
     return document
 
 

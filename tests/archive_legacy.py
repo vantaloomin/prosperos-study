@@ -53,8 +53,15 @@ def remove_maintenance(document):
 
 
 def remove_controls(document):
+    remove_v061_records(document)
     for table in ('continuity_edits', 'branch_continuity_edits'):
         assert document['data'].pop(table) == []
     assert document['data'].pop('archive_identities') == []
     for table in CONTROL_TABLES:
         assert document['data'].pop(table) == []
+
+
+def remove_v061_records(document):
+    # Reconstruct the exact older format, which had no activity or omission rows.
+    document['data'].pop('candidate_activity')
+    assert document['data'].pop('path_revisions') == []

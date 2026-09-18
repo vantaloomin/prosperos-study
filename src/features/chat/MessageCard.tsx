@@ -1,4 +1,4 @@
-import { Dice5, GitBranch, Pencil, GalleryHorizontalEnd } from 'lucide-react'
+import { Dice5, GitBranch, Pencil, GalleryHorizontalEnd, Trash2 } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { api, operationId } from '../../api'
 import { TextField, Field } from '../../components/Fields'
@@ -8,16 +8,25 @@ import { useAction } from '../../hooks/useAction'
 import type { Branch, Message } from '../../types'
 import { RollInspector } from '../mechanics/RollInspector'
 const GenerationReview = lazy(() => import('../generation/GenerationReview').then((module) => ({ default: module.GenerationReview })))
+const PassageRevision = lazy(() => import('./PassageRevision').then(module => ({ default: module.PassageRevision })))
 
 interface Props { message: Message; branch: Branch; onBranch: (id: string) => void }
 
 export function MessageCard({ message, branch, onBranch, label, position }: Props & { label: string; position?: string }) {
-  const [mode, setMode] = useState<'edit' | 'fork' | null>(null)
+  const [mode, setMode] = useState<'edit' | 'fork' | 'remove' | null>(null)
+  if (message.metadata.removed) return <RemovedPassage message={message} branch={branch} onBranch={onBranch} />
   return <article className={`message message-${message.role}`} id={`message-${message.id}`} aria-label={position}>
-    <header data-reading-anchor={`${message.id}:header`}><span className="eyebrow">{label}</span><div className="message-actions"><HistoryActions message={message} branch={branch} onBranch={onBranch} /><button className="icon-button" aria-label="Edit message on a new branch" onClick={() => setMode('edit')}><Pencil size={14} /></button><button className="icon-button" aria-label="Branch from this message" onClick={() => setMode('fork')}><GitBranch size={14} /></button></div></header>
+    <header data-reading-anchor={`${message.id}:header`}><span className="eyebrow">{label}</span><div className="message-actions"><HistoryActions message={message} branch={branch} onBranch={onBranch} /><button className="icon-button" aria-label="Edit message on a new branch" onClick={() => setMode('edit')}><Pencil size={14} /><span className="action-label">Edit</span></button><button className="icon-button" aria-label="Branch from this message" onClick={() => setMode('fork')}><GitBranch size={14} /><span className="action-label">Branch</span></button><button className="icon-button" aria-label="Remove passage from this path" onClick={() => setMode('remove')}><Trash2 size={14} /><span className="action-label">Remove</span></button></div></header>
     <div className="prose">{message.text.split('\n\n').map((paragraph, index) => <p key={index} data-reading-anchor={`${message.id}:p${index}`}>{paragraph}</p>)}</div>
-    {mode && <ForkEditor mode={mode} message={message} branch={branch} onBranch={onBranch} onClose={() => setMode(null)} />}
+    {mode === 'remove' && <Suspense fallback={<span role="status">Opening removal…</span>}><PassageRevision message={message} branch={branch} onBranch={onBranch} onClose={() => setMode(null)} /></Suspense>}
+    {(mode === 'edit' || mode === 'fork') && <ForkEditor mode={mode} message={message} branch={branch} onBranch={onBranch} onClose={() => setMode(null)} />}
   </article>
+}
+
+function RemovedPassage({ message, branch, onBranch }: Props) {
+  const [open, setOpen] = useState(false)
+  const original = message.metadata.source_branch_id
+  return <article className="message removed-passage" id={`message-${message.id}`}><div data-reading-anchor={`${message.id}:header`}><span>Passage removed</span><button className="text-button" onClick={() => setOpen(true)}>Undo</button>{typeof original === 'string' && <button className="text-button" onClick={() => onBranch(original)}>Original path</button>}</div>{open && <Suspense fallback={<span role="status">Opening undo…</span>}><PassageRevision message={message} branch={branch} onBranch={onBranch} onClose={() => setOpen(false)} /></Suspense>}</article>
 }
 
 function HistoryActions({ message, branch, onBranch }: Props) {

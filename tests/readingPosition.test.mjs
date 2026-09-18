@@ -41,7 +41,7 @@ function transcript() {
   }))
   const messages = anchors.map((anchor) => ({ getBoundingClientRect: () => anchor.getBoundingClientRect(), querySelectorAll: () => [anchor] }))
   element.querySelectorAll = (selector) => selector === '.message' ? messages : anchors
-  return { element, anchors, scroll: () => listeners.get('scroll')() }
+  return { element, anchors, scroll: () => listeners.get('scroll')(), wheel: () => listeners.get('wheel')() }
 }
 
 const position = { block: 'passage-1', offset: 200, fraction: 0.5, pixels: 2200, atEnd: false }
@@ -67,6 +67,7 @@ test('a reader scroll supersedes restoration and survives later reflow', (t) => 
   const browser = environment(t, position)
   const view = transcript()
   const controller = new TranscriptPosition(view.element, 'branch')
+  view.wheel()
   view.element.scrollTop = 3100
   view.scroll()
   view.anchors[2].height = 800
@@ -87,12 +88,24 @@ test('a new end-following transcript stays at the end until the reader scrolls a
   view.element.scrollHeight = 12000
   browser.resize()
   assert.equal(view.element.scrollTop, 12000)
+  view.wheel()
   view.element.scrollTop = 2100
   view.scroll()
   browser.resize()
   assert.equal(view.element.scrollTop, 2100)
   controller.dispose()
   assert.equal(browser.saved().block, 'passage-1')
+})
+
+test('layout clamping without a reader gesture cannot replace the saved passage', (t) => {
+  const browser = environment(t,position), view = transcript()
+  const controller = new TranscriptPosition(view.element,'branch')
+  view.element.scrollTop = 9500
+  view.scroll()
+  browser.resize()
+  controller.dispose()
+  assert.equal(view.element.scrollTop,2200)
+  assert.equal(browser.saved().block,'passage-1')
 })
 
 

@@ -35,6 +35,7 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
     const result = profile
       ? await api<ModelProfile>(`/profiles/${profile.profile_id}`, { ...body, expected_version_id: profile.id }, 'PUT')
       : await api<ModelProfile>('/profiles', body)
+    setKey('')
     onSaved?.(result)
     onClose()
   })
@@ -52,7 +53,13 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
 function ConnectionFields({ config, apiKey, saved, patch, onKey }: { config: ProfileConfig; apiKey: string; saved: boolean; patch: (next: Partial<ProfileConfig>) => void; onKey: (key: string) => void }) {
   if (config.provider === 'codex') return <p className="connection-note">Uses the CLI's existing authentication. No API key is needed here. Codex runs in an isolated temporary folder with shell, plugins, and web tools disabled.</p>
   const local = config.provider === 'local' || config.provider === 'kobold'
-  return <><LocalProtocolField config={config} patch={patch} />{(local || config.provider === 'compatible') && <Field label="Server address" value={config.base_url} onChange={(e) => patch({ base_url: e.target.value })} hint={localAddressHint(config)} />}<Field label="API key" type="password" autoComplete="new-password" value={apiKey} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved securely. Leave blank to keep it.' : 'Paste a key, or use an environment variable'} hint={local ? 'Optional for local servers that do not require authentication.' : 'Never included in story exports or run details.'} /></>
+  return <><LocalProtocolField config={config} patch={patch} />{(local || config.provider === 'compatible') && <Field label="Server address" value={config.base_url} onChange={(e) => patch({ base_url: e.target.value })} hint={localAddressHint(config)} />}<TokenEntry key={config.provider} saved={saved} value={apiKey} onChange={onKey} /></>
+}
+
+function TokenEntry({ saved, value, onChange }: { saved: boolean; value: string; onChange: (value: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  if (!editing) return <div className="token-entry"><p>{saved ? 'API key configured' : 'No API key stored for this connection'}</p><button className="button" onClick={() => setEditing(true)}>{saved ? 'Replace key' : 'Add API key'}</button><small>Local servers and environment credentials can leave this blank.</small></div>
+  return <div className="token-entry"><Field label="API key (visible while editing)" type="text" name="connection-token" autoComplete="off" autoCapitalize="none" spellCheck={false} value={value} onChange={event => onChange(event.target.value)} placeholder="Paste an API token" hint="Stored in your OS credential vault when saved. Never shown again or included in story exports." /><button className="text-button" onClick={() => { onChange(''); setEditing(false) }}>Cancel key entry</button></div>
 }
 
 function GenerationSettings({ config, patch, model }: { config: ProfileConfig; patch: (next: Partial<ProfileConfig>) => void; model?: DiscoveredModel }) {

@@ -13,10 +13,13 @@ from server.models import (
     AttachmentUpdate,
     ForkCreate,
     MessageCreate,
+    PassageRevision,
     StoryCreate,
     StoryUpdate,
     VersionLookup,
 )
+from server.operations import receipt
+from server.passage_revisions import revise_passage
 from server.stories import Stories
 
 router = APIRouter(prefix="/api")
@@ -25,6 +28,12 @@ router = APIRouter(prefix="/api")
 @router.get("/health")
 def health():
     return {"status": "ok", "application": "Roleplay", "storage": "SQLite"}
+
+
+@router.get('/operations/{operation_id}')
+def operation_receipt(operation_id: str, request: Request):
+    with request.app.state.database.connect() as connection:
+        return receipt(connection, operation_id)
 
 
 @router.get("/stories")
@@ -70,6 +79,11 @@ def create_message(branch_id: str, body: MessageCreate, request: Request):
 @router.post("/branches/{branch_id}/forks", status_code=201)
 def create_fork(branch_id: str, body: ForkCreate, request: Request):
     return Branches(request.app.state.database).fork(branch_id, body)
+
+
+@router.post('/branches/{branch_id}/passage-revisions', status_code=201)
+def create_passage_revision(branch_id: str, body: PassageRevision, request: Request):
+    return revise_passage(request.app.state.database, branch_id, body)
 
 
 @router.get("/library")

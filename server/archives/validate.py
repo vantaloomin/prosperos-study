@@ -22,6 +22,7 @@ from server.archives.lore_sources import validate_entry_sources
 from server.archives.maintenance import validate_maintenance
 from server.archives.memory_controls import validate_controls
 from server.archives.migrations import upgrade
+from server.archives.passage_revisions import validate_passage_revisions
 from server.archives.patches import validate_patches
 from server.archives.plans import validate_plan_edits
 from server.archives.reviews import validate_draft_reviews
@@ -74,6 +75,7 @@ def validate_archive(document):
         connection.executemany("INSERT INTO prompt_heads VALUES (?,?)", document["prompt_heads"].items())
         require(not connection.execute("PRAGMA foreign_key_check").fetchall(), "This archive has missing linked records.")
         validate_links(connection, document)
+        validate_passage_revisions(connection, document['data'])
         validate_content(connection, document)
         validate_openings(connection, document['data'])
         validate_imports(connection, document['data'])
@@ -123,7 +125,7 @@ def validate_scalar(value, column):
         return
     expected = int if column["type"] == "INTEGER" else str
     require(type(value) is expected, "An archive value has the wrong type.")
-    if column["pk"]:
+    if column["pk"] and isinstance(value, str):
         require(bool(value) and len(value) <= 200, "An archive identifier is invalid.")
 
 

@@ -25,7 +25,7 @@ function shouldPoll(run: Assessment | undefined) {
   return !run.generation_id && !run.error && !run.stopped && !run.stale && run.jobs.length === 1 && run.jobs[0].status === 'done'
 }
 
-export default function AssessmentPanel({ id, followWriter, onClose, onWriter }: { id: string; followWriter: boolean; onClose: () => void; onWriter: (id: string) => void }) {
+export default function AssessmentPanel({ id, followWriter, onClose, onWriter, inline = false }: { id: string; followWriter: boolean; onClose: () => void; onWriter: (id: string) => void; inline?: boolean }) {
   const query = useQuery({ queryKey: ['assessment', id], queryFn: () => api<Assessment>(`/assessments/${id}`), refetchInterval: (state) => shouldPoll(state.state.data) ? 500 : false })
   const cache = useQueryClient()
   const followed = useRef(false)
@@ -37,7 +37,9 @@ export default function AssessmentPanel({ id, followWriter, onClose, onWriter }:
       onWriter(run.generation_id)
     }
   }, [run, followWriter, onWriter, cache])
-  return <Modal open onClose={onClose} title="Before the next moment" description="Check whether the story has reached a natural opening for chance. Assessments do not advance the story." wide><div className="dialog-body form-stack"><ErrorNotice message={query.error?.message} />{!run && <Loading label="Opening beat assessment…" />}{run && <AssessmentContent run={run} onWriter={onWriter} />}</div></Modal>
+  const content = <div className="dialog-body form-stack"><ErrorNotice message={query.error?.message} />{!run && <Loading label="Opening beat assessment…" />}{run && <AssessmentContent run={run} onWriter={onWriter} />}</div>
+  if (inline) return <section className="inline-draft" aria-label="Beat assessment"><header><h3>Checking the scene before writing</h3><button className="text-button" disabled={!run || run.jobs.some(working)} onClick={onClose}>Dismiss assessment</button></header>{content}</section>
+  return <Modal open onClose={onClose} title="Before the next moment" description="Check whether the story has reached a natural opening for chance. Assessments do not advance the story." wide>{content}</Modal>
 }
 
 function AssessmentContent({ run, onWriter }: { run: Assessment; onWriter: (id: string) => void }) {

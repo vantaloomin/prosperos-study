@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -7,11 +7,17 @@ function read<T>(key: string, fallback: T): T {
   } catch { return fallback }
 }
 
-export function usePersistent<T>(key: string, fallback: T) {
+export function usePersistent<T>(key: string, fallback: T, synchronize = false) {
   const [value, setValue] = useState<T>(() => read(key, fallback))
-  const update = (next: T) => {
+  const update = useCallback((next: T) => {
     setValue(next)
     try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* Database saves stay independent. */ }
-  }
+  }, [key])
+  useEffect(() => {
+    if (!synchronize) return
+    const sync = (event: StorageEvent) => { if (event.key === key && event.newValue !== null) { try { setValue(JSON.parse(event.newValue) as T) } catch { /* Keep the last valid value. */ } } }
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [key, synchronize])
   return [value, update] as const
 }

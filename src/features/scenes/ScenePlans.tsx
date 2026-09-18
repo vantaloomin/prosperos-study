@@ -27,10 +27,10 @@ function NewPlan({ branch, onCreated }: { branch: Branch; onCreated: (id: string
     onCreated(result.id)
   })
   return <div className="form-stack"><label className="field"><span>Plan title</span><input maxLength={120} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="A conversation at the station" /></label>
-    <label className="field"><span>Your direction</span><textarea rows={5} maxLength={30000} value={draft.direction} onChange={(event) => setDraft({ ...draft, direction: event.target.value })} placeholder="What should this scene explore? What should remain the player's choice?" /></label>
+    <label className="field"><span>Scene goal</span><textarea rows={5} maxLength={30000} value={draft.direction} onChange={(event) => setDraft({ ...draft, direction: event.target.value })} placeholder="A goal for this planned scene only. What should it explore, and what stays the player’s choice?" /></label>
     <label className="check-row"><input type="checkbox" checked={draft.propose_options} onChange={(event) => setDraft({ ...draft, propose_options: event.target.checked })} />Explore four options before expanding the beats</label>
     <label className="check-row"><input type="checkbox" checked={draft.dialogue_split ?? false} onChange={(event) => setDraft({ ...draft, dialogue_split: event.target.checked })} />Give spoken lines to a separate dialogue writer</label><p className="subtle">Use this for scenes with conversation. The drafter leaves dialogue slots; the dialogue writer fills them while preserving narration.</p>
     <p className="subtle">Save the starting point first. You’ll preview each model request before sending it. Models and prompts are available in Models by step.</p><ErrorNotice message={action.error} />
-    <button className="button primary" disabled={action.busy || !draft.title.trim() || !draft.direction.trim()} onClick={create}>Save scene direction</button>
+    <button className="button primary" disabled={action.busy || !draft.title.trim() || !draft.direction.trim()} onClick={create}>Save scene goal</button>
   </div>
 }

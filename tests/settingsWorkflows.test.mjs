@@ -31,7 +31,7 @@ test('section mixed state advances to enable all', () => {
 })
 test('interface type choices do not change prose and older saved preferences still work', () => {
   const original = appearanceStyles(defaultAppearance)
-  const next = appearanceStyles({ ...defaultAppearance, interfaceFont: 'arimo', interfaceSize: 20 })
+  const next = appearanceStyles({ ...defaultAppearance, interfaceFont: 'arimo', interfaceScale: 125 })
   assert.equal(next['--prose-font'], original['--prose-font'])
   assert.equal(next['--prose-size'], original['--prose-size'])
   assert.match(next['--interface-font'], /Arimo/)

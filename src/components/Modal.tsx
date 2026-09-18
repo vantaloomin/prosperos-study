@@ -17,7 +17,7 @@ export function Modal({ open, onClose, title, description, children, wide = fals
   return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
     <Dialog.Portal>
       <Dialog.Overlay className="dialog-overlay" />
-      <Dialog.Content className={`dialog-content ${wide ? 'dialog-wide' : ''}`} onEscapeKeyDown={event => { if (event.target instanceof Element && event.target.closest('[role="combobox"][aria-expanded="true"]')) event.preventDefault() }} onCloseAutoFocus={(event) => { event.preventDefault(); (focusOnClose?.() ?? returnFocus)?.focus() }}>
+      <Dialog.Content className={`dialog-content ${wide ? 'dialog-wide' : ''}`} onEscapeKeyDown={event => { if (event.target instanceof Element && event.target.closest('[role="combobox"][aria-expanded="true"]')) event.preventDefault() }} onCloseAutoFocus={(event) => { event.preventDefault(); restoreFocus(focusOnClose?.() ?? returnFocus) }}>
         <header className="dialog-header">
           <div><Dialog.Title>{title}</Dialog.Title><Dialog.Description>{description}</Dialog.Description></div>
           <Dialog.Close className="icon-button" aria-label="Close dialog"><X /></Dialog.Close>
@@ -26,4 +26,12 @@ export function Modal({ open, onClose, title, description, children, wide = fals
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
+}
+
+function restoreFocus(target: HTMLElement | null) {
+  const visible = target !== document.body && target?.getClientRects().length && !target.closest('details:not([open])')
+  const fallback = target?.closest('details')?.querySelector<HTMLElement>('summary')
+    ?? document.querySelector<HTMLElement>('.workspace-actions-menu > summary')
+  const destination = visible ? target : fallback
+  destination?.focus({ preventScroll: true })
 }

@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.6.1 - 2026-09-18
+
+First-user feedback update. Application version: **0.6.1**.
+
+- Generated drafts appear inline, with explicit Keep, Keep on new branch, Try another, Dismiss, and expanded details. Status shows observed stages, model identity, elapsed time, and Stop. Save/continuation recovery checks durable operation receipts; frozen retries retain earlier attempts and partial output.
+- Author’s note has a separate composer control. Story setup, Story brief, and Scene goal labels distinguish story-wide guidance from path notes and scene planning.
+- Stories collapse when a story opens. Shared icon tooltips support pointer and keyboard use; Context opens as a wide reference dialog.
+- Collaborator shows its resolved connection and saved routing. Docked, movable floating, and full-workspace layouts retain conversation state; numeric geometry controls supplement dragging. Connection management returns to the conversation.
+- API tokens use explicit visible Add/Replace entry. Interface sizing extends through 200%, preserving legacy sizes. Checked states are clear, and randomness edits identify unsaved changes. Custom palettes include color pickers, hex entry, contrast feedback, preview, and reset.
+- Passage removal creates an immutable revised path, an omission marker, and Undo. Later prose remains in order, and originals remain on the source path. Effective context, retrieval, and readable exports exclude omissions. Dependent state after the changed passage is excluded from the revision; the author explicitly acknowledges returning to the prior state before continuing. No rolls or model calls are replayed.
+- Archive format 31 adds generation activity and path-revision provenance. Older format fixtures retain their original record groups and migrate additively. Historical provider inputs remain unchanged.
+- Reading positions survive inline streaming, middle-passage revisions, and Collaborator layout changes. Narrow layouts provide a labeled Tools menu and scrollable enlarged controls.
+
+Validation: 1,092 backend tests and 86 UI-model tests passed, along with Ruff, ESLint, TypeScript, and the production build. Isolated Chrome checks covered delayed/failed/buffered responses, restart and reload recovery, simultaneous recovery from two tabs, inline acceptance, removal/Undo, Collaborator modes, token entry, palettes, randomness saves, and nine viewport/interface-size combinations. Native Chrome 200% page zoom was checked separately. The author confirmed no password suggestions in the regular-Chrome Add API key flow; Bitwarden was unavailable.
+
+The 240-passage branch-switch fixture met the existing 1.5-second target in both directions. This does not resolve the prior worst-case performance backlog. Synthetic provider results are not a live NIM check; broad accessibility conformance and native macOS acceptance remain unverified. No live provider or personal story database was used for this validation.
+
 ## v0.6 - 2026-09-18
 
 Memory management preview. Application version: **0.6.0**.

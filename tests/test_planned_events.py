@@ -190,6 +190,8 @@ def test_format_28_restore_preserves_legacy_inputs(client, story):
     frozen = [job['snapshot']['content'] for job in get_plan(client, run_id)['jobs']]
     _, document = backup(client, story)
     document['version'] = 28
+    from tests.archive_legacy import remove_v061_records
+    remove_v061_records(document)
     for table in PLAN_TABLES:
         assert document['data'].pop(table) == []
     response = client.post('/api/archives/imports', json={'content': encode(document)})

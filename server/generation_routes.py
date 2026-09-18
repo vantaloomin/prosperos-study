@@ -13,6 +13,7 @@ from server.generation_models import (
     AlternateRequest,
     ContextPreviewRequest,
     GenerateRequest,
+    RetryCandidate,
 )
 from server.generations import Generations
 from server.prompts import PromptActivation, Prompts, PromptSectionActivation, PromptUpdate
@@ -98,8 +99,8 @@ async def cancel(candidate_id: str, request: Request):
 
 
 @router.post("/candidates/{candidate_id}/retry")
-async def retry(candidate_id: str, request: Request):
-    return request.app.state.runner.retry(candidate_id)
+async def retry(candidate_id: str, request: Request, body: RetryCandidate | None = None):
+    return request.app.state.runner.retry(candidate_id, body)
 
 
 @router.get("/prompts")
