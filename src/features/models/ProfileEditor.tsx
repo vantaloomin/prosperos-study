@@ -8,9 +8,9 @@ import { ModelDiscovery } from './ModelDiscovery'
 import { useModelDiscovery } from './useModelDiscovery'
 import { discoveredSettings, typedModelSettings, type Discovery } from './discovery'
 import { profileSaveState } from './profileReadiness'
-import { LocalProtocolField, LocalThinking } from './LocalSettings'
-import { localAddressHint, temperatureCeiling } from './localProtocol'
-import type { DiscoveredModel } from './discovery'
+import { LocalProtocolField } from './LocalSettings'
+import { localAddressHint } from './localProtocol'
+import { GenerationSettings } from './GenerationSettings'
 import { initialConfig, providers } from './types'
 import type { ModelProfile, ProfileConfig, Provider } from './types'
 
@@ -60,16 +60,6 @@ function TokenEntry({ saved, value, onChange }: { saved: boolean; value: string;
   const [editing, setEditing] = useState(false)
   if (!editing) return <div className="token-entry"><p>{saved ? 'API key configured' : 'No API key stored for this connection'}</p><button className="button" onClick={() => setEditing(true)}>{saved ? 'Replace key' : 'Add API key'}</button><small>Local servers and environment credentials can leave this blank.</small></div>
   return <div className="token-entry"><Field label="API key (visible while editing)" type="text" name="connection-token" autoComplete="off" autoCapitalize="none" spellCheck={false} value={value} onChange={event => onChange(event.target.value)} placeholder="Paste an API token" hint="Stored in your OS credential vault when saved. Never shown again or included in story exports." /><button className="text-button" onClick={() => { onChange(''); setEditing(false) }}>Cancel key entry</button></div>
-}
-
-function GenerationSettings({ config, patch, model }: { config: ProfileConfig; patch: (next: Partial<ProfileConfig>) => void; model?: DiscoveredModel }) {
-  const cli = config.provider === 'codex'
-  return <div className="form-stack"><Field label="Context allowance (tokens)" type="number" min={1024} max={2000000} value={config.context_tokens} onChange={(e) => patch({ context_tokens: Number(e.target.value) })} hint="An app-side budget check. Large context isn't silently discarded." /><Field label={cli ? 'Reserved output budget (tokens)' : 'Maximum output tokens'} type="number" min={64} max={128000} value={config.max_output_tokens} onChange={(e) => patch({ max_output_tokens: Number(e.target.value) })} hint={cli ? 'Used for context planning; the CLI controls its own hard output limit.' : 'Thinking models can spend this allowance on reasoning before writing. Increase it if a response ends before prose appears.'} />
-    {!cli && <Field label="Temperature" type="number" step="0.05" min={0} max={temperatureCeiling(config)} value={config.temperature ?? ''} onChange={(e) => patch({ temperature: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Provider default" hint="Leave blank for models that do not support temperature." />}
-    <LocalThinking config={config} patch={patch} model={model} />
-    <Field label="Timeout (seconds)" type="number" min={10} max={1800} value={config.timeout_seconds} onChange={(e) => patch({ timeout_seconds: Number(e.target.value) })} />
-    {(cli || config.provider === 'openai') && <label className="field"><span>Reasoning effort</span><select aria-label="Reasoning effort" value={config.reasoning_effort ?? ''} onChange={(e) => patch({ reasoning_effort: e.target.value || null })}><option value="">Model default</option>{['minimal', 'low', 'medium', 'high', 'xhigh'].map((value) => <option key={value}>{value}</option>)}</select><small>Choose only settings supported by your selected model.</small></label>}
-  </div>
 }
 
 function applyDiscovered(result: Discovery, config: ProfileConfig): ProfileConfig {

@@ -1,5 +1,6 @@
 """Normalize provider-reported model metadata; absent limits are never guessed."""
 from server.errors import DomainError, require
+from server.providers.capabilities import EFFORTS
 from server.providers.discovery_errors import address_hint, fetch_model_page, response_problem
 from server.providers.lmstudio import native_local
 from server.providers.lmstudio_models import native_models
@@ -25,7 +26,19 @@ def model_detail(provider, item):
                          item.get('max_tokens'), top.get('max_completion_tokens'))
     label = item.get('displayName') or item.get('display_name') or item.get('name') or identifier
     return {'id': identifier, 'name': str(label), 'context_tokens': context, 'max_output_tokens': output,
-            'limit_source': 'provider' if context or output else 'unreported'}
+            'limit_source': 'provider' if context or output else 'unreported', **reported_capabilities(item)}
+
+
+def reported_capabilities(item):
+    result = {}
+    supported = item.get('supported_parameters')
+    if isinstance(supported, list):
+        result['supported_parameters'] = [key for key in supported if isinstance(key, str)][:100]
+    reasoning = item.get('reasoning')
+    efforts = reasoning.get('supported_efforts') if isinstance(reasoning, dict) else None
+    if isinstance(efforts, list):
+        result['supported_efforts'] = [key for key in EFFORTS if key in efforts]
+    return result
 
 
 def page_parameters(provider, data):

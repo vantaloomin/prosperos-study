@@ -110,7 +110,10 @@ def test_import_pins_configuration_without_changing_workspace_defaults(client, s
     client.app.state.runner.provider = provider
     run = generate(client, {"branch_id": mapping[story["branch_id"]]})
     finished(client, run["id"])
-    assert provider.calls[0][1] == "This story only."
+    from server.prompt_sections import system_prompt
+    saved = client.get(f"/api/generations/{run['id']}").json()['snapshot']
+    assert saved['prompt']['template'] == 'This story only.'
+    assert provider.calls[0][1] == system_prompt(saved)
     imported_story = {"story_id": imported_id, "branch_id": mapping[story["branch_id"]]}
     sidebar = ConfigurationReader()
     client.app.state.side_runner.provider = sidebar

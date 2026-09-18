@@ -9,6 +9,7 @@ from server.generation_context import generation_snapshot, selected_profiles
 from server.mechanics.storage import pending_opportunity
 from server.memory.control_state import control_head
 from server.memory.summary_recall import summary_dependencies
+from server.prompt_sections import sections_for
 from server.prompts import prompt_snapshot
 
 
@@ -27,6 +28,7 @@ def preparation_identity(connection, writer, body):
     return {'branch': branch, 'story': story, 'memory_controls': control_head(connection, branch['id']), 'summary_versions': summary_dependencies(connection, story),
             'profiles': [profile['id'] for profile in selected_profiles(connection, story, body.profile_ids)],
             'prompt': prompt_snapshot(connection, 'writer', story)['id'],
+            'prompt_sections': sections_for(connection, 'writer', story, branch['manifest_id']),
             'background': state_id(connection, branch['id']), 'opportunities': opportunities,
             'assessment': existing, 'selected_opportunity': selected['id'] if selected else None}
 

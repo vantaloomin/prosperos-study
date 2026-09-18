@@ -1,0 +1,6 @@
+.usage-summary { padding: .75rem; border: 1px solid var(--border); border-radius: .5rem; font-size: .82rem; }
+.usage-summary dl { display: flex; flex-wrap: wrap; gap: .7rem 1.4rem; margin: 0 0 .5rem; }
+.usage-summary dt { color: var(--muted); font-size: .74rem; }
+.usage-summary dd { margin: .2rem 0 0; font-variant-numeric: tabular-nums; }
+.usage-summary .subtle { margin: .4rem 0; font-size: .75rem; }
+.usage-summary pre, .usage-details pre { overflow: auto; max-height: 20rem; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from server.agent_templates import router as agent_template_router
 from server.archives.routes import router as archive_router
 from server.assessment.routes import router as assessment_router
 from server.assessment.runner import AssessmentRunner
@@ -23,6 +24,7 @@ from server.library_formats.artwork_routes import router as artwork_router
 from server.library_formats.import_routes import router as library_import_router
 from server.library_formats.routes import router as library_source_router
 from server.lore.routes import router as lore_router
+from server.manuscript.routes import router as manuscript_router
 from server.mechanics.routes import router as mechanics_router
 from server.mechanics.tables import initialize_tables
 from server.memory.control_routes import router as control_router
@@ -87,7 +89,7 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.6.2", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.7.0", lifespan=lifespan)
     app.state.database = Database(database_path)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)
@@ -106,6 +108,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
+    app.include_router(agent_template_router)
+    app.include_router(manuscript_router)
     app.include_router(authoring_router)
     app.include_router(library_source_router)
     app.include_router(library_import_router)

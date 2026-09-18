@@ -1,3 +1,4 @@
+from server.agent_templates import initial_agent_settings
 from server.character_content import opening_metadata
 from server.database import Database, decode, encode, identifier, many, now, one
 from server.errors import require
@@ -44,7 +45,7 @@ class Stories:
             opening = opening_metadata(connection, body)
             story_id = identifier()
             connection.execute("INSERT INTO stories VALUES (?,?,?,?,NULL,0,0,?,?)",
-                               (story_id, body.title, body.premise, encode(normalize_story_settings(body.settings)), now(), now()))
+                               (story_id, body.title, body.premise, encode(normalize_story_settings(initial_agent_settings(body.settings))), now(), now()))
             manifest_id = create_manifest(connection, story_id, [a.model_dump() for a in body.attachments])
             connection.execute("UPDATE stories SET manifest_id=? WHERE id=?", (manifest_id, story_id))
             branch_id = create_branch(connection, story_id, manifest_id)

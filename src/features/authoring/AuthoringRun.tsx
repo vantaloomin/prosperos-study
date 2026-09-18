@@ -1,3 +1,4 @@
+import { UsageSummary } from '../../components/UsageSummary'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
@@ -38,7 +39,7 @@ function JobResult({ job, source, compatible, ...editor }: EditorProps & { job: 
     {job.status === 'done' && job.result && <><p className="authoring-summary">{job.result.summary}</p><ProposalReview {...editor} source={source} proposal={job.result.proposal} compatible={compatible} />
       {job.result.findings.map((finding, index) => <article className="prepared-card" key={index}><blockquote className="authoring-quote">{finding.quote}</blockquote><p>{finding.explanation}</p><p className="subtle">{finding.suggestion}</p></article>)}
     </>}
-    <details open={inspect} onToggle={(event) => setInspect(event.currentTarget.open)}><summary>Saved request, raw output & attempts</summary>{inspect && <div className="form-stack authoring-history"><pre className="authoring-prose">{job.snapshot.prompt.template}</pre><pre className="authoring-prose">{job.snapshot.content}</pre><pre className="authoring-prose">{job.output || '(No output yet)'}</pre><p className="subtle">Usage: {JSON.stringify(job.usage)}</p><Attempts jobId={job.id} attempt={job.attempt} /></div>}</details>
+    <details open={inspect} onToggle={(event) => setInspect(event.currentTarget.open)}><summary>Saved request, raw output & attempts</summary>{inspect && <div className="form-stack authoring-history"><pre className="authoring-prose">{job.snapshot.prompt.template}</pre><pre className="authoring-prose">{job.snapshot.content}</pre><pre className="authoring-prose">{job.output || '(No output yet)'}</pre><UsageSummary usage={job.usage} /><Attempts jobId={job.id} attempt={job.attempt} /></div>}</details>
   </section>
 }
 

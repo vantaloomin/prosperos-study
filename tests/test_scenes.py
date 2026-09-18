@@ -233,7 +233,7 @@ def test_cancel_restart_and_foreign_choices_preserve_boundaries(client, story):
         connection.execute("UPDATE scene_jobs SET status='running' WHERE id=?", (job_id,))
     client.app.state.scene_runner.recover()
     assert get_plan(client, run_id)["jobs"][0]["status"] == "interrupted"
-    other = client.post("/api/stories", json={"title": "Other"}).json()
+    other = client.post("/api/stories", json={"title": "Other", "settings": {"disabled_prompts": []}}).json()
     other_id, _ = setup_plan(client, other)
     foreign = run_stage(client, other_id, "scene-options")[0]
     response = client.post(f"/api/scenes/{run_id}/choose", json={"operation_id": uuid4().hex, "expected_revision": 1,

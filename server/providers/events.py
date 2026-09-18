@@ -15,10 +15,16 @@ def openai_event(data: dict) -> ProviderEvent:
     kind = data.get("type")
     if kind == "response.output_text.delta":
         return ProviderEvent(text=data["delta"])
-    if kind == "response.completed":
+    if kind in {'response.completed', 'response.incomplete'}:
         response = data["response"]
-        return ProviderEvent(usage=response.get("usage", {}), done=True, model=response.get("model"))
-    if kind in {"error", "response.failed", "response.incomplete"}:
+        usage = dict(response.get('usage') or {})
+        if kind == 'response.incomplete':
+            reason = (response.get('incomplete_details') or {}).get('reason')
+            usage['finish_reason'] = 'length' if reason == 'max_output_tokens' else 'unrecognized'
+        if (usage.get('output_tokens_details') or {}).get('reasoning_tokens', 0):
+            usage['reasoning_received'] = True
+        return ProviderEvent(usage=usage, done=True, model=response.get("model"))
+    if kind in {"error", "response.failed"}:
         raise DomainError("The provider did not complete this response. The partial draft is preserved.", 502)
     return ProviderEvent()
 
@@ -26,12 +32,17 @@ def openai_event(data: dict) -> ProviderEvent:
 def anthropic_event(data: dict) -> ProviderEvent:
     kind = data.get("type")
     if kind == "content_block_delta":
-        return ProviderEvent(text=data.get("delta", {}).get("text", ""))
+        delta = data.get('delta', {})
+        return ProviderEvent(text=delta.get('text', ''), usage={'reasoning_received': True} if delta.get('type') == 'thinking_delta' else {})
     if kind == "message_start":
         message = data["message"]
         return ProviderEvent(usage=message.get("usage", {}), model=message.get("model"))
     if kind == "message_delta":
-        return ProviderEvent(usage=data.get("usage", {}))
+        usage = dict(data.get('usage') or {})
+        reason = data.get('delta', {}).get('stop_reason')
+        if reason:
+            usage['finish_reason'] = {'end_turn': 'stop', 'stop_sequence': 'stop', 'max_tokens': 'length', 'tool_use': 'tool_calls'}.get(reason, 'unrecognized')
+        return ProviderEvent(usage=usage)
     if kind == "error":
         raise DomainError("The provider interrupted this response. The partial draft is preserved.", 502)
     return ProviderEvent(done=kind == "message_stop")
@@ -43,11 +54,14 @@ def google_event(data: dict) -> ProviderEvent:
     candidates = data.get('candidates', [])
     candidate = candidates[0] if candidates else {}
     finish = candidate.get('finishReason')
-    if finish and finish != 'STOP':
-        raise DomainError('Google stopped before completing this response. The partial draft is preserved.', 502)
     parts = candidate.get('content', {}).get('parts', [])
     text = ''.join(part.get('text', '') for part in parts if not part.get('thought'))
-    return ProviderEvent(text=text, done=finish == 'STOP', usage=data.get('usageMetadata', {}), model=data.get('modelVersion'))
+    usage = dict(data.get('usageMetadata') or {})
+    if finish:
+        usage['finish_reason'] = {'STOP': 'stop', 'MAX_TOKENS': 'length', 'SAFETY': 'content_filter'}.get(finish, 'unrecognized')
+    if any(part.get('thought') for part in parts) or usage.get('thoughtsTokenCount', 0):
+        usage['reasoning_received'] = True
+    return ProviderEvent(text=text, done=bool(finish), usage=usage, model=data.get('modelVersion'))
 
 
 def chat_event(data: dict) -> ProviderEvent:

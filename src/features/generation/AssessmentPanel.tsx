@@ -1,3 +1,4 @@
+import { UsageSummary } from '../../components/UsageSummary'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, operationId } from '../../api'
@@ -81,7 +82,7 @@ function AssessmentReport({ job, run, busy, onChoose }: { job: AssessmentJob; ru
     <ErrorNotice message={job.error || action.error} />
     {!run.generation_id && !run.opportunity_id && !run.stale && <AssessmentJobAction post={run.snapshot.purpose === 'post-acceptance'} job={job} busy={busy || action.busy} onChoose={onChoose} onRetry={() => void retry()} />}
     {run.selected_job_id === job.id && <p className="subtle">Selected for the saved chance result.</p>}
-    <details><summary>Original inputs, output & usage</summary><p className="subtle">{job.snapshot.profile.config.model} · prompt v{job.snapshot.prompt.number} · estimated input {job.snapshot.estimated_input_tokens.toLocaleString()} tokens</p><pre className="raw-json">{JSON.stringify({ prompt: job.snapshot.prompt.template, content: job.snapshot.content, output: job.output, usage: job.usage }, null, 2)}</pre><AssessmentAttempts id={job.id} attempt={job.attempt} /></details>
+    <details><summary>Original inputs, output & usage</summary><p className="subtle">{job.snapshot.profile.config.model} · prompt v{job.snapshot.prompt.number} · estimated input {job.snapshot.estimated_input_tokens.toLocaleString()} tokens</p><pre className="raw-json">{JSON.stringify({ prompt: job.snapshot.prompt.template, content: job.snapshot.content, output: job.output, usage: job.usage }, null, 2)}</pre><UsageSummary usage={job.usage} /><AssessmentAttempts id={job.id} attempt={job.attempt} /></details>
   </section>
 }
 

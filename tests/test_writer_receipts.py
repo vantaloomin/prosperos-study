@@ -12,6 +12,7 @@ from server.database import decode, encode
 from server.errors import DomainError
 from server.main import create_app
 from server.memory.budget import token_estimate
+from server.prompt_sections import system_prompt
 from tests.test_archives import backup, restore
 from tests.test_canon_memory import imported_book
 from tests.test_generations import DraftProvider, finished
@@ -19,10 +20,10 @@ from tests.test_history import append
 from tests.test_memory import fixture_context, small_profile
 
 
-def saved_story(client):
+def saved_story(client, *, sections=True):
     small_profile(client)
     book, _, _ = imported_book(client)
-    story = client.post('/api/stories', json={'title': 'Exact source audit', 'settings': {'memory': {'mode': 'long'}},
+    story = client.post('/api/stories', json={'title': 'Exact source audit', 'settings': {'memory': {'mode': 'long'}, 'prompt_sections': sections},
         'attachments': [{'asset_id': book['asset_id'], 'version_id': book['id']}]}).json()
     for index, node in enumerate(fixture_context()['history']):
         append(client, story['branch_id'], node['text'], index)
@@ -55,7 +56,7 @@ def altered(document):
 def rehash(row, snapshot, content):
     snapshot['content'] = encode(content)
     snapshot['memory']['content_sha256'] = digest(snapshot['content'])
-    snapshot['estimated_input_tokens'] = token_estimate(snapshot['prompt']['template'], content)
+    snapshot['estimated_input_tokens'] = token_estimate(system_prompt(snapshot), content)
     row['snapshot'] = encode(snapshot)
 
 
@@ -146,7 +147,7 @@ def test_old_algorithm_is_preserved_with_an_explicit_limit(saved_archive):
 
 
 def legacy_portable(client):
-    story, generation = saved_story(client)
+    story, generation = saved_story(client, sections=False)
     file, _ = backup(client, story)
     _, mapping = restore(client, file)
     copied_story = {'story_id': mapping[story['story_id']], 'branch_id': mapping[story['branch_id']]}

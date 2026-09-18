@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
+import { UsageSummary } from '../../components/UsageSummary'
 
-interface Attempt { id: string; attempt: number; status: string; output: string; error: string }
+interface Attempt { id: string; attempt: number; status: string; output: string; error: string; usage: Record<string, unknown> }
 
 export function AttemptHistory({ candidateId, attempt }: { candidateId: string; attempt: number }) {
   const [open, setOpen] = useState(false)
@@ -13,6 +14,6 @@ export function AttemptHistory({ candidateId, attempt }: { candidateId: string; 
   return <details className="input-inspector" onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary>Earlier attempts and preserved text</summary>
     <ErrorNotice message={query.error?.message} />
-    {query.data?.map((item) => <section key={item.id}><h4>Attempt {item.attempt} · {item.status}</h4><p className="subtle">{item.error}</p><div className="prose">{item.output || 'No text was returned.'}</div></section>)}
+    {query.data?.map((item) => <section key={item.id}><h4>Attempt {item.attempt} · {item.status}</h4><p className="subtle">{item.error}</p><div className="prose">{item.output || 'No text was returned.'}</div><UsageSummary usage={item.usage} /></section>)}
   </details>
 }

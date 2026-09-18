@@ -26,6 +26,7 @@ const WindowedTranscript = lazy(() => import('./WindowedTranscript').then((modul
 
 const Randomness = lazy(() => import('../mechanics/Randomness').then((module) => ({ default: module.Randomness })))
 const Workflow = lazy(() => import('../workflow/Workflow').then((module) => ({ default: module.Workflow })))
+const ManuscriptWorkspace = lazy(() => import('../manuscript/ManuscriptWorkspace').then(module => ({ default: module.ManuscriptWorkspace })))
 
 interface Props { storyId: string; branchId: string; onBranch: (id: string) => void; onOpen: (selection: Selection) => void }
 
@@ -52,9 +53,10 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   const [details, setDetails] = useState(false)
   const [side, setSide] = useState(false)
   const layout = useCollaboratorLayout()
-  const fullscreen = side && layout.presentation === 'full'
+  const fullscreen = [side, layout.presentation === 'full'].every(Boolean)
   const [randomness, setRandomness] = useState(false)
   const [workflow, setWorkflow] = useState(false)
+  const [manuscript, setManuscript] = useState(false)
   const [transfer, setTransfer] = useState<DraftTransfer | null>(null)
   const toggleContext = () => { setContext(!context); setSide(false); setTools(false) }
   const toggleSide = () => { setSide(!side); setContext(false); setTools(false) }
@@ -64,8 +66,9 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
     if (reading.request(branch.id, messageId)) setContext(false)
   }
   const closeTools = () => { setTools(false); focusTools(workspace.current) }
+  if (manuscript) return <Suspense fallback={<Loading label="Opening the book…" />}><ManuscriptWorkspace story={story} branchId={branch.id} onClose={() => setManuscript(false)} /></Suspense>
   return <div ref={workspace} data-active-branch={branch.id} className={`chat-workspace ${withDock ? 'with-context' : ''}`}><GenerationControls key={`generation:${branch.id}`} branch={branch} onBranch={onBranch} open={tools} onClose={closeTools} onOpen={() => setTools(true)}><main className="chat-main" inert={fullscreen} aria-hidden={fullscreen}>
-    <ChatHeading story={story} branchName={branch.name} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
+    <ChatHeading story={story} branchName={branch.name} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onManuscript={() => setManuscript(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
     {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript reader={reading.connect} key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript reader={reading.connect} key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
     <WritingRecovery /><Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
   </main></GenerationControls>{context && <ContextDock onReadMessage={readMessage} story={story} branch={branch} onClose={() => setContext(false)} />}

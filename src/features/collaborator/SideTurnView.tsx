@@ -1,3 +1,4 @@
+import { UsageSummary } from '../../components/UsageSummary'
 import { lazy, Suspense, useState } from 'react'
 import { api } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
@@ -39,7 +40,7 @@ function ReplyCoverage({ turn, reply }: { turn: SideTurn; reply: SideReply }) {
   return <details className="side-coverage"><summary>Coverage: {reply.coverage.length} of {turn.source_count} passages prepared</summary>
     <p>Sources may be included in full or in part, including discovery excerpts. Each read replaces the working source window. This does not prove successful delivery or attentive reading. Other paths appear only when included explicitly.</p>
     <pre>{reply.coverage.join('\n') || 'No passages prepared yet.'}</pre><p>{reply.usage.length} request attempt(s). Usage is included only when reported:</p>
-    <pre>{JSON.stringify(reply.usage, null, 2)}</pre>{reply.usage.map((usage, index) => usage.content_sha256 ? <Suspense key={index} fallback={null}><RequestInputs replyId={reply.id} index={index} /></Suspense> : null)}
+    {reply.usage.map((usage, index) => <section key={index}><h4>Request {index + 1}</h4><UsageSummary usage={(usage.reported ?? {}) as Record<string, unknown>} /></section>)}{reply.usage.map((usage, index) => usage.content_sha256 ? <Suspense key={index} fallback={null}><RequestInputs replyId={reply.id} index={index} /></Suspense> : null)}
   </details>
 }
 

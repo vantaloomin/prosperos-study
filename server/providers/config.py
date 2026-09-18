@@ -2,9 +2,10 @@ from ipaddress import ip_address
 from typing import ClassVar, Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, ValidationInfo, field_validator, model_validator
 
 from server.models import Input
+from server.providers.capabilities import validate_options
 from server.providers.lmstudio import native_base
 
 Provider = Literal["openai", "anthropic", "openrouter", "local", "kobold", "codex", "google", "compatible"]
@@ -64,6 +65,14 @@ def profile_ready(config):
     return bool(config.get('model', '').strip()) and (config['provider'] == 'codex' or bool(config.get('base_url')))
 
 
+class ReportedCapabilities(Input):
+    model_id: str
+    context_tokens: int | None = Field(default=None, gt=0)
+    max_output_tokens: int | None = Field(default=None, gt=0)
+    supported_parameters: list[str] | None = Field(default=None, max_length=100)
+    supported_efforts: list[str] | None = Field(default=None, max_length=20)
+
+
 class ProfileConfig(Input):
     allow_incomplete: ClassVar[bool] = False
     provider: Provider
@@ -73,21 +82,35 @@ class ProfileConfig(Input):
     context_tokens: int = Field(default=16000, ge=1024, le=2000000)
     timeout_seconds: int = Field(default=180, ge=10, le=1800)
     temperature: float | None = Field(default=None, ge=0, le=2)
-    reasoning_effort: Literal["minimal", "low", "medium", "high", "xhigh"] | None = None
+    reasoning_effort: Literal['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] | None = None
+    top_p: float | None = Field(default=None, ge=0, le=1)
+    top_k: int | None = Field(default=None, ge=0, le=1000)
+    min_p: float | None = Field(default=None, ge=0, le=1)
+    frequency_penalty: float | None = Field(default=None, ge=-2, le=2)
+    presence_penalty: float | None = Field(default=None, ge=-2, le=2)
+    repetition_penalty: float | None = Field(default=None, gt=0, le=3)
+    seed: int | None = Field(default=None, ge=0, le=2147483647)
+    thinking_mode: Literal['off', 'budget', 'adaptive'] | None = None
+    thinking_budget_tokens: int | None = Field(default=None, ge=-1, le=128000)
+    response_reserve_tokens: int = Field(default=256, ge=64, le=128000)
+    context_safety_tokens: int = Field(default=0, ge=0, le=100000)
+    response_verbosity: Literal['low', 'medium', 'high'] | None = None
+    compatible_thinking: bool | None = None
+    output_token_parameter: Literal['max_tokens', 'max_completion_tokens'] = 'max_tokens'
+    reported_capabilities: ReportedCapabilities | None = None
     local_protocol: Literal["openai", "lmstudio"] = "openai"
     local_reasoning: Literal["off", "on", "low", "medium", "high"] | None = None
 
     @model_validator(mode="after")
-    def validate_capabilities(self):
+    def validate_capabilities(self, info: ValidationInfo):
         self.base_url = (self.base_url or DEFAULT_URLS[self.provider]).rstrip("/")
         validate_profile_url(self.provider, self.base_url, self.allow_incomplete)
         if self.provider == "codex" and self.temperature is not None:
             raise ValueError("Codex CLI does not support a temperature setting here.")
         if self.provider == "anthropic" and self.temperature is not None and self.temperature > 1:
             raise ValueError("Anthropic temperature must be between 0 and 1.")
-        if self.reasoning_effort and self.provider not in {"codex", "openai"}:
-            raise ValueError("This adapter does not expose a reasoning-effort setting.")
         self.validate_local_options()
+        validate_options(self, archived=bool(info.context and info.context.get('archived')))
         return self
 
     def validate_local_options(self):

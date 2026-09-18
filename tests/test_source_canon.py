@@ -150,7 +150,7 @@ def canon_story(client, character=False):
         selected = client.post('/api/library', json={'kind': 'character', 'name': 'Mara',
             'content': {'text': 'Mara protects her friends.', 'lorebook_versions': [book['id']]}}).json()
     story = client.post('/api/stories', json={'title': 'Canon specialist fixture',
-        'settings': {'memory': {'mode': 'long'}},
+        'settings': {'memory': {'mode': 'long'}, 'disabled_prompts': []},
         'attachments': [{'asset_id': selected['asset_id'], 'version_id': selected['id']}]}).json()
     node = append(client, story['branch_id'], 'Mara examines the silver blossom and the brass observatory key.', 0)
     return story, book, node

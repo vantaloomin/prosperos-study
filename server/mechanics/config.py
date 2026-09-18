@@ -1,5 +1,6 @@
 from pydantic import ValidationError
 
+from server.agent_templates import validate_agent_settings
 from server.database import decode
 from server.errors import require
 from server.mechanics.models import RngSettings
@@ -24,6 +25,7 @@ def parse_settings(raw):
 
 
 def normalize_story_settings(settings):
+    validate_agent_settings(settings)
     settings = normalize_memory(settings)
     if "randomness" not in settings:
         return settings

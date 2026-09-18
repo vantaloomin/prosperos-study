@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7 - 2026-09-18
+
+Manuscript organization, model controls, and Active/Passive Agent Templates. Application version: **0.7.0**.
+
+- **Book workspace:** organize chapters and named scenes, reorder or move scenes between chapters, and select each scene's telling and passage range. Selections preserve a fixed point on their source path. Read in manuscript order, bookmark passages, and search across all saved chapters. Organization changes have explicit Save/Discard controls and a local draft.
+- **Publishing:** prepare fixed DOCX and EPUB 3 downloads with title, author, language, chapter order, and optional scene headings. DOCX uses editable heading styles, chapter breaks, and page numbers; EPUB provides linked contents and a reading spine. Publication files contain selected prose only, with an option to include character contributions. Author notes, bookmarks, and private model/context records are excluded.
+- **Model profiles:** adapter-specific reasoning effort, thinking modes and budgets, response reserve, output-parameter choice, verbosity, sampling overrides, and context safety margin. Reported model capacities and supported settings are validated; unknown capabilities remain explicit. Thinking budgets cannot consume the reserved response space. Existing profile settings remain the inputs for exact retries.
+- **Usage:** readable provider-reported token counts and cost alongside raw reports, including failed output-limit attempts and individual character requests. Missing values stay unknown. Thinking and partial prose survive output-limit failures; the next step explains how to adjust settings and start a new request.
+- **Agent Templates:** new Passive Stories enable the full workflow; Active starts with the writer, Collaborator, background planning, and Scribe memory tasks. Per-Story switches and explicit template application respect workspace disables. Existing switches are preserved when experience changes.
+- **Mode guidance:** editable, versioned mode and agency sections compose around supported role prompts. Agency is independent of Active/Passive mode. Persona names and section versions are frozen for exact replay; blind readers, Scribe, Collaborator, and triage retain their scoped instructions. Custom role prompts and Story pins are preserved, and Stories can opt out of composition.
+- **Archive format 33:** manuscript organization, bookmarks, and prompt sections restore with remapped references and unchanged recorded provider inputs. Older archive formats migrate additively.
+
+Validation: the full backend suite passed **1,190 tests**. Final manuscript compatibility and validation fixes then passed **61 targeted tests**, including the new removed-passage selection case. All **86 UI-model tests**, Ruff, ESLint, TypeScript, and the production build passed. Two upstream Starlette/AnyIO test-client deprecation warnings remain.
+
+Browser validation used isolated Chrome on Windows at desktop and 390px mobile sizes, with synthetic provider responses. Checks covered manuscript ordering, alternate tellings, bookmarks, search, draft recovery, downloads, agent customization, workspace ceilings, prompt edits, saved model controls, budget validation, usage, and failed-request retry. Two DOCX samples were rendered in LibreOffice and all seven pages visually inspected. Two EPUB packages passed ZIP, XML, manifest, reading-order, and link checks; their XHTML navigation and escaped prose were checked in Chrome. Live provider behavior and dedicated ebook-reader compatibility remain unverified.
+
 ## v0.6.2 - 2026-09-18
 
 Agent workflow consolidation. Application version: **0.6.2**.

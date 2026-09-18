@@ -142,8 +142,10 @@ class SideRunner:
     def retry(self, reply_id):
         require(reply_id not in self.tasks, "This reply is still running.", 409)
         with self.database.connect(write=True) as connection:
-            require_agent(connection, "collaborator")
             reply = one(connection, "SELECT * FROM side_replies WHERE id=?", (reply_id,))
+            story = one(connection, 'SELECT s.* FROM stories s JOIN side_threads t ON t.story_id=s.id '
+                        'JOIN side_turns u ON u.thread_id=t.id WHERE u.id=?', (reply['turn_id'],))
+            require_agent(connection, 'collaborator', story)
             require(reply["status"] in {"error", "cancelled", "interrupted"}, "Retry only an unfinished reply.", 409)
             pending = connection.execute("SELECT 1 FROM side_replies WHERE turn_id=? AND status IN ('queued','running')",
                                          (reply["turn_id"],)).fetchone()

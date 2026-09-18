@@ -1,4 +1,4 @@
-import { Feather, GitBranch, ListChecks, MessageSquareText, PanelRight, SlidersHorizontal } from 'lucide-react'
+import { BookOpen, Feather, GitBranch, ListChecks, MessageSquareText, PanelRight, SlidersHorizontal } from 'lucide-react'
 import type { Story } from '../../types'
 
 interface Props {
@@ -10,13 +10,15 @@ interface Props {
   onTools?: () => void
   onMap: () => void
   onWorkflow?: () => void
+  onManuscript?: () => void
   onDetails?: () => void
   onContext?: () => void
   onSide?: () => void
 }
 
-export function ChatHeading({ story, branchName, context = false, side = false, tools = false, onTools, onMap, onWorkflow, onDetails, onContext, onSide }: Props) {
+export function ChatHeading({ story, branchName, context = false, side = false, tools = false, onTools, onMap, onWorkflow, onManuscript, onDetails, onContext, onSide }: Props) {
   const actions = <>
+    <button className="icon-button" aria-label="Book workspace" disabled={!onManuscript} onClick={onManuscript}><BookOpen size={18} /><span className="action-label">Book</span></button>
     <button className="icon-button" aria-label="Writing tools" aria-pressed={tools} onClick={onTools}><Feather size={18} /><span className="action-label">Writing tools</span></button>
     <button className="icon-button" aria-label="Story workflow" disabled={!onWorkflow} onClick={onWorkflow}><ListChecks size={18} /><span className="action-label">Workflow</span></button>
     <button className="icon-button" aria-label="Story setup" disabled={!onDetails} onClick={onDetails}><SlidersHorizontal size={18} /><span className="action-label">Story setup</span></button>

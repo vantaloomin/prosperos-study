@@ -28,7 +28,7 @@ export interface SceneResult {
 export interface SceneJob {
   id: string; step: SceneKey; status: string; output: string; error: string; attempt: number; current_inputs: boolean
   usage: Record<string, unknown>; result: SceneResult | null
-  snapshot: { dialogue_actors?: ActorRequest[]; source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number; item_id?: string | null }
+  snapshot: { prompt_sections?: import('../../components/PromptInstructions').PromptSection[]; dialogue_actors?: ActorRequest[]; source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number; item_id?: string | null }
 }
 export interface SceneRun {
   id: string; branch_id: string; title: string; revision: number; stale: boolean; next_step: SceneKey | null; created_at: string

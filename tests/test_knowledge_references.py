@@ -32,7 +32,7 @@ def fixture(client):
     book = asset(client, 'lorebook', 'The coast', {'text': '# Ferry\nThe ferry takes copper coins.\n\n# Vault\nSECRET vault mechanism.'})
     disabled = asset(client, 'lorebook', 'Hidden collection', {'text': 'DISABLED reference.'})
     story = client.post('/api/stories', json={'title': 'Reference boundaries', 'premise': 'SECRET premise.',
-        'opening_text': 'Elin arrives at the shore.', 'attachments': [
+        'opening_text': 'Elin arrives at the shore.', 'settings': {'disabled_prompts': []}, 'attachments': [
             {'asset_id': item['asset_id'], 'version_id': item['id'], 'enabled': item != disabled}
             for item in (character, twin, book, disabled)]}).json()
     return story, character, twin, book

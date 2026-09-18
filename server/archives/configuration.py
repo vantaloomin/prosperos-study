@@ -23,6 +23,7 @@ def configuration_references(data):
 
 def snapshot_references(snapshot, prompts, tables):
     prompts.add(snapshot.get("prompt", {}).get("id"))
+    prompts.update(item['id'] for item in snapshot.get('prompt_sections', []))
     tables.update(item["id"] for item in snapshot.get("tables", {}).values())
     tables.update(snapshot.get("settings", {}).get("table_versions", {}).values())
     if 'writer_snapshot' in snapshot:

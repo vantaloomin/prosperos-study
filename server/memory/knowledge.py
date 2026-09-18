@@ -7,6 +7,7 @@ from server.memory.budget import token_estimate
 from server.memory.chunks import compile_chunks
 from server.memory.knowledge_evidence import source_link
 from server.memory.retrieval import Corpus
+from server.providers.capabilities import input_capacity
 
 GUIDANCE = (
     'Write from this character evidence view. Only the explicitly granted excerpts and '
@@ -87,7 +88,7 @@ def prepare_knowledge(controls, subject, direction, prompt, profiles, writing=No
             'excerpts in Story memory > Author decisions. A does-not-know decision overrides the same excerpt.', 409)
     subject = subject or entries[0]['subject']
     references = bool(character_id) or any('version_id' in source for entry in entries for source in entry['sources'])
-    allowance = min(profile['config']['context_tokens'] - profile['config']['max_output_tokens'] for profile in profiles)
+    allowance = min(input_capacity(profile['config']) for profile in profiles)
     margin = min(512, max(128, allowance // 50))
     selected = select_entries(entries, subject, direction, prompt, allowance - margin, writing, character_id, references)
     content = encode(packet(subject, direction, selected, writing, character_id, references))

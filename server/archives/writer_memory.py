@@ -6,6 +6,7 @@ from server.branches import path_nodes
 from server.database import decode, encode
 from server.errors import require
 from server.memory.budget import token_estimate
+from server.prompt_sections import system_prompt
 
 CURRENT = {'prospero-lexical-v5': 2, 'prospero-lexical-v6': 2,
            'prospero-lexical-v5-reviewed-aids': 3, 'prospero-lexical-v6-reviewed-aids': 3,
@@ -70,6 +71,6 @@ def validate_coverage(snapshot, content, scope, included, passages):
     require(type(memory['input_allowance']) is int and type(memory['overhead_margin']) is int
             and memory['input_allowance'] > 0 and memory['overhead_margin'] >= 0,
             'Writer memory has invalid context accounting.')
-    estimate = token_estimate(snapshot['prompt']['template'], content)
+    estimate = token_estimate(system_prompt(snapshot), content)
     require(estimate == snapshot['estimated_input_tokens'] and estimate + memory['overhead_margin'] <= memory['input_allowance'],
             'Writer context accounting differs from its frozen inputs.')

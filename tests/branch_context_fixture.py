@@ -116,7 +116,7 @@ def build_context(client, topology=TopologySize(), size=ContextSize(), deep_widt
     versions = make_library(database, size)
     story = Stories(database).create(StoryCreate(title='Heavy context benchmark · synthetic records',
         premise='Disposable benchmark. All saved model outputs are synthetic fixtures, not live provider results.',
-        attachments=attachments(versions), settings={'primary_profile_id': profiles[0]}))
+        attachments=attachments(versions), settings={'primary_profile_id': profiles[0], 'disabled_prompts': []}))
     workflow = seed_workflow(client, story, profiles, size)
     baseline = build_adversarial(database, topology, deep_width, story=story)
     latest = future_versions(database, versions)

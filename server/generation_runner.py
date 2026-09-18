@@ -6,6 +6,7 @@ from server.database import decode, encode, identifier, many, now, one
 from server.errors import DomainError, require
 from server.generation_activity import interrupt_activity, save_activity, start_activity
 from server.operations import previous, remember
+from server.prompt_sections import system_prompt
 from server.providers.service import ProviderService
 
 
@@ -72,7 +73,7 @@ class GenerationRunner:
     async def _consume(self, candidate, snapshot, state):
         profile = decode(candidate["profile"])
         last_save = time.monotonic()
-        async for event in self.provider.generate(profile, snapshot["prompt"]["template"], snapshot["content"]):
+        async for event in self.provider.generate(profile, system_prompt(snapshot), snapshot["content"]):
             first_text = bool(event.text) and not state['output']
             state['last_event_at'] = now()
             if first_text:
@@ -113,8 +114,10 @@ class GenerationRunner:
                 if cached is not None:
                     return cached
             require(candidate_id not in self.tasks, "This draft is still running.", 409)
-            require_agent(connection, "writer")
             candidate = one(connection, "SELECT * FROM candidates WHERE id=?", (candidate_id,))
+            story = one(connection, 'SELECT s.* FROM stories s JOIN branches b ON b.story_id=s.id '
+                        'JOIN generations g ON g.branch_id=b.id WHERE g.id=?', (candidate['generation_id'],))
+            require_agent(connection, 'writer', story)
             require(body is None or body.expected_attempt == candidate['attempt'], 'This attempt changed. Refresh the draft before retrying.', 409)
             require(candidate["status"] in {"error", "cancelled", "interrupted"}, "Only an unfinished draft can be retried.", 409)
             preserve_attempt(connection, candidate_id)

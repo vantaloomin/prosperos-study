@@ -12,6 +12,21 @@ export interface ProfileConfig {
   reasoning_effort: string | null
   local_protocol?: LocalProtocol
   local_reasoning?: LocalReasoning | null
+  top_p?: number | null
+  top_k?: number | null
+  min_p?: number | null
+  frequency_penalty?: number | null
+  presence_penalty?: number | null
+  repetition_penalty?: number | null
+  seed?: number | null
+  thinking_mode?: 'off' | 'budget' | 'adaptive' | null
+  thinking_budget_tokens?: number | null
+  response_reserve_tokens?: number
+  context_safety_tokens?: number
+  response_verbosity?: 'low' | 'medium' | 'high' | null
+  compatible_thinking?: boolean | null
+  output_token_parameter?: 'max_tokens' | 'max_completion_tokens'
+  reported_capabilities?: { model_id: string; context_tokens?: number | null; max_output_tokens?: number | null; supported_parameters?: string[] | null; supported_efforts?: string[] | null } | null
 }
 export interface ModelProfile {
   display_name?: string

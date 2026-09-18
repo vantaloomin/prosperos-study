@@ -42,7 +42,8 @@ class SummaryProvider:
 def setup(client):
     profile = make_profile(client, 'Memory primary', primary=True)
     story = client.post('/api/stories', json={'title': 'The uncertain gate', 'opening_text': TEXT,
-        'settings': {'memory': {'mode': 'long'}}, 'premise': 'PRIVATE PREMISE must not reach summaries.'}).json()
+        'settings': {'memory': {'mode': 'long'}, 'disabled_prompts': []},
+        'premise': 'PRIVATE PREMISE must not reach summaries.'}).json()
     client.app.state.summary_runner.provider = SummaryProvider()
     return story, profile
 

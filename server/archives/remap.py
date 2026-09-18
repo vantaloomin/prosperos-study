@@ -2,11 +2,13 @@ from copy import deepcopy
 
 from server.archives.lore import remap_lore, remap_state
 from server.archives.memory_controls import remap_controls
+from server.archives.v07 import remap_manuscript
 from server.database import decode, encode, identifier
 from server.library_formats.sources import source_record
 from server.mechanics.config import parse_settings
 from server.prompts import builtin_prompt
 from server.roles import ROLE_LABELS
+from server.section_prompts import SECTION_LABELS
 
 REFERENCES = {
     'source_branch_id', 'source_node_id', 'replacement_node_id', 'original_node_id',
@@ -56,7 +58,7 @@ def story_settings(value, document, mapping):
     source["primary_profile_id"] = source.get("primary_profile_id") or document["primary_profile_id"]
     versions = {item['id']: item for item in document['data']['prompt_versions']}
     heads = {key: value for key, value in document['prompt_heads'].items()
-             if key in ROLE_LABELS or not builtin_prompt(versions[value])}
+             if key in ROLE_LABELS or key in SECTION_LABELS or not builtin_prompt(versions[value])}
     source["prompt_versions"] = {**heads, **source.get("prompt_versions", {})}
     randomness = parse_settings(source.get("randomness", {})).model_dump()
     heads = {row["id"]: row["version_id"] for row in document["data"]["roll_tables"]}
@@ -67,6 +69,7 @@ def story_settings(value, document, mapping):
 
 def snapshot(value, mapping):
     updated = fields(value, mapping)
+    updated.update({key: [fields(item, mapping) for item in value[key]] for key in ('prompt_sections',) if key in value})
     for key in ("branch", "prompt", "profile"):
         if key in value:
             updated[key] = fields(value[key], mapping)
@@ -136,6 +139,7 @@ def scene_decision(value, mapping):
 
 def remap_json(table, row, document, mapping):
     converters = {
+        'manuscripts': {'document': lambda value: remap_manuscript(value, mapping)},
         'memory_control_versions': {'payload': lambda value: remap_controls(value, mapping)},
         "stories": {"settings": lambda value: story_settings(value, document, mapping)},
         "asset_versions": {"content": lambda value: remap_dependencies(value, mapping)},

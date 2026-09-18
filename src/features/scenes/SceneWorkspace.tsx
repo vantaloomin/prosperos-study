@@ -1,3 +1,5 @@
+import { PromptInstructions } from '../../components/PromptInstructions'
+import { UsageSummary } from '../../components/UsageSummary'
 import { SourceMemoryCoverage, SourceMemoryDetails } from '../workflow/SourceMemoryCoverage'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -124,7 +126,7 @@ export function SceneProposal({ job, run, onChosen }: { job: SceneJob; run: Scen
     <SceneArtifact job={job} run={run} disabled={locked} onChoose={choose} />
     {job.result && job.step !== 'scene-options' && <button className="button" aria-disabled={locked || chosen} onClick={() => choose()}>{chosen ? 'Result selected' : 'Use this stage result'}</button>}
     <JobControls job={job} busy={action.busy} onControl={control} />
-    <details className="input-inspector"><summary>Reveal exact inputs and raw output (may include private background)</summary><h4>Prompt</h4><pre>{job.snapshot.prompt.template}</pre><h4>Sources and proposed inputs</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><SourceMemoryDetails memory={job.snapshot.source_memory} /><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><h4>Reported usage</h4><pre>{JSON.stringify(job.usage, null, 2)}</pre></details><SceneAttempts job={job} />
+    <details className="input-inspector"><summary>Reveal exact inputs and raw output (may include private background)</summary><PromptInstructions snapshot={job.snapshot} /><h4>Sources and proposed inputs</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><SourceMemoryDetails memory={job.snapshot.source_memory} /><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><UsageSummary usage={job.usage} /></details><SceneAttempts job={job} />
   </section>
 }
 

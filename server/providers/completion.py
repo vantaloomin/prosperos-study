@@ -47,5 +47,5 @@ class StreamCompletion:
             result = "No response text was returned."
         return (f"Generation stopped at a token limit (finish reason: length). {result} "
                 f"This request allowed {config['max_output_tokens']:,} output tokens. "
-                "Increase Maximum output tokens in the model profile, then start a new request. "
+                "Lower the thinking effort or budget, or increase Maximum output tokens in the model profile, then start a new request. "
                 "Retrying original inputs keeps the original limit.")

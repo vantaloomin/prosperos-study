@@ -10,6 +10,7 @@ from server.memory.plan_packet import add_plans, plan_receipt
 from server.memory.recall import recall_candidates
 from server.memory.settings import memory_settings
 from server.memory.summary_excerpt import smaller_summary
+from server.providers.capabilities import input_capacity
 
 ALGORITHM = 'prospero-lexical-v6'
 GUIDANCE = (
@@ -96,7 +97,7 @@ def assemble_memory(context, prompt, profiles, *, canon_assets=(), summary_aids=
     aids = (summary_aids or {}) if settings.summary_recall or settings.summary_context else {}
     if settings.mode == 'full':
         return context, None
-    allowance = min(profile['config']['context_tokens'] - profile['config']['max_output_tokens']
+    allowance = min(input_capacity(profile['config'])
                     for profile in profiles)
     margin = min(512, max(128, allowance // 50))
     target = allowance - margin

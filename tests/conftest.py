@@ -13,6 +13,7 @@ def client(tmp_path):
 
 @pytest.fixture
 def story(client):
-    response = client.post("/api/stories", json={"title": "A quiet place"})
+    # Most workflow tests explicitly exercise every role. New-mode defaults have their own tests.
+    response = client.post("/api/stories", json={"title": "A quiet place", "settings": {"disabled_prompts": []}})
     assert response.status_code == 201
     return response.json()

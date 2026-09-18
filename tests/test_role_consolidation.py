@@ -4,6 +4,7 @@ from copy import deepcopy
 import pytest
 
 from server.agent_switches import agent_enabled, set_agent
+from server.archives.format import ARCHIVE_VERSION
 from server.archives.migrations import upgrade
 from server.database import encode, many, one
 from server.profiles import resolve_profile
@@ -14,8 +15,10 @@ from server.prompts import (
     prompt_snapshot,
 )
 from server.roles import LEGACY_KEYS, ROLE_LABELS
+from server.section_prompts import SECTION_LABELS
 from server.workflow.context import job_snapshot
 from server.workflow.models import ReviewStep
+from tests.archive_legacy import remove_v07_records
 from tests.test_archives import backup, restore
 from tests.test_profiles import make_profile
 
@@ -109,10 +112,10 @@ def test_task_discriminators_preserve_task_directions_and_scope(client, story):
             assert context['task'] == 'Keep this task-specific instruction.'
 
 
-def test_archive_32_preserves_retired_heads_and_imports(client, story):
+def test_current_archive_preserves_retired_heads_and_imports(client, story):
     record, document = backup(client, story)
-    assert document['version'] == 32
-    assert set(document['prompt_heads']) == set(ROLE_LABELS) | set(LEGACY_PROMPT_LABELS)
+    assert document['version'] == ARCHIVE_VERSION
+    assert set(document['prompt_heads']) == set(ROLE_LABELS) | set(LEGACY_PROMPT_LABELS) | set(SECTION_LABELS)
     _, mapping = restore(client, record)
     assert client.get(f"/api/stories/{mapping[story['story_id']]}").status_code == 200
 
@@ -120,13 +123,14 @@ def test_archive_32_preserves_retired_heads_and_imports(client, story):
 def test_archive_31_upgrade_is_additive_and_deterministic(client, story):
     _, exported = backup(client, story)
     document = deepcopy(exported)
+    remove_v07_records(document)
     document['version'] = 31
     document['prompt_heads'] = {key: value for key, value in document['prompt_heads'].items() if key in LEGACY_PROMPT_LABELS}
     document['data']['prompt_versions'] = [row for row in document['data']['prompt_versions'] if row['key'] in LEGACY_PROMPT_LABELS]
     original = deepcopy(document)
     upgraded = upgrade(document)
     assert upgraded == upgrade(deepcopy(original))
-    assert upgraded['version'] == 32
+    assert upgraded['version'] == ARCHIVE_VERSION
     original_versions = {row['id']: row for row in original['data']['prompt_versions']}
     assert all(row == original_versions[row['id']] for row in upgraded['data']['prompt_versions'] if row['id'] in original_versions)
     assert all(upgraded['prompt_heads'][key] == value for key, value in original['prompt_heads'].items())

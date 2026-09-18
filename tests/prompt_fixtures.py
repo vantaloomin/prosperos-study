@@ -17,6 +17,7 @@ def pin_historical_tasks(client, story, keys):
     with client.app.state.database.connect(write=True) as connection:
         stored = one(connection, 'SELECT settings FROM stories WHERE id=?', (story['story_id'],))
         settings = decode(stored['settings'])
+        settings['prompt_sections'] = False
         pins = settings.setdefault('prompt_versions', {})
         for key in keys:
             row = one(connection, "SELECT id FROM prompt_versions WHERE key=? AND id IN (?,?) ORDER BY number DESC LIMIT 1",

@@ -21,7 +21,9 @@ from server.memory.settings import memory_settings
 from server.memory.summary_excerpt import summary_links
 from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
+from server.prompt_sections import compose, sections_for
 from server.prompts import prompt_snapshot
+from server.providers.capabilities import input_capacity
 from server.stories import check_revision
 
 
@@ -52,15 +54,17 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
     if opportunity:
         context["prepared_beat"] = opportunity["snapshot"]["writer"]
     prompt = prompt_snapshot(connection, "writer", story)
+    sections = sections_for(connection, 'writer', story, branch['manifest_id'])
+    instructions = compose(prompt, sections)
     memory_policy = memory_settings(context['story']['settings'].get('memory'))
     aids = reviewed_aids(connection, branch, memory_policy)
     with connection_index(connection, memory_policy.mode == 'long'):
-        prepared, memory = assemble_memory(writer_context(context, lore), prompt["template"], profiles, canon_assets=canon_assets, summary_aids=aids)
+        prepared, memory = assemble_memory(writer_context(context, lore), instructions, profiles, canon_assets=canon_assets, summary_aids=aids)
     content = encode(prepared)
-    estimated = math.ceil(len((prompt["template"] + content).encode("utf-8")) / 3)
+    estimated = math.ceil(len((instructions + content).encode("utf-8")) / 3)
     if validate_budget:
         validate_writer_budget(profiles, estimated, memory)
-    return {"branch": branch, "story_revision": story["revision"], "prompt": prompt,
+    return {"branch": branch, "story_revision": story["revision"], "prompt": prompt, 'prompt_sections': sections,
             "continuity_version_id": plan_head(connection, branch_id),
             "memory_controls_version_id": controls["version_id"],
             'lore_context': lore_context, 'lore': lore,
@@ -76,7 +80,7 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
 def validate_writer_budget(profiles, estimated, memory=None):
     margin = memory['overhead_margin'] if memory else 0
     for profile in profiles:
-        capacity = profile["config"]["context_tokens"] - profile["config"]["max_output_tokens"]
+        capacity = input_capacity(profile["config"])
         if memory:
             require(estimated + margin <= capacity,
                     f"Required story context needs an estimated {estimated:,} tokens plus {margin:,} "

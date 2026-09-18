@@ -12,7 +12,7 @@ def create_book(client):
 
 
 def with_book(client, book, name):
-    return client.post("/api/stories", json={"title": name, "attachments": [{
+    return client.post("/api/stories", json={"title": name, "settings": {"disabled_prompts": []}, "attachments": [{
         "asset_id": book["asset_id"], "version_id": book["id"],
     }]}).json()
 

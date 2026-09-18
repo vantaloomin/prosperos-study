@@ -6,6 +6,7 @@ from server.providers.config import profile_ready
 from server.providers.http import HttpProvider
 from server.providers.lmstudio import native_base
 from server.providers.restored_connection import credential_reference
+from server.providers.usage import usage_summary
 from server.providers.vault import credential_for
 
 
@@ -32,7 +33,11 @@ class ProviderService:
         concurrency = 1 if config["provider"] in {"local", "kobold", "codex"} else 2
         limit = self.limits.setdefault(endpoint, asyncio.Semaphore(concurrency))
         async with limit:
+            usage = {}
             async for event in transport.generate(config, key, prompt, content):
+                usage.update(event.usage)
+                if event.usage:
+                    event.usage = {**event.usage, 'summary': usage_summary(usage, config['provider'])}
                 yield event
 
     async def check(self, profile):

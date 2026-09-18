@@ -12,6 +12,7 @@ from server.memory.plan_edits import plan_sources
 from server.memory.plan_packet import compact_plan
 from server.memory.plan_state import plan_head
 from server.models import Input
+from server.providers.capabilities import input_capacity
 from server.stories import check_revision
 from server.workflow.context import job_snapshot, snapshot_hash, validate_job_budget
 
@@ -81,7 +82,7 @@ def eligible_plans(connection, branch, version):
 
 
 def fit_plan_context(context, plans, jobs):
-    capacity = min(job['profile']['config']['context_tokens'] - job['profile']['config']['max_output_tokens'] for job in jobs)
+    capacity = min(input_capacity(job['profile']['config']) for job in jobs)
     prompt = jobs[0]['prompt']['template']
     selected = []
     for plan in plans:

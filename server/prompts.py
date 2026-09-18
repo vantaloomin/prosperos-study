@@ -1,6 +1,12 @@
 from pydantic import Field
 
-from server.agent_switches import disabled_agents, set_agent, set_agents, switch_state
+from server.agent_switches import (
+    disabled_agents,
+    enabled_source,
+    set_agent,
+    set_agents,
+    switch_state,
+)
 from server.authoring.catalog import AUTHORING_KEYS, AUTHORING_STEPS
 from server.database import decode, encode, identifier, many, now, one
 from server.errors import require
@@ -10,11 +16,12 @@ from server.role_prompts import ROLE_PROMPTS
 from server.roles import RETIRED_STAGES, ROLE_LABELS, role_key, task_keys
 from server.scenes.catalog import BOUNDARY, CHARACTER_DIALOGUE_PROMPT, SCENE_PROMPTS
 from server.scenes.continuity_catalog import PLANNED_CONTINUITY_PROMPT
+from server.section_prompts import SECTION_LABELS, SECTION_PROMPTS, WRITER_V07
 from server.workflow.catalog import DEFAULT_PROMPTS, LEGACY_STEPS
 
 LEGACY_PROMPT_LABELS = {step["key"]: step["name"] for step in LEGACY_STEPS + AUTHORING_STEPS}
 PROMPT_LABELS = ROLE_LABELS
-ALL_PROMPT_LABELS = {**LEGACY_PROMPT_LABELS, **PROMPT_LABELS}
+ALL_PROMPT_LABELS = {**LEGACY_PROMPT_LABELS, **PROMPT_LABELS, **SECTION_LABELS}
 
 LEGACY_WRITER = """Write the next contribution to this interactive story using the supplied JSON context.
 Preserve established events, character voices, world rules, viewpoint, and tone. Follow the user's direction.
@@ -91,6 +98,7 @@ def initialize_prompts(database):
         initialize_writing_default(connection)
         initialize_persona_authoring(connection)
         initialize_roles(connection)
+        initialize_sections(connection)
 
 
 def initialize_writing_default(connection):
@@ -146,7 +154,7 @@ def display_prompt(prompt):
 
 def builtin_prompt(prompt):
     version_id, key = prompt['id'], prompt['key']
-    known = version_id in {f'{key}-default-v1', f'{key}-default-v2', f'{key}-default-v062'}
+    known = version_id in {f'{key}-default-v1', f'{key}-default-v2', f'{key}-default-v062', f'{key}-default-v070'}
     migrated = version_id.startswith(f'{key}-archive-upgrade-v') and version_id.rsplit('-v', 1)[-1].isdigit()
     if not (known or migrated):
         return False
@@ -158,7 +166,20 @@ def builtin_prompt(prompt):
         'scene-continuity': BOUNDARY + PLANNED_CONTINUITY_PROMPT,
     }
     persona = original.replace('one field of a character or lorebook', 'one field of a character, persona or lorebook')
-    return prompt['template'] in {original, persona, revisions.get(prompt['key']), ROLE_PROMPTS.get(prompt['key'])}
+    return prompt['template'] in {original, persona, revisions.get(prompt['key']), ROLE_PROMPTS.get(prompt['key']),
+                                  WRITER_V07 if key == 'writer' else SECTION_PROMPTS.get(key)}
+
+
+def initialize_sections(connection):
+    for key, template in {**SECTION_PROMPTS, 'writer': WRITER_V07}.items():
+        version_id = f'{key}-default-v070'
+        current = connection.execute('SELECT v.* FROM prompt_heads h JOIN prompt_versions v ON v.id=h.version_id '
+                                     'WHERE h.key=?', (key,)).fetchone()
+        number = connection.execute('SELECT COALESCE(MAX(number),0)+1 FROM prompt_versions WHERE key=?', (key,)).fetchone()[0]
+        connection.execute('INSERT OR IGNORE INTO prompt_versions VALUES (?,?,?,?,?)', (version_id, key, number, template, now()))
+        if current is None or builtin_prompt(dict(current)):
+            connection.execute('INSERT INTO prompt_heads VALUES (?,?) ON CONFLICT(key) DO UPDATE SET version_id=excluded.version_id',
+                               (key, version_id))
 
 
 def initialize_roles(connection):
@@ -184,12 +205,17 @@ class Prompts:
             revision = switch_state(connection)['revision']
             keys = [key for key in PROMPT_LABELS if not story_id or key != 'library-assist']
             result = [{**display_prompt(prompt_snapshot(connection, key, story)), **flow_metadata(key),
-                       'enabled': key not in disabled, 'activation_revision': revision,
+                       'enabled': key not in disabled, 'enabled_source': enabled_source(connection, key, story), 'activation_revision': revision,
                        'tasks': task_settings(connection, key, story)} for key in keys]
             return sorted(result, key=lambda prompt: prompt['order'])
 
+    def sections(self, story_id=None):
+        with self.database.connect() as connection:
+            story = one(connection, 'SELECT * FROM stories WHERE id=?', (story_id,)) if story_id else None
+            return [display_prompt(original_prompt(connection, key, story)) for key in SECTION_LABELS]
+
     def activate(self, key, body):
-        require(key in ALL_PROMPT_LABELS, 'Unknown prompt role.', 404)
+        require(key in ALL_PROMPT_LABELS and key not in SECTION_LABELS, 'Unknown prompt role.', 404)
         with self.database.connect(write=True) as connection:
             return set_agent(connection, key, body.enabled, body.expected_revision)
 
@@ -260,6 +286,7 @@ def task_settings(connection, role, story=None):
         pinned = key in settings.get('prompt_versions', {})
         custom = key not in settings.get('combined_prompt_tasks', []) and (pinned or not builtin_prompt(old))
         result.append({'key': key, 'label': LEGACY_PROMPT_LABELS[key], 'enabled': key not in disabled,
+                       'enabled_source': enabled_source(connection, key, story),
                        'historical': key in RETIRED_STAGES - {'scene-coverage'},
                        'custom_prompt': custom, 'pinned': pinned, 'prompt_id': old['id'], 'number': old['number'],
                        'profile_id': settings.get('step_profiles', {}).get(key)})

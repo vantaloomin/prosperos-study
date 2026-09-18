@@ -4,6 +4,7 @@ import time
 
 from server.database import decode, encode
 from server.errors import DomainError, require
+from server.prompt_sections import system_prompt
 from server.scenes.output import parse_scene, validate_result
 
 
@@ -50,7 +51,7 @@ def record_state(state, records):
 async def consume_actor(runner, job_id, snapshot, actor, record, records, state):
     saved = 0.0  # Persist the first partial response before waiting for another event.
     try:
-        async for event in runner.provider.generate(snapshot['profile'], snapshot['prompt']['template'], actor['content']):
+        async for event in runner.provider.generate(snapshot['profile'], system_prompt(snapshot), actor['content']):
             record['output'] += event.text
             record['usage'].update(event.usage)
             if event.model:

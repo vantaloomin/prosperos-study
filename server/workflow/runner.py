@@ -8,6 +8,7 @@ from server.agent_switches import require_agent
 from server.database import decode, encode, identifier, now, one
 from server.errors import DomainError, require
 from server.memory.source_evidence import quotation_matches
+from server.prompt_sections import system_prompt
 from server.workflow.models import ReviewOutput
 from server.workflow.readers import coverage_report, validate_reader
 
@@ -90,7 +91,7 @@ class ReviewRunner:
 
     async def consume(self, job_id, snapshot, state):
         saved = time.monotonic()
-        async for event in self.provider.generate(snapshot["profile"], snapshot["prompt"]["template"], snapshot["content"]):
+        async for event in self.provider.generate(snapshot["profile"], system_prompt(snapshot), snapshot["content"]):
             state["output"] += event.text
             state["usage"].update(event.usage)
             if event.model:

@@ -20,6 +20,8 @@ from server.memory.source_packet import assemble_sources
 from server.memory.summary_excerpt import summary_links
 from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
+from server.prompt_sections import compose, sections_for
+from server.providers.capabilities import input_capacity
 from server.roles import role_key, task_context
 from server.stories import check_revision
 from server.workflow.catalog import ROLE_MAP
@@ -70,21 +72,23 @@ def job_snapshot(connection, story, selection, context, *, validate_budget=True,
     require(len(selection.profile_ids) == len(set(selection.profile_ids)), "Select each comparison profile once.")
     profiles = [resolve_profile(connection, story, selection.key, value) for value in (selection.profile_ids or [None])]
     prompt = prompt or prompt_for_review(connection, selection.key, story)
+    sections = sections_for(connection, selection.key, story, manifest_id)
+    instructions = compose(prompt, sections)
     context = task_context(selection.key, context)
     original = context
     long_mode = bool(memory_policy and memory_policy.get('mode') == 'long')
     assets = manifest_view(connection, manifest_id) if long_mode and manifest_id and context.get('scope') != 'blind' else []
     with connection_index(connection, long_mode):
-        context, canon = compact_canon(context, prompt['template'], profiles, memory_policy, assets)
-        context, memory = assemble_sources(context, prompt['template'], profiles, memory_policy, summary_aids)
+        context, canon = compact_canon(context, instructions, profiles, memory_policy, assets)
+        context, memory = assemble_sources(context, instructions, profiles, memory_policy, summary_aids)
     if canon:
         memory = {**memory, 'canon': canon}
     derived_links = summary_links(context, summary_bindings)
     content = encode(context)
-    estimate = math.ceil(len((prompt["template"] + content).encode("utf-8")) / 3)
+    estimate = math.ceil(len((instructions + content).encode("utf-8")) / 3)
     if validate_budget:
         validate_job_budget(profiles, estimate)
-    return [{"step": selection.key, "role": role_key(selection.key), "profile": profile, "prompt": prompt,
+    return [{"step": selection.key, "role": role_key(selection.key), "profile": profile, "prompt": prompt, 'prompt_sections': sections,
              "content": content, "estimated_input_tokens": estimate,
              **({"source_memory": memory} if memory else {}),
              **(source_origins(original, assets) if (canon or derived_links) and freeze_sources else {}),
@@ -108,7 +112,7 @@ def reference_links(assets):
 
 def validate_job_budget(profiles, estimate):
     for profile in profiles:
-        capacity = profile["config"]["context_tokens"] - profile["config"]["max_output_tokens"]
+        capacity = input_capacity(profile["config"])
         require(estimate <= capacity, f"{profile['name']} cannot fit this request's estimated {estimate:,} input tokens. "
                 "Choose a narrower passage or a larger context allowance. No sources were silently dropped.", 409)
 

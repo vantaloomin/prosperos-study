@@ -6,6 +6,7 @@ from server.errors import require
 from server.memory.budget import token_estimate
 from server.memory.side_archive import classify_archive, discussion_documents, permitted_sources
 from server.memory.side_search import SourceArchive
+from server.providers.capabilities import input_capacity
 
 PROTOCOL = {
     'version': 1,
@@ -48,7 +49,7 @@ def packet(snapshot, discovery, sources=()):
 
 def prepare_archive(snapshot, history, profiles):
     documents, conversation = discussion_documents(history)
-    allowance = min(profile['config']['context_tokens'] - profile['config']['max_output_tokens'] for profile in profiles)
+    allowance = min(input_capacity(profile['config']) for profile in profiles)
     archive = {**snapshot, 'sources': [*classify_archive(snapshot['sources']), *documents],
                'retrieval': {'version': 1, 'protocol': PROTOCOL, 'input_allowance': allowance,
                              'overhead_margin': min(512, max(128, allowance // 50)),

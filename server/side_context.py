@@ -19,6 +19,7 @@ from server.memory.side_packet import prepare_archive
 from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
 from server.prompts import PROMPT_LABELS, prompt_snapshot
+from server.providers.capabilities import input_capacity
 from server.stories import check_revision
 from server.workflow.reviews import job_view
 
@@ -176,7 +177,7 @@ def assemble_context(snapshot, profile, source_ids):
                       "source_index": [{"id": item["id"], "title": item["title"]} for item in documents],
                       "sources": [item for item in documents if item["id"] in source_ids]})
     config = profile["config"]
-    capacity = config["context_tokens"] - config["max_output_tokens"]
+    capacity = input_capacity(config)
     require(estimated_tokens(snapshot["prompt"]["template"], content) <= capacity,
             "This source selection exceeds the model's context allowance. Use a larger-context profile or a new side conversation. No source was silently truncated.", 409)
     return content

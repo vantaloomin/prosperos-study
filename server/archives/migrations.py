@@ -216,6 +216,22 @@ def upgrade_thirty_one(document):
             })
             document['prompt_heads'][key] = version_id
         document['version'] = 32
+    return upgrade_thirty_two(document)
+
+
+def upgrade_thirty_two(document):
+    if document['version'] == 32:
+        from server.archives.format import V32_TABLES
+        from server.section_prompts import SECTION_PROMPTS
+        require(set(document['data']) == set(V32_TABLES), 'Version 32 needs its original record groups.')
+        require(set(document['prompt_heads']) == set(PROMPT_LABELS) | set(ROLE_PROMPTS), 'Version 32 needs its original prompts.')
+        for key, template in SECTION_PROMPTS.items():
+            version_id = f'{key}-archive-upgrade-v32'
+            document['data']['prompt_versions'].append({'id': version_id, 'key': key, 'number': 1,
+                                                       'template': template, 'created_at': document['created_at']})
+            document['prompt_heads'][key] = version_id
+        document['data']['manuscripts'] = []
+        document['version'] = 33
     return document
 
 

@@ -30,7 +30,7 @@ def interpretation_snapshot(connection, branch_id, body):
     sources.extend(continuity_sources(continuity_view(connection, branch['head_id'], plan_head(connection, branch['id']))))
     context = {'authority': AUTHORITY, 'story': story_context(story), 'targets': targets, 'sources': sources,
                'chronology': {'origin': setup['recipe']['origin'], 'day': setup['day']}, 'direction': body.direction}
-    jobs = job_snapshot(connection, story, body, context)
+    jobs = job_snapshot(connection, story, body, context, manifest_id=branch['manifest_id'])
     return {'branch': branch, 'story_revision': story['revision'], 'background_state_id': setup_id,
             'content': jobs[0]['content'], 'jobs': jobs}
 

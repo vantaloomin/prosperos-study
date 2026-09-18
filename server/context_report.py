@@ -5,6 +5,7 @@ import math
 
 from server.database import decode, encode
 from server.errors import require
+from server.section_prompts import SECTION_LABELS
 
 LABELS = {
     'story': 'Story and writing preferences', 'history': 'Selected story path',
@@ -24,17 +25,29 @@ LABELS = {
 def input_sections(snapshot):
     """Include JSON keys, separators and braces in the byte accounting."""
     values = list(decode(snapshot['content']).items())
-    sections = [{'key': 'prompt', 'label': 'Writer instructions', 'text': snapshot['prompt']['template'],
-                 'source_count': 1, 'description': f"Prompt v{snapshot['prompt']['number']}"}]
+    sections = instruction_sections(snapshot)
+    instruction_count = len(sections)
     for index, (key, value) in enumerate(values):
         text = ('{' if index == 0 else ',') + encode(key) + ':' + encode(value)
         text += '}' if index == len(values) - 1 else ''
         sections.append({'key': key, 'label': LABELS.get(key, key), 'text': text,
                          'source_count': len(value) if isinstance(value, list) else 1,
                          'description': section_description(key, value)})
-    require(''.join(item['text'] for item in sections[1:]) == snapshot['content'],
+    require(''.join(item['text'] for item in sections[instruction_count:]) == snapshot['content'],
             'This input format cannot be broken down without changing its bytes.', 409)
     return sections
+
+
+def instruction_sections(snapshot):
+    sections = snapshot.get('prompt_sections', [])
+    mode = [dict(item, text=item['template'] + '\n\n') for item in sections if item['key'].startswith('section:mode-')]
+    agency = [dict(item, text='\n\n' + item['template']) for item in sections if item['key'].startswith('section:agency-')]
+    role = {'key': 'prompt', 'label': 'Writer instructions', 'text': snapshot['prompt']['template'],
+            'source_count': 1, 'description': f"Prompt v{snapshot['prompt']['number']}"}
+    def section(item):
+        return {'key': item['key'], 'label': SECTION_LABELS[item['key']], 'text': item['text'],
+                'source_count': 1, 'description': 'Versioned mode guidance · ' + item['id']}
+    return [*[section(item) for item in mode], role, *[section(item) for item in agency]]
 
 
 def section_description(key, value):
@@ -62,6 +75,7 @@ def section_summaries(sections):
 
 def profile_budget(profile, estimate, overhead=0):
     config = profile['config']
+    overhead += config.get('context_safety_tokens', 0)
     reserved = config['max_output_tokens']
     remaining = config['context_tokens'] - estimate - reserved - overhead
     return {'profile_id': profile['profile_id'], 'version_id': profile['id'], 'name': profile['name'],
@@ -73,7 +87,7 @@ def profile_budget(profile, estimate, overhead=0):
 
 def preview_fingerprint(snapshot, budgets, assessment):
     identity = {'branch': snapshot['branch'], 'story_revision': snapshot['story_revision'],
-                'prompt': snapshot['prompt'], 'content': snapshot['content'],
+                'prompt': snapshot['prompt'], 'prompt_sections': snapshot.get('prompt_sections', []), 'content': snapshot['content'],
                 'budgets': budgets, 'assessment': assessment, 'memory': snapshot.get('memory'),
                 'opportunity_id': snapshot.get('opportunity_id'),
                 'background_state_id': snapshot.get('background_state_id')}
@@ -96,6 +110,8 @@ def source_labels(snapshot, section):
 
 
 def readable_section(snapshot, key):
+    if key.startswith('section:'):
+        return next(item['template'] for item in snapshot.get('prompt_sections', []) if item['key'] == key)
     if key == 'prompt':
         return snapshot['prompt']['template']
     value = decode(snapshot['content'])[key]

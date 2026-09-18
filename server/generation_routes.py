@@ -116,6 +116,11 @@ def prompts(request: Request, story_id: str | None = None):
     return Prompts(request.app.state.database).list(story_id)
 
 
+@router.get('/mode-guidance')
+def mode_guidance(request: Request, story_id: str | None = None):
+    return Prompts(request.app.state.database).sections(story_id)
+
+
 @router.put('/prompt-sections/activation')
 def activate_prompt_section(body: PromptSectionActivation, request: Request):
     return Prompts(request.app.state.database).activate_section(body)

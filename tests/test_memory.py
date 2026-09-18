@@ -41,7 +41,8 @@ def small_profile(client, name='Writer', limit=4096):
 
 
 def long_story(client):
-    response = client.post('/api/stories', json={'title': 'Long path', 'settings': {'memory': {'mode': 'long'}}})
+    response = client.post('/api/stories', json={'title': 'Long path',
+        'settings': {'memory': {'mode': 'long'}, 'disabled_prompts': []}})
     assert response.status_code == 201, response.text
     story = response.json()
     texts = fixture_context()['history']

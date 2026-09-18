@@ -25,7 +25,13 @@ def agent_enabled(connection, key, story=None):
 
 def require_agent(connection, key, story=None):
     require(agent_enabled(connection, key, story),
-            f'The {key} agent is disabled in Settings > Prompts. Enable it before requesting this work.', 409)
+            f'The {key} agent is disabled in {"Settings > Prompts" if enabled_source(connection, key, story) == "workspace" else "Story setup > Agents"}. Enable it before requesting this work.', 409)
+
+
+def enabled_source(connection, key, story=None):
+    if key in disabled_agents(connection):
+        return 'workspace'
+    return 'story' if key in disabled_agents(connection, story) else 'on'
 
 
 def set_agent(connection, key, enabled, expected_revision):

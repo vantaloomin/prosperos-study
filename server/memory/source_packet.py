@@ -13,6 +13,7 @@ from server.memory.scoped_aids import chunk_key, source_aid
 from server.memory.settings import memory_settings
 from server.memory.source_evidence import cited_ids
 from server.memory.summary_excerpt import smaller_summary, summary_excerpt
+from server.providers.capabilities import input_capacity
 
 GUIDANCE = (
     'Some earlier accepted prose is omitted. These are exact source excerpts, not summaries. '
@@ -169,7 +170,7 @@ def assemble_sources(context, prompt, profiles, policy, summary_aids=None):
     settings = memory_settings(policy)
     if settings.mode != 'long' or context.get('scope') == 'blind':
         return context, None
-    allowance = min(profile['config']['context_tokens'] - profile['config']['max_output_tokens'] for profile in profiles)
+    allowance = min(input_capacity(profile['config']) for profile in profiles)
     margin = min(512, max(128, allowance // 50))
     target = allowance - margin
     if token_estimate(prompt, context) <= target and not excluded_chunks(context):

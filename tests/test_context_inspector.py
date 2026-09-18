@@ -45,7 +45,8 @@ def test_preview_and_pages_are_read_only_and_match_actual_provider_input(client,
     client.app.state.runner.provider = provider
     run = client.post(f"/api/branches/{story['branch_id']}/generations", json={**body, 'operation_id': uuid4().hex}).json()
     frozen = finished(client, run['id'])['snapshot']
-    assert (texts[0], ''.join(texts[1:])) == provider.calls[0][1:]
+    instructions = len(frozen['prompt_sections']) + 1
+    assert (''.join(texts[:instructions]), ''.join(texts[instructions:])) == provider.calls[0][1:]
     assert frozen['estimated_input_tokens'] == estimated
 
 

@@ -73,8 +73,10 @@ class Generations:
             cached = previous(connection, body.operation_id, "alternate", payload)
             if cached is not None:
                 return cached
-            require_agent(connection, "writer")
             source = one(connection, "SELECT * FROM candidates WHERE id=?", (candidate_id,))
+            story = one(connection, 'SELECT s.* FROM stories s JOIN branches b ON b.story_id=s.id '
+                        'JOIN generations g ON g.branch_id=b.id WHERE g.id=?', (source['generation_id'],))
+            require_agent(connection, 'writer', story)
             require(source["status"] == "done", "Finish this draft before making another telling.", 409)
             candidate = self._candidate(connection, source["generation_id"], decode(source["profile"]))
             return remember(connection, body.operation_id, "alternate", payload,

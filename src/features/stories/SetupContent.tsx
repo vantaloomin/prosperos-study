@@ -1,3 +1,4 @@
+import { TemplateChoice } from '../prompts/AgentTemplates'
 import { Field, TextField } from '../../components/Fields'
 import { experiences, type SetupDraft } from './setup'
 import { StoryStyle } from './WritingPreferences'
@@ -18,12 +19,16 @@ const assistance = [
 export function SetupAssistance({ draft, patch }: { draft: SetupDraft; patch: (next: Partial<SetupDraft>) => void }) {
   return <div className="form-stack"><fieldset className="setup-choices"><legend className="field-label">How much surprise?</legend>{assistance.map((item) => <label className={`setup-choice ${draft.randomness === item.id ? 'selected' : ''}`} key={item.id}><input type="radio" name="setup-randomness" checked={draft.randomness === item.id} onChange={() => patch({ randomness: item.id })} /><span><strong>{item.name}</strong><small>{item.description}</small></span></label>)}</fieldset>
     <p className="subtle">Events use eligible story beats, with a chance and cooldown. In Randomness, you can prepare a beat yourself or enable model-assisted beat checks. Every table and result can be switched off; intentional no-event outcomes remain possible.</p>
-    <div className="setup-callout"><strong>You keep the final say</strong><p className="subtle">Workflow offers planning, specialist reviews, and proposed continuity changes with explicit acceptance. The sidebar collaborator can discuss the full context but cannot advance the Story. Prompts and individual model assignments stay in secondary editors.</p></div>
+    <TemplateChoice experience={draft.experience} value={draft.agent_settings} onChange={agent_settings => patch({ agent_settings })} /><div className="setup-callout"><strong>You keep the final say</strong><p className="subtle">Workflow offers planning, specialist reviews, and proposed continuity changes with explicit acceptance. The sidebar collaborator can discuss the full context but cannot advance the Story. Prompts and individual model assignments stay in secondary editors.</p></div>
   </div>
 }
 
 function castReview(draft: SetupDraft) {
   return { label: draft.experience === 'roleplay' ? 'Your character' : 'Cast', text: draft.player_agency === 'user' ? 'Your viewpoint character’s choices remain yours' : 'Shared with the writer', step: 3 }
+}
+
+function agentsReview(draft: SetupDraft) {
+  return { label: 'Agents', text: `${draft.experience === 'roleplay' ? 'Active' : 'Passive'} template${draft.agent_settings?.agent_template.customized ? ' · customized' : ''}`, step: 4 }
 }
 
 function reviewRows(draft: SetupDraft, profiles: ProfileList) {
@@ -36,6 +41,7 @@ function reviewRows(draft: SetupDraft, profiles: ProfileList) {
     { label: 'Participation', text: draft.persona || 'Decide as you write', step: 3 },
     castReview(draft),
     { label: 'Library', text: draft.assets.map((asset) => `${asset.name} v${asset.number}`).join(', ') || 'No items attached', step: 3 },
+    agentsReview(draft),
     { label: 'Randomness', text: assistance.find((item) => item.id === draft.randomness)?.name ?? 'Off', step: 4 },
   ]
 }

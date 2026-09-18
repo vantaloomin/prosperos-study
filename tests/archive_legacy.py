@@ -69,6 +69,7 @@ def remove_v061_records(document):
 
 
 def remove_v062_prompts(document):
+    remove_v07_records(document)
     from server.database import decode, encode
     from server.prompts import LEGACY_PROMPT_LABELS
     keys = set(document['prompt_heads']) - set(LEGACY_PROMPT_LABELS)
@@ -80,3 +81,22 @@ def remove_v062_prompts(document):
         if 'prompt_versions' in settings:
             settings['prompt_versions'] = {key: value for key, value in settings['prompt_versions'].items() if key not in keys}
         story['settings'] = encode(settings)
+
+
+def remove_v07_records(document):
+    from server.database import decode, encode
+    from server.section_prompts import SECTION_LABELS
+    assert document['data'].pop('manuscripts') == []
+    document['prompt_heads'] = {key: value for key, value in document['prompt_heads'].items() if key not in SECTION_LABELS}
+    document['data']['prompt_versions'] = [row for row in document['data']['prompt_versions'] if row['key'] not in SECTION_LABELS]
+    for story in document['data']['stories']:
+        settings = decode(story['settings'])
+        if 'prompt_versions' in settings:
+            settings['prompt_versions'] = {key: value for key, value in settings['prompt_versions'].items() if key not in SECTION_LABELS}
+        story['settings'] = encode(settings)
+    for rows in document['data'].values():
+        for row in rows:
+            if 'snapshot' in row:
+                snapshot = decode(row['snapshot'])
+                assert not snapshot.get('prompt_sections'), 'Build historical requests with prompt_sections disabled.'
+                assert not snapshot.get('writer_snapshot', {}).get('prompt_sections'), 'Build historical writer requests with prompt_sections disabled.'

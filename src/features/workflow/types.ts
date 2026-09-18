@@ -2,7 +2,7 @@ import type { SourceMemoryReceipt } from './SourceMemoryCoverage'
 import type { ModelProfile } from '../models/types'
 import type { BeatCoverage } from '../scenes/types'
 
-export interface TaskSetting { historical?: boolean; key: string; label: string; enabled: boolean; custom_prompt: boolean; pinned: boolean; prompt_id: string; number: number; profile_id: string | null }
+export interface TaskSetting { historical?: boolean; key: string; label: string; enabled: boolean; enabled_source?: string; custom_prompt: boolean; pinned: boolean; prompt_id: string; number: number; profile_id: string | null }
 export interface Lens { key: string; name?: string; focus: string }
 export interface WorkflowStep { enabled?: boolean; key: string; name: string; scope: string; focus?: string; effective_profile_id: string | null; tasks?: TaskSetting[]; lenses?: Lens[] }
 export interface Routing {
@@ -22,12 +22,12 @@ export interface ReviewPreview {
 export interface ReviewFinding { lens?: string; severity: 'hard' | 'soft' | 'cut' | 'hold'; source_id: string; quote: string; explanation: string; suggestion: string }
 export interface ReviewJob {
   id: string; step: string; status: string; output: string; error: string; attempt: number; usage: Record<string, unknown>
-  snapshot: { source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number }
+  snapshot: { prompt_sections?: import('../../components/PromptInstructions').PromptSection[]; source_memory?: SourceMemoryReceipt; profile: ModelProfile; prompt: { id: string; number: number; template: string }; content: string; estimated_input_tokens: number }
   result: { summary: string; findings: ReviewFinding[]; coverage?: BeatCoverage[] } | null
 }
 export interface ReviewRun {
   id: string; created_at: string; selections: Record<string, string>; jobs: ReviewJob[]
   current_scene_draft?: boolean | null
-  snapshot: { branch: { id: string; name: string; revision: number }; story_revision: number; draft_messages: number; from_node_id: string | null; through_node_id: string | null; scene?: ReviewScene }
+  snapshot: { prompt_sections?: import('../../components/PromptInstructions').PromptSection[]; branch: { id: string; name: string; revision: number }; story_revision: number; draft_messages: number; from_node_id: string | null; through_node_id: string | null; scene?: ReviewScene }
 }
 export const working = (job: ReviewJob) => ['queued', 'running'].includes(job.status)

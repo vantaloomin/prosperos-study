@@ -41,7 +41,7 @@ test('invalid stored choices recover safe defaults and finite step indexes', () 
 })
 
 test('new onboarding leads with writing while existing stories and resumed drafts keep their choices', () => {
-  assert.deepEqual(experienceChange('roleplay'), { experience: 'roleplay', player_agency: 'user' })
+  assert.deepEqual(experienceChange('roleplay'), { experience: 'roleplay', player_agency: 'user', response_length: 'Flexible — stop when the next meaningful move belongs to the user.' })
   assert.deepEqual(experienceChange('directed'), { experience: 'directed' })
   assert.equal(experiences[0].id, 'directed')
   const fresh = freshSetup()

@@ -8,6 +8,7 @@ from server.memory.control_sources import characters, pinned_items
 from server.memory.control_state import controls_at
 from server.memory.knowledge import prepare_knowledge
 from server.profiles import resolve_profile
+from server.prompt_sections import compose, sections_for, system_prompt
 from server.prompts import prompt_snapshot
 
 ACTOR_RULE = (
@@ -77,14 +78,16 @@ def actor_jobs(connection, story, run, body, context):
     require(len(body.profile_ids) == len(set(body.profile_ids)), 'Choose each comparison profile once.')
     profiles = [resolve_profile(connection, story, body.key, key) for key in (body.profile_ids or [None])]
     prompt = prompt_snapshot(connection, body.key, story)
+    sections = sections_for(connection, body.key, story, run['snapshot']['branch']['manifest_id'])
     slots = check_assignments(context, body.dialogue_actors)
     controls = frozen_controls(connection, run)
-    actors = [prepare_actor(connection, run, actor, slots, controls, prompt, profiles) for actor in body.dialogue_actors]
-    return [{'step': body.key, 'profile': profile, 'prompt': prompt, 'content': encode(context),
+    composed = {**prompt, 'template': compose(prompt, sections)}
+    actors = [prepare_actor(connection, run, actor, slots, controls, composed, profiles) for actor in body.dialogue_actors]
+    return [{'step': body.key, 'profile': profile, 'prompt': prompt, 'prompt_sections': sections, 'content': encode(context),
              'dialogue_actors': actors, 'estimated_input_tokens': sum(actor['estimated_input_tokens'] for actor in actors)} for profile in profiles]
 
 
 def actor_preview(job):
     return [{'subject': actor['knowledge_lens']['subject'], 'slot_ids': actor['slot_ids'],
              'estimated_input_tokens': actor['estimated_input_tokens'], 'knowledge_lens': actor['knowledge_lens'],
-             'content': actor['content'], 'instructions': job['prompt']['template']} for actor in job.get('dialogue_actors', [])]
+             'content': actor['content'], 'instructions': system_prompt(job)} for actor in job.get('dialogue_actors', [])]

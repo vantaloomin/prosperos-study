@@ -32,6 +32,7 @@ from server.archives.scenes import validate_scenes
 from server.archives.side_memory import validate_side_memory
 from server.archives.summaries import validate_summaries
 from server.archives.summary_context import validate_writer_summaries
+from server.archives.v07 import validate_v07
 from server.archives.writer_memory import validate_writer_memory
 from server.character_content import validate_character
 from server.database import SCHEMA, decode, one
@@ -79,6 +80,7 @@ def validate_archive(document):
         validate_links(connection, document)
         validate_passage_revisions(connection, document['data'])
         validate_content(connection, document)
+        validate_v07(connection, document['data'])
         validate_openings(connection, document['data'])
         validate_imports(connection, document['data'])
         validate_ownership(connection, document)
@@ -210,7 +212,9 @@ def validate_story_profiles(connection, settings):
 
 def validate_profile(profile):
     require(not profile.get("credential_ref"), "Credentials and vault references cannot be imported.")
-    SavedProfileConfig.model_validate(profile["config"])
+    # Older archives could record a profile whose output reservation exhausted its context.
+    # Preserve that evidence; a new request still has to pass the normal input-budget checks.
+    SavedProfileConfig.model_validate(profile["config"], context={'archived': True})
 
 
 def validate_models_and_tables(data):

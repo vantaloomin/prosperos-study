@@ -10,6 +10,7 @@ from server.mechanics.engine import resolve_beat
 from server.mechanics.models import Beat, RngSettings
 from server.mechanics.storage import opportunity_stale, opportunity_view
 from server.memory.packet import ordered_layers
+from server.providers.capabilities import input_capacity
 
 
 def opportunity_for(connection, run, snapshot, job):
@@ -53,7 +54,7 @@ def apply_opportunity(writer, profiles, opportunity_id, opportunity):
         memory['content_sha256'] = hashlib.sha256(writer['content'].encode('utf-8')).hexdigest()
     estimated = math.ceil(len((writer['prompt']['template'] + writer['content']).encode('utf-8')) / 3)
     for profile in profiles:
-        capacity = profile['config']['context_tokens'] - profile['config']['max_output_tokens']
+        capacity = input_capacity(profile['config'])
         margin = memory.get('overhead_margin', 0) if current_receipt else 0
         require(estimated + margin <= capacity, f"The assessed beat exceeds {profile['name']}'s context allowance. Continue without chance or use another profile.", 409)
     writer['estimated_input_tokens'] = estimated

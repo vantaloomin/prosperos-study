@@ -11,7 +11,7 @@ from server.database import decode, encode, many, now, one
 from server.errors import require
 from server.profiles import primary_id
 
-STORY_TABLES = ("manifests", "branches", "nodes", "adoptions", "mechanic_opportunities", "side_threads", 'background_states')
+STORY_TABLES = ("manifests", "branches", "nodes", "adoptions", "mechanic_opportunities", "side_threads", 'background_states', 'manuscripts')
 RELATED = (
     ('path_revisions', 'branch_id', 'branches'),
     ('continuity_edits', 'branch_id', 'branches'), ('branch_continuity_edits', 'branch_id', 'branches'),

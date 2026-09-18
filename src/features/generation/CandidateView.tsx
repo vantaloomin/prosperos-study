@@ -1,6 +1,7 @@
 import { Check, GitBranch, RotateCcw, Square } from 'lucide-react'
 import { api, operationId } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
+import { UsageSummary } from '../../components/UsageSummary'
 import { useAction } from '../../hooks/useAction'
 import { isWorking } from './types'
 import type { Candidate, Generation } from './types'
@@ -28,9 +29,10 @@ export function CandidateView({ candidate, generation, onBranch, onClose, onAlte
   })
   return <section className="candidate-view"><RequestStatus candidate={candidate} /><CandidateText candidate={candidate} />
     <ErrorNotice message={recovery.problem || candidate.error || action.error} />
+    <UsageSummary usage={candidate.usage} />
     <CandidateActions candidate={candidate} stale={generation.stale} busy={action.busy} onAccept={accept} onControl={control} />
     {candidate.status === 'done' && <div className="alternate-action"><button className="text-button" onClick={alternate} disabled={action.busy}><RotateCcw size={14} />Try another</button><p className="subtle">One request with this profile's saved settings, prompt, context and rolls. Existing text and continuations remain available.</p></div>}
-    <details className="request-details"><summary>Request details</summary><p>Saved request limit: {candidate.profile.config.timeout_seconds} seconds.</p>{candidate.activity?.error_kind && <p>Result: {candidate.activity.error_kind.replaceAll('_', ' ')}</p>}<Usage usage={candidate.usage} /><AttemptHistory candidateId={candidate.id} attempt={candidate.attempt} /></details>
+    <details className="request-details"><summary>Request details</summary><p>Saved request limit: {candidate.profile.config.timeout_seconds} seconds.</p>{candidate.activity?.error_kind && <p>Result: {candidate.activity.error_kind.replaceAll('_', ' ')}</p>}<AttemptHistory candidateId={candidate.id} attempt={candidate.attempt} /></details>
   </section>
 }
 
@@ -44,10 +46,4 @@ function CandidateActions({ candidate, stale, busy, onAccept, onControl }: { can
   if (candidate.accepted_branch_id) return <div className="candidate-actions"><button className="button primary" onClick={() => onAccept(false)}><Check size={15} />Open accepted path</button></div>
   if (candidate.status !== 'done') return <div className="candidate-actions"><button className="button" onClick={() => onControl('retry')} disabled={busy}><RotateCcw size={15} />Retry original inputs</button><p className="subtle">Uses the original model settings, including the output limit. After changing a profile, close this draft and start a new continuation.</p></div>
   return <div className="candidate-actions">{!stale && <button className="button primary" disabled={busy} onClick={() => onAccept(false)}><Check size={15} />Keep</button>}<button className="button" disabled={busy} onClick={() => onAccept(true)}><GitBranch size={15} />Keep on new branch</button>{stale && <p className="subtle">The original story has moved on. A new branch preserves this draft's starting point.</p>}</div>
-}
-
-function Usage({ usage }: { usage: Record<string, unknown> }) {
-  const entries = Object.entries(usage)
-  if (!entries.length) return <p className="usage-note">Token usage has not been reported by this provider.</p>
-  return <details className="usage-details"><summary>Reported usage</summary><pre>{JSON.stringify(usage, null, 2)}</pre></details>
 }

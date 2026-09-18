@@ -128,7 +128,7 @@ def test_specialist_replay_rejects_summary_receipt_tampering(kind):
 def setup_story(client):
     profile = small_profile(client)
     story = client.post('/api/stories', json={'title': 'Condensed history', 'opening_text': OLD,
-                        'settings': {'memory': POLICY}}).json()
+                        'settings': {'memory': POLICY, 'disabled_prompts': []}}).json()
     client.app.state.summary_runner.provider = SummaryProvider()
     run = started(client, story['branch_id'])
     body = publication(client, run, story['branch_id'])

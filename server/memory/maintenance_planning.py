@@ -3,6 +3,7 @@ from server.database import decode, many, one
 from server.errors import require
 from server.memory.summary_context import prepared_from_sources, source_chunks, source_evidence
 from server.memory.summary_service import guard_prepared, preview_view
+from server.providers.capabilities import input_capacity
 from server.stories import check_revision
 from server.workflow.context import snapshot_hash, validate_job_budget
 
@@ -73,7 +74,7 @@ def fitting_run(connection, branch, story, sources, profile_ids):
     while sources:
         run = prepared_from_sources(connection, branch, story, sources, profile_ids, validate_budget=False)
         jobs = run['jobs']
-        fits = all(job['estimated_input_tokens'] <= job['profile']['config']['context_tokens'] - job['profile']['config']['max_output_tokens'] for job in jobs)
+        fits = all(job['estimated_input_tokens'] <= input_capacity(job['profile']['config']) for job in jobs)
         if fits or len(sources) == 1:
             validate_job_budget([job['profile'] for job in jobs], jobs[0]['estimated_input_tokens'])
             return run

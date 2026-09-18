@@ -1,3 +1,4 @@
+import { matchingAgentSettings, restoreAgentSettings, type AgentSettings } from '../prompts/agentSettings.ts'
 import type { AssetVersion, OpeningSource } from '../../types'
 import type { ProfileList } from '../models/types'
 
@@ -21,13 +22,14 @@ export interface StoryStart {
   settings: Record<string, unknown>; attachments: { asset_id: string; version_id: string }[]
 }
 export interface SetupDraft extends WritingPreferences {
+  agent_settings?: AgentSettings
   schema: number; step: number; furthestStep: number; title: string; premise: string; opening: string; primary_profile_id: string
   randomness: string; assets: SetupAsset[]; legacyAssets: string[]; pending: StoryStart | null
   opening_source: OpeningSource | null
 }
 const legacyPreferences: WritingPreferences = { experience: 'roleplay', genre: '', tone: '', persona: '', pov: 'second person', tense: 'present', response_length: 'A few paragraphs', player_agency: 'user' }
 export const preferenceDefaults: WritingPreferences = { ...legacyPreferences, experience: 'directed', pov: 'third person', tense: 'past', player_agency: 'shared' }
-export const experienceChange = (experience: string): Partial<WritingPreferences> => ({ experience, ...(experience === 'roleplay' ? { player_agency: 'user' } : {}) })
+export const experienceChange = (experience: string): Partial<WritingPreferences> => ({ experience, ...(experience === 'roleplay' ? { player_agency: 'user', response_length: 'Flexible — stop when the next meaningful move belongs to the user.' } : {}) })
 export const freshSetup = (): SetupDraft => ({ ...preferenceDefaults, schema: 2, step: 0, furthestStep: 0, title: '', premise: '', opening: '', opening_source: null, primary_profile_id: '', randomness: 'off', assets: [], legacyAssets: [], pending: null })
 export const pinAsset = (asset: AssetVersion): SetupAsset => ({ asset_id: asset.asset_id, version_id: asset.id, name: asset.name, kind: asset.kind, number: asset.number })
 
@@ -47,6 +49,8 @@ export function restoreSetup(value: unknown): SetupDraft {
   draft.legacyAssets = legacySelections(saved)
   draft.pending = pendingStart(saved.pending)
   draft.opening_source = restoreOpeningSource(saved.opening_source)
+  const agents = restoreAgentSettings(saved.agent_settings)
+  if (agents) draft.agent_settings = agents
   if (saved.schema !== 2) draft.step = 2
   if (draft.pending) draft.step = 5
   draft.furthestStep = Math.max(draft.step, setupStep(saved.furthestStep))
@@ -94,7 +98,8 @@ export function storyStart(draft: SetupDraft, profiles: ProfileList, library: As
   return { operation_id: operation, title: draft.title.trim(), premise: draft.premise, opening_text: draft.opening,
     ...(draft.opening_source ? { opening_source: draft.opening_source } : {}),
     settings: { ...writingPreferences(draft as unknown as Record<string, unknown>), primary_profile_id: draft.primary_profile_id || profiles.primary_profile_id,
-      randomness: presets[draft.randomness] ?? presets.off },
+      randomness: presets[draft.randomness] ?? presets.off,
+      ...matchingAgentSettings(draft.experience, draft.agent_settings) },
     attachments: selectedAssets(draft, library).map(({ asset_id, version_id }) => ({ asset_id, version_id })) }
 }
 

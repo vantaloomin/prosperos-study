@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.6.2 - consolidated writing workflow** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.7 - manuscripts, model controls, and agent templates** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -19,6 +19,7 @@ The interesting part often comes after the first response: a better line, a diff
 | Try the other ending | Branch from an earlier passage, explore alternate responses, and find your way back with a visual branch map. |
 | Keep earlier events within reach | Long story memory recalls older passages locally; review plans and commitments without rewriting the manuscript. |
 | Keep control of the draft | Generated prose appears inline as an unaccepted draft. Keep it, keep it on a new branch, try another, or dismiss it. |
+| Assemble a book | Organize chapters and scenes, choose each scene's telling, bookmark passages, search the manuscript, and export DOCX or EPUB. |
 | Build a world across several stories | Reuse Characters and Canon collections. Each story keeps its chosen versions until you decide to update it. |
 | Talk through an idea | A docked, floating, or full-workspace Collaborator can discuss the story, critique a passage, or help with a prompt without advancing the narrative. |
 | Give different jobs to different models | Choose a Primary Writer, override individual steps, and deliberately compare several models on the same inputs. |
@@ -27,6 +28,10 @@ The interesting part often comes after the first response: a better line, a diff
 ### Write, direct, or roleplay
 
 Start with **Write a story** for prose and author direction, **Build a scene** for a guided planning and revision workflow, or **Roleplay** to participate as a character. Author notes stay distinct from story text, and roleplay preferences let you reserve your character's choices.
+
+New Stories use an **Agent Template**. **Passive** enables the complete writing, scene, and review workflow. **Active** starts with the writer, Collaborator, background planning, and Scribe memory tasks; full-scene drafting and readers are optional. Customize in **Story workflow > Story agents** or **Story setup > Agents**. Workspace switches in Settings remain the upper limit. Changing an existing Story's experience preserves its switches; applying a template shows the changes first.
+
+Editable mode guidance sets the shape of a response, while separate agency guidance controls who may portray the user's character. These follow the Story's experience and agency preference independently. Active uses Flexible reply length by default. **Settings > Prompts > Mode guidance** edits workspace defaults; Story agents offers Story overrides and an option to use role prompts alone. Requests record the resolved persona name and exact section versions.
 
 Submitting a passage can automatically request the next draft. Prefer to write uninterrupted? Turn off **Continue after sending** and generate when you are ready. Manual writing works without a model connection.
 
@@ -40,6 +45,12 @@ Edit an earlier passage to create a new branch. Browse alternative responses, re
 
 **Remove passage from this path** creates a revised path with a removal marker and **Undo**. Later prose stays in order. The original path and private archives retain the original text. Future context and readable exports exclude the removed passage. Dependent memory, plans, and chance/background state from that point onward stay on the original path; acknowledge the reset to the state before the passage and review later prose before continuing. No model requests or rolls are replayed.
 
+### Assemble and publish a manuscript
+
+Open **Book** in the workspace header (or **Tools > Book** on narrow screens). Add chapters, then select a telling and a passage range for each named scene. Move scenes within or between chapters and reorder chapters. **Save manuscript** records the organization; unsaved edits remain a local draft. Each selection captures a point on its path, so later writing cannot silently change the assembled book. **Choose telling** deliberately updates a selection.
+
+**Read & bookmark** presents the chosen scenes in book order. **Search** covers all saved chapters and jumps to matching passages. **Publish** prepares a fixed version for download as editable **DOCX** or **EPUB 3** with a linked contents page. Publication settings include title, author, language, optional scene titles, and whether to include character contributions. Author's notes, bookmarks, private context, and model records are excluded. The source Story and its alternate tellings stay available.
+
 ### Keep the past, and what is still to come
 
 In **Story setup > Writing preferences > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows what each writing request includes. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
@@ -50,7 +61,7 @@ Open **Context > Memory** to record **Plans & commitments**: who agreed, who wit
 
 Memory is selective and can miss indirect references, changing motives, or important evidence. Model-generated suggestions and summaries can misinterpret a passage even when their quotations are exact. Inspect the supplied context and keep author review part of your workflow. This release does not promise perfect recall.
 
-See [what changed in v0.6.1](CHANGELOG.md#v061---2026-09-18) for release details.
+See [what changed in v0.7](CHANGELOG.md#v07---2026-09-18) for release details.
 
 ### Give your world a home
 
@@ -104,6 +115,10 @@ Use **Settings > Models** to save connections. **Test connection** discovers ava
 
 Set one profile as **Primary Writer** to get started. Add role-specific profiles or explicit model comparisons when you need them. Profiles can use different providers; the app does not silently switch providers if a request fails.
 
+In a profile's **Generation settings**, reserve separate room for story input, total output, and a context safety margin. Thinking controls vary by adapter: effort, budget or adaptive modes, compatible chat-template thinking, or LM Studio's discovered native options. Blank controls keep provider defaults. Manual thinking budgets must leave the configured response space; reported model limits and supported options are checked when available. Sampling controls also vary by adapter and model.
+
+**Maximum output tokens** includes thinking where the provider counts it. Set the desired prose length in Story setup separately. Request results show reported input, output, thinking, response, and cached tokens, with the raw usage report available. Unreported counts or cost stay unknown. OpenRouter charges are shown in reported credits; explicitly reported USD charges retain their currency. Changing a profile affects new requests; original-input retries keep the old limits.
+
 Provider usage, pricing, and access depend on your chosen service. Models and API credits are not bundled with the application.
 
 ## Get started on Windows
@@ -144,7 +159,7 @@ Stories and Library material are stored locally in the project's `data/` folder.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
 - **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.6.2. Archive format 32 adds combined role defaults while preserving historical tasks, prompt versions, and request bytes. Keep a pre-update backup if you need an older app version.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.7. Archive format 33 includes manuscript organization, bookmarks, and mode-guidance versions while preserving historical tasks and request bytes. Prepared publication downloads can be regenerated from the restored manuscript. Keep a pre-update backup if you need an older app version.
 
 ## Questions
 

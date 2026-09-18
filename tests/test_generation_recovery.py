@@ -56,6 +56,8 @@ def test_attempt_timing_retry_receipt_and_terminal_cancel(client, story):
 
 
 def test_activity_archive_round_trip_and_v30_migration(client, story):
+    assert client.put(f"/api/stories/{story['story_id']}/agents", json={
+        'expected_revision': 0, 'disabled': [], 'prompt_sections': False}).status_code == 200
     client.app.state.runner.provider = DraftProvider()
     make_profile(client, 'Writer', primary=True)
     run = generate(client, story)

@@ -10,6 +10,7 @@ from server.memory.retrieval import Corpus
 from server.memory.settings import memory_settings
 from server.memory.source_evidence import cited_ids
 from server.memory.source_packet import project, query_text, required_context, whole
+from server.providers.capabilities import input_capacity
 
 ALGORITHM = 'prospero-specialist-canon-v1'
 GUIDANCE = (
@@ -120,7 +121,7 @@ def compact_canon(context, prompt, profiles, policy, assets):
     settings = memory_settings(policy)
     if settings.mode != 'long' or context.get('scope') == 'blind' or not assets:
         return context, None
-    allowance = min(profile['config']['context_tokens'] - profile['config']['max_output_tokens'] for profile in profiles)
+    allowance = min(input_capacity(profile['config']) for profile in profiles)
     target = allowance - min(512, max(128, allowance // 50))
     if token_estimate(prompt, context) <= target:
         return context, None
