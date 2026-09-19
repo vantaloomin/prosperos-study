@@ -1,5 +1,5 @@
 export interface SavedRequest {
-  kind: 'message' | 'generate' | 'alternate'
+  kind: 'message' | 'generate' | 'alternate' | 'continuity_revision'
   path: string
   body: { operation_id: string; [key: string]: unknown }
 }

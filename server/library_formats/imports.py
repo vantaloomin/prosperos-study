@@ -15,6 +15,7 @@ def preview(row):
     conversion = decode(row['conversion'])
     return {key: row[key] for key in ('id', 'filename', 'source_sha256', 'created_at')} | {
         **{key: conversion[key] for key in ('format', 'card_version', 'issues', 'drafts')},
+        **{key: conversion[key] for key in ('source_format', 'format_label', 'mapping') if key in conversion},
         'files': [{'path': path, 'characters': len(text)} for path, text in conversion['files'].items()]}
 
 

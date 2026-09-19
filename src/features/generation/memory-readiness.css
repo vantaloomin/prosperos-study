@@ -1,0 +1,7 @@
+.memory-readiness { margin-block: .5rem; }
+.memory-readiness summary { overflow-wrap: anywhere; }
+.memory-readiness ul { list-style: none; margin: 0; padding: 0; }
+.memory-readiness li { padding-block: .75rem; border-top: 1px solid var(--border); }
+.memory-readiness li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem .8rem; }
+.memory-readiness li > div > span { color: var(--muted); font-size: .85em; }
+.memory-readiness li p { margin-block: .4rem; overflow-wrap: anywhere; }

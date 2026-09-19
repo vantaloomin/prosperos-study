@@ -12,14 +12,15 @@ import { BackfillSetup } from './BackfillSetup'
 import { MaintenanceBatch } from './MaintenanceBatch'
 import { AuthorControls } from './AuthorControls'
 import { SceneRehearsal } from './SceneRehearsal'
+import { RelationshipPanel } from './RelationshipPanel'
 
 export default function SummaryWorkspace({ branch, onClose, focusOnClose }: { branch: Branch; onClose: () => void; focusOnClose: () => HTMLElement | null }) {
-  const [section, setSection] = useState<'summaries' | 'decisions' | 'rehearsal'>('summaries')
+  const [section, setSection] = useState<'summaries' | 'decisions' | 'rehearsal' | 'relationships'>('summaries')
   const [view, setView] = useState({ kind: 'excerpts', id: '' })
   const review = (id: string) => setView({ kind: 'run', id })
   return <Modal open wide title="Story memory" description="Give earlier passages more ways to be found. Review summaries against their exact sources; the manuscript remains yours." onClose={onClose} focusOnClose={focusOnClose}>
-    <div className="dialog-body form-stack"><div className="import-downloads" aria-label="Story memory sections"><button className="button" aria-pressed={section === 'summaries'} onClick={() => setSection('summaries')}>Reviewed summaries</button><button className="button" aria-pressed={section === 'decisions'} onClick={() => setSection('decisions')}>Author decisions</button><button className="button" aria-pressed={section === 'rehearsal'} onClick={() => setSection('rehearsal')}>Scene rehearsal</button></div>
-      {section === 'decisions' ? <AuthorControls key={branch.id} branch={branch} /> : section === 'rehearsal' ? <SceneRehearsal key={branch.id} branch={branch} onDecisions={() => setSection('decisions')} /> : <><RecallSwitch storyId={branch.story_id} />
+    <div className="dialog-body form-stack"><div className="import-downloads" aria-label="Story memory sections"><button className="button" aria-pressed={section === 'summaries'} onClick={() => setSection('summaries')}>Reviewed summaries</button><button className="button" aria-pressed={section === 'decisions'} onClick={() => setSection('decisions')}>Author decisions</button><button className="button" aria-pressed={section === 'rehearsal'} onClick={() => setSection('rehearsal')}>Scene rehearsal</button><button className="button" aria-pressed={section === 'relationships'} onClick={() => setSection('relationships')}>Relationship links</button></div>
+      {section === 'relationships' ? <RelationshipPanel key={branch.id} branch={branch} /> : section === 'decisions' ? <AuthorControls key={branch.id} branch={branch} /> : section === 'rehearsal' ? <SceneRehearsal key={branch.id} branch={branch} onDecisions={() => setSection('decisions')} /> : <><RecallSwitch storyId={branch.story_id} />
       <MaintenancePanel branch={branch} onBackfill={() => setView({ kind: 'backfill', id: '' })} onBatch={id => setView({ kind: 'batch', id })} />
       <MemoryView branch={branch} view={view} onView={setView} />
       <SummaryHistory branchId={branch.id} onOpen={review} /></>}

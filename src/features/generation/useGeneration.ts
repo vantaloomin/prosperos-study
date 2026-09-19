@@ -1,15 +1,15 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import { isWorking } from './types'
+import { isUpdating } from './types'
 import type { Generation } from './types'
 
 export function useGeneration(id: string, events = true) {
   const cache = useQueryClient()
   const query = useQuery({ queryKey: ['generation', id], queryFn: () => api<Generation>(`/generations/${id}`),
-    refetchInterval: (current) => current.state.data?.candidates.some(isWorking) ? 1500 : false,
+    refetchInterval: (current) => current.state.data?.candidates.some(isUpdating) ? 1500 : false,
   })
-  const active = query.data?.candidates.some(isWorking) ?? false
+  const active = query.data?.candidates.some(isUpdating) ?? false
   useEffect(() => {
     if (!active || !events) return
     const stream = new EventSource(`/api/generations/${id}/events`)

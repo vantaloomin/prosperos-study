@@ -6,8 +6,11 @@ from pathlib import PureWindowsPath
 
 from server.library_formats.brain_pack import convert_pack
 from server.library_formats.card_lore import issue
-from server.library_formats.cards import MAX_SOURCE_BYTES, convert_card
+from server.library_formats.cards import BASE_FIELDS, MAX_SOURCE_BYTES, convert_card
+from server.library_formats.json_formats import external_format
 from server.library_formats.markdown import read_document, read_json
+from server.library_formats.native_characters import convert_native_character
+from server.library_formats.native_lorebooks import convert_lorebook
 from server.library_formats.png_cards import embedded_card
 
 
@@ -23,19 +26,30 @@ def source_bytes(encoded):
 
 def convert_import(filename, source):
     suffix = PureWindowsPath(filename).suffix.lower()
-    if suffix == '.json':
-        return convert_json(source)
+    if len(source) > MAX_SOURCE_BYTES:
+        raise ValueError('Library imports are limited to 10 MiB per file.')
+    if suffix in {'.json', '.lorebook'}:
+        return convert_json(source, filename)
     if suffix == '.png':
         return convert_png(source)
     if suffix not in {'.md', '.markdown'}:
-        raise ValueError('Choose Markdown (.md) or a Character Card V1/V2/V3 JSON or PNG file.')
+        raise ValueError('Choose Markdown, supported character JSON / PNG, or a lorebook JSON / .lorebook file.')
     return convert_markdown(filename, source)
 
 
-def convert_json(source):
+def convert_json(source, filename='import.json'):
     value = read_json(source.decode('utf-8-sig'))
     if isinstance(value, dict) and str(value.get('schema', '')).startswith('sgc-brain/'):
         return convert_pack(value, source)
+    # Preserve the established CC converter byte-for-byte for historical receipts.
+    explicit_card = isinstance(value, dict) and ('spec' in value or all(key in value for key in BASE_FIELDS))
+    adapter = None if explicit_card else external_format(value)
+    if adapter:
+        if adapter.kind == 'lorebook':
+            return convert_lorebook(value, source, filename, adapter)
+        converted, data = convert_native_character(value, source, adapter)
+        converted['drafts'] = card_drafts(data, converted['issues'])
+        return converted
     converted = convert_card(source)
     data = value if converted['card_version'] == 'v1' else value['data']
     drafts = card_drafts(data, converted['issues'])
@@ -45,8 +59,8 @@ def convert_json(source):
 def convert_png(source):
     embedded, metadata = embedded_card(source)
     converted = convert_json(embedded)
-    if converted['format'] != 'card':
-        raise ValueError('PNG metadata must contain a Character Card. Import SGC packs as JSON files.')
+    if converted['format'] not in {'card', 'native-character'}:
+        raise ValueError('PNG metadata must contain a Character Card. Import knowledge packs and lorebooks as JSON files.')
     if metadata['png_payload'] == 'ccv3' and converted['card_version'] != 'v3':
         raise ValueError('The PNG ccv3 payload must contain a V3 Character Card.')
     digest = sha256(source).hexdigest()

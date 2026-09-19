@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import nullcontext
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -8,6 +9,7 @@ from server.assessment.preparation import after_acceptance
 from server.assessment.service import Assessments
 from server.assessment.writing import WritingRequests
 from server.context_inspector import ContextInspector, ContextSectionRequest
+from server.continuity_revision import RevisionRequest
 from server.database import encode
 from server.generation_models import (
     AcceptCandidate,
@@ -24,6 +26,7 @@ from server.prompts import (
     PromptSectionActivation,
     PromptUpdate,
 )
+from server.request_timing import writing_clock
 
 router = APIRouter(prefix="/api")
 
@@ -40,7 +43,9 @@ def context_section(branch_id: str, body: ContextSectionRequest, request: Reques
 
 @router.post("/branches/{branch_id}/generations", status_code=201)
 async def generate(branch_id: str, body: GenerateRequest, request: Request):
-    result = await run_in_threadpool(WritingRequests(request.app.state.database).create, branch_id, body)
+    scheduler = getattr(request.app.state.runner.provider, 'scheduler', None)
+    with writing_clock(), scheduler.foreground_work() if scheduler else nullcontext():
+        result = await run_in_threadpool(WritingRequests(request.app.state.database).create, branch_id, body)
     if 'assessment_id' in result:
         for job in Assessments(request.app.state.database).pending(result['assessment_id']):
             request.app.state.assessment_runner.start(job['id'])
@@ -71,7 +76,7 @@ async def updates(request, generation_id):
         if data != previous:
             yield f"data: {data}\n\n"
             previous = data
-        if all(c["status"] not in {"queued", "running"} for c in result["candidates"]):
+        if all(c["status"] not in {"queued", "running", "cleaning"} and not c['usage'].get('cleanup_pending') for c in result["candidates"]):
             return
         await asyncio.sleep(0.25)
 
@@ -86,6 +91,7 @@ async def generation_events(generation_id: str, request: Request):
 @router.post("/candidates/{candidate_id}/accept")
 async def accept(candidate_id: str, body: AcceptCandidate, request: Request):
     result = await run_in_threadpool(Generations(request.app.state.database).accept, candidate_id, body)
+    request.app.state.runner.stop_background_cleanup(candidate_id)
     return await after_acceptance(request, result)
 
 
@@ -99,6 +105,13 @@ async def alternate(candidate_id: str, body: AlternateRequest, request: Request)
 @router.get("/candidates/{candidate_id}/attempts")
 def attempts(candidate_id: str, request: Request):
     return Generations(request.app.state.database).attempts(candidate_id)
+
+
+@router.post('/candidates/{candidate_id}/continuity-revision', status_code=201)
+async def revise_continuity(candidate_id: str, body: RevisionRequest, request: Request):
+    result = Generations(request.app.state.database).revise_continuity(candidate_id, body)
+    request.app.state.runner.start(result['candidate_id'])
+    return result
 
 
 @router.post("/candidates/{candidate_id}/cancel")

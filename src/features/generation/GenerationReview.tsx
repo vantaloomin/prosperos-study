@@ -28,7 +28,7 @@ function SavedCoverage({ snapshot }: { snapshot: Generation['snapshot'] }) {
   const { coverage } = snapshot
   const scope = coverage.complete_path ? 'Complete selected path: ' + coverage.messages + ' contributions.'
     : (coverage.included_messages ?? 0) + ' of ' + coverage.messages + ' complete contributions, plus ' + (coverage.recalled_passages ?? 0) + ' earlier excerpts.'
-  return <><p className="subtle">{scope} Estimated input: {snapshot.estimated_input_tokens.toLocaleString()} tokens (approximation). Prompt v{snapshot.prompt.number}.</p>
+  return <>{snapshot.writer_recall && <p className="context-budget-warning">These are the shared inputs before prewriting recall. Each draft’s recall receipt shows the exact final context sent to its writer.</p>}<p className="subtle">{scope} Estimated input: {snapshot.estimated_input_tokens.toLocaleString()} tokens (approximation). Prompt v{snapshot.prompt.number}.</p>
     {snapshot.reviewed_context && <p className="subtle">{snapshot.reviewed_context.stage === 'writer'
       ? 'These inputs matched your selected preview before generation.'
       : 'The starting inputs matched your selected preview. The beat assessment then finalized the writer context shown below.'}</p>}</>

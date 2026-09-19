@@ -13,6 +13,9 @@ from server.profiles import primary_id
 
 STORY_TABLES = ("manifests", "branches", "nodes", "adoptions", "mechanic_opportunities", "side_threads", 'background_states', 'manuscripts')
 RELATED = (
+    ('relationship_jobs', 'branch_id', 'branches'), ('relationship_attempts', 'job_id', 'relationship_jobs'),
+    ('branch_cleanup_timing', 'branch_id', 'branches'),
+    ('branch_cleanup_settings', 'branch_id', 'branches'),
     ('path_revisions', 'branch_id', 'branches'),
     ('continuity_edits', 'branch_id', 'branches'), ('branch_continuity_edits', 'branch_id', 'branches'),
     ('memory_control_versions', 'branch_id', 'branches'), ('branch_memory_controls', 'branch_id', 'branches'),
@@ -23,6 +26,7 @@ RELATED = (
     ("generations", "branch_id", "branches"), ("candidates", "generation_id", "generations"),
     ("generation_attempts", "candidate_id", "candidates"), ("node_mechanics", "node_id", "nodes"),
     ('candidate_activity', 'candidate_id', 'candidates'),
+    ('candidate_cleanups', 'candidate_id', 'candidates'),
     ("review_runs", "branch_id", "branches"), ("review_jobs", "run_id", "review_runs"),
     ("review_attempts", "job_id", "review_jobs"), ("side_turns", "thread_id", "side_threads"),
     ("side_replies", "turn_id", "side_turns"),
@@ -64,7 +68,7 @@ def referenced_profiles(data, primary):
         result.update({settings.get("primary_profile_id")} - {None})
     for table in ("candidates", "side_replies"):
         result.update(decode(row["profile"])["profile_id"] for row in data[table])
-    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
+    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs'):
         result.update(decode(row["snapshot"])["profile"]["profile_id"] for row in data[table])
     result.update(profile['profile_id'] for row in data['assessment_runs']
                   for profile in decode(row['snapshot'])['writer_profiles'])
@@ -79,7 +83,7 @@ def redact_profiles(data):
             profile = decode(row["profile"])
             profile["credential_ref"] = None
             row["profile"] = encode(profile)
-    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
+    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs'):
         for row in data[table]:
             snapshot = decode(row["snapshot"])
             snapshot["profile"]["credential_ref"] = None

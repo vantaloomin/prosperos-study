@@ -20,6 +20,7 @@ from server.memory.plan_state import plan_head
 from server.memory.settings import memory_settings
 from server.memory.summary_excerpt import summary_links
 from server.memory.summary_recall import reviewed_aids
+from server.memory.writer_recall import freeze_recall
 from server.profiles import resolve_profile
 from server.prompt_sections import compose, sections_for
 from server.prompts import prompt_snapshot
@@ -74,6 +75,8 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
             "coverage": memory['coverage'] if memory else {
                 "messages": len(context["history"]), "complete_path": True},
             **({'memory': memory} if memory else {}),
+            **({'writer_recall': freeze_recall(connection, branch, context, aids if memory_policy.summary_recall else {})}
+               if memory_policy.mode == 'long' and memory_policy.writer_recall else {}),
             **({'summary_links': summary_links(prepared)} if prepared.get('reviewed_summaries') else {})}, profiles
 
 

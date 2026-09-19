@@ -1,0 +1,12 @@
+.phrase-check { overflow-wrap: anywhere; }
+.phrase-check .button { white-space: normal; }
+.phrase-options { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+.phrase-finding h3 { margin: 0; font-family: var(--interface-heading-font, 'Literata'), Georgia, serif; font-size: 1.15rem; line-height: 1.5; }
+.phrase-finding p { margin: 0; }
+.phrase-evidence, .phrase-suggestions, .phrase-choices { margin-top: 14px; }
+.phrase-evidence blockquote { margin: 8px 0; padding: 10px 14px; border-left: 2px solid var(--accent); white-space: pre-wrap; line-height: 1.7; }
+.phrase-evidence mark { background: var(--accent); color: var(--on-accent); border-radius: 2px; }
+.phrase-choice { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.phrase-choice > span { min-width: 0; }
+.phrase-choice > button { flex-shrink: 0; }
+@media (max-width: 600px) { .phrase-options { grid-template-columns: minmax(0, 1fr); } }

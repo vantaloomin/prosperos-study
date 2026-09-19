@@ -12,6 +12,7 @@ from server.context_report import (
 from server.errors import require
 from server.generation_context import generation_snapshot
 from server.generation_models import ContextPreviewRequest
+from server.memory.writer_recall import preview_recall
 
 
 class ContextSectionRequest(ContextPreviewRequest):
@@ -30,6 +31,7 @@ def inspect_context(connection, branch_id, body):
               'prompt_version': snapshot['prompt']['number'], 'coverage': snapshot['coverage'],
               'sections': section_summaries(sections),
               **({'memory': snapshot['memory']} if 'memory' in snapshot else {}),
+              **({'writer_recall': preview_recall(snapshot)} if 'writer_recall' in snapshot else {}),
               **({'knowledge_lens': snapshot['knowledge_lens']} if 'knowledge_lens' in snapshot else {})}
     return report, snapshot, sections
 

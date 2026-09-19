@@ -6,7 +6,7 @@ from pydantic import Field, StringConstraints
 
 from server.models import Input
 
-ARCHIVE_VERSION = 33
+ARCHIVE_VERSION = 37
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 V1_TABLES = (
     "stories", "assets", "asset_versions", "manifests", "branches", "nodes", "adoptions",
@@ -37,9 +37,16 @@ V27_TABLES = V22_TABLES + CONTROL_TABLES
 V29_TABLES = V27_TABLES + ('archive_identities',)
 PLAN_TABLES = ('continuity_edits', 'branch_continuity_edits')
 V30_TABLES = V29_TABLES + PLAN_TABLES
-V32_TABLES = V30_TABLES + ('candidate_activity', 'path_revisions')
-TABLES = V32_TABLES + ('manuscripts',)
+V31_TABLES = V30_TABLES + ('candidate_activity', 'path_revisions')
+CLEANUP_TABLES = ('branch_cleanup_settings', 'candidate_cleanups')
+V32_TABLES = V31_TABLES + CLEANUP_TABLES
+V33_TABLES = V32_TABLES + ('branch_cleanup_timing',)
+RELATIONSHIP_TABLES = ('relationship_jobs', 'relationship_attempts')
+V36_TABLES = V33_TABLES + RELATIONSHIP_TABLES
+TABLES = V36_TABLES + ('manuscripts',)
 JSON_FIELDS = {
+    'relationship_jobs': ('snapshot', 'result', 'usage'), 'relationship_attempts': ('result', 'usage'),
+    'candidate_cleanups': ('snapshot', 'usage', 'edits'),
     'manuscripts': ('document',),
     'continuity_edits': ('changes',),
     'memory_control_versions': ('payload',),
@@ -69,7 +76,7 @@ JSON_FIELDS = {
 
 class ArchiveDocument(Input):
     format: Literal["roleplay-archive"] = "roleplay-archive"
-    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] = ARCHIVE_VERSION
+    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] = ARCHIVE_VERSION
     scope: Literal["story", "workspace"]
     title: str = Field(min_length=1, max_length=200)
     created_at: str
@@ -113,5 +120,5 @@ def summary(document):
             "stories": [{"id": story["id"], "title": story["title"], "archived": bool(story["archived"])}
                         for story in data["stories"]],
             "counts": {key: len(rows) for key, rows in data.items()}, "selection": document["selection"],
-            "running_jobs": sum(row["status"] in {"running", "queued"}
-                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs', 'summary_jobs') for row in data[key])}
+            "running_jobs": sum(row["status"] in {"running", "queued", "cleaning"}
+                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs') for row in data[key])}

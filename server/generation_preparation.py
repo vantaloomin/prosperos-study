@@ -1,7 +1,10 @@
 """Prepare under a read snapshot; validate immutable dependencies before recording."""
 from dataclasses import dataclass
+from time import perf_counter
 
 from server.background.storage import state_id
+from server.cleanup.settings import frozen_settings
+from server.cleanup.settings import settings as cleanup_settings
 from server.context_contract import guard_reviewed_context
 from server.database import many, one
 from server.errors import require
@@ -11,6 +14,7 @@ from server.memory.control_state import control_head
 from server.memory.summary_recall import summary_dependencies
 from server.prompt_sections import sections_for
 from server.prompts import prompt_snapshot
+from server.request_timing import RECEIVED
 
 
 def preparation_identity(connection, writer, body):
@@ -26,6 +30,7 @@ def preparation_identity(connection, writer, body):
                          (branch['id'], branch['head_id'] or '', writer.get('opportunity_id')))
     selected = pending_opportunity(connection, branch, story) if writer.get('opportunity_id') else None
     return {'branch': branch, 'story': story, 'memory_controls': control_head(connection, branch['id']), 'summary_versions': summary_dependencies(connection, story),
+            'cleanup': cleanup_settings(connection, branch['id']),
             'profiles': [profile['id'] for profile in selected_profiles(connection, story, body.profile_ids)],
             'prompt': prompt_snapshot(connection, 'writer', story)['id'],
             'prompt_sections': sections_for(connection, 'writer', story, branch['manifest_id']),
@@ -46,6 +51,14 @@ class PreparedWriter:
 
 
 def prepare_writer(connection, branch_id, body):
+    started = perf_counter()
     writer, profiles = generation_snapshot(connection, branch_id, body)
     guard_reviewed_context(connection, writer, profiles, body)
-    return PreparedWriter(writer, profiles, preparation_identity(connection, writer, body))
+    cleanup = frozen_settings(connection, branch_id, body.cleanup_choices)
+    if cleanup:
+        writer['cleanup'] = cleanup
+    identity = preparation_identity(connection, writer, body)
+    writer['timings'] = {'preparation_seconds': perf_counter() - started}
+    if RECEIVED.get():
+        writer['timings']['request_received_at'] = RECEIVED.get()
+    return PreparedWriter(writer, profiles, identity)

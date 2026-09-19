@@ -24,6 +24,10 @@ export default function ContextInspector({ branchId, request, onClose, onReviewe
 
 function ReportView({ report, branchId, request }: { report: ContextReport; branchId: string; request: ContextRequest }) {
   return <><MemoryCoverage report={report} />
+    {report.writer_recall && <p className="context-budget-warning">Prewriting recall is enabled. These are the initial inputs. Each candidate may make one preparation request, search earlier accepted prose, and replace optional excerpts within the same input allowance. Candidates may receive different evidence. Inspect each draft’s recall receipt for its final writer input. Using this preview protects the starting inputs and permitted search sources.</p>}
+    {!!report.writer_recall?.available_groups && <p className="subtle">{report.writer_recall.available_groups} recorded evidence group(s) are available for discovery. Relevant groups can retrieve linked originals; the final receipt identifies missing members and incomplete coverage.</p>}
+    {report.writer_recall?.semantic_enabled && <p className="subtle">Semantic recall is enabled: each candidate can add up to five embedding requests and 30 seconds using its configured embedding model. Its receipt records cache coverage, calls and fallback. The context allowance stays the same.</p>}
+    {!!report.writer_recall?.relationship_annotations && <p className="subtle">{report.writer_recall.relationship_annotations} tentative relationship annotation(s) are frozen for discovery. Their original passages can be retrieved; the interpretations do not become accepted facts.</p>}
     <div className="context-budgets">{report.budgets.map((budget) => <ContextBudgetView key={budget.version_id} budget={budget} />)}</div>
     <p className="subtle">Input estimates use UTF-8 bytes ÷ 3, rounded up. They include instructions, all serialized context and record metadata. Section estimates sum to the input total. The configured limit is not a measured model capacity; provider tokenization, chat framing and CLI instructions can add overhead.</p>
     <AssessmentNotice assessment={report.assessment} />

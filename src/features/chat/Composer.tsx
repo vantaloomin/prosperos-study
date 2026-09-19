@@ -8,6 +8,7 @@ import type { Branch, Role } from '../../types'
 import { composerCopy, composerOptions, type StoryMode } from '../stories/storyMode'
 import { useComposerDraft } from './useComposerDraft'
 import { useSubmission } from './useSubmission'
+import { noteComposing } from './composing'
 
 export interface DraftTransfer { id: string; branchId: string; text: string }
 
@@ -48,7 +49,7 @@ export function Composer({ branch, mode, transfer, onTransferred, onRandomness }
     }
   }
   return <div className="composer-wrap"><ErrorNotice message={action.error} /><SubmissionRecovery action={action} onCheck={() => void send()} /><PreparedNarration prepared={prepared} narrative={narrative} useBeat={useBeat} onSkip={setSkippedBeat} /><form className="composer" onSubmit={(event) => { event.preventDefault(); void send() }}>
-    <textarea ref={input} aria-label="Story message" placeholder={copy.placeholder} value={text} onChange={(e) => edit(e.target.value)} onKeyDown={onKeyDown} rows={3} disabled={action.busy || !!action.pending} />
+    <textarea ref={input} aria-label="Story message" placeholder={copy.placeholder} value={text} onChange={(e) => { edit(e.target.value); noteComposing() }} onKeyDown={onKeyDown} rows={3} disabled={action.busy || !!action.pending} />
     <MessageModes mode={mode} role={role} onChange={setRole} /><div className="composer-bottom"><label className="auto-continue"><input type="checkbox" checked={autoContinue} disabled={!canGenerate} onChange={event => setAutoContinue(event.target.checked)} />Continue after sending</label><span className="composer-hint">⌘ / Ctrl + Enter</span><button type="submit" className="button primary" disabled={!text.trim() || action.busy || generationBusy}><ArrowUp size={18} />{submitLabel(copy.submit, autoContinue, canGenerate)}</button></div>
   </form><div className="composer-caption"><span>{continuationCaption(canGenerate, autoContinue, copy.caption)}</span><button onClick={onRandomness}><Dice5 size={12} />Randomness {branch.mechanics.enabled ? 'on' : 'off'}</button></div></div>
 }

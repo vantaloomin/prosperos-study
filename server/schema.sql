@@ -416,3 +416,43 @@ CREATE TABLE IF NOT EXISTS branch_continuity_edits (
 );
 CREATE TRIGGER IF NOT EXISTS continuity_edits_immutable BEFORE UPDATE ON continuity_edits
 BEGIN SELECT RAISE(ABORT,'Continuity edits are immutable'); END;
+
+CREATE TABLE IF NOT EXISTS branch_cleanup_settings (
+    branch_id TEXT PRIMARY KEY REFERENCES branches(id),
+    enabled INTEGER NOT NULL CHECK(enabled IN (0,1)), version INTEGER NOT NULL CHECK(version>=1)
+);
+CREATE TABLE IF NOT EXISTS candidate_cleanups (
+    id TEXT PRIMARY KEY, candidate_id TEXT NOT NULL REFERENCES candidates(id),
+    attempt INTEGER NOT NULL, branch_id TEXT NOT NULL REFERENCES branches(id), snapshot TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('running','done','skipped','error','cancelled','interrupted','stale')),
+    output TEXT NOT NULL DEFAULT '', cleaned TEXT NOT NULL DEFAULT '', edits TEXT NOT NULL DEFAULT '[]',
+    usage TEXT NOT NULL DEFAULT '{}', error TEXT NOT NULL DEFAULT '',
+    selected TEXT NOT NULL DEFAULT 'original' CHECK(selected IN ('original','cleaned')),
+    updated_at TEXT NOT NULL, UNIQUE(candidate_id,attempt)
+);
+CREATE TABLE IF NOT EXISTS branch_cleanup_timing (
+    branch_id TEXT PRIMARY KEY REFERENCES branches(id),
+    timing TEXT NOT NULL CHECK(timing IN ('before_ready','reading'))
+);
+CREATE INDEX IF NOT EXISTS candidate_cleanups_branch ON candidate_cleanups(branch_id,status);
+CREATE TRIGGER IF NOT EXISTS immutable_cleanup_inputs BEFORE UPDATE OF candidate_id,attempt,branch_id,snapshot ON candidate_cleanups
+BEGIN SELECT RAISE(ABORT,'Cleanup inputs are immutable'); END;
+
+-- Model-derived relationship aids have receipts but no accepted-state projection.
+CREATE TABLE IF NOT EXISTS relationship_jobs (
+    id TEXT PRIMARY KEY, branch_id TEXT NOT NULL REFERENCES branches(id), request_key TEXT NOT NULL,
+    mode TEXT NOT NULL CHECK(mode IN ('manual','automatic')), snapshot TEXT NOT NULL,
+    attempt INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('queued','running','done','error','cancelled','interrupted')),
+    output TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT 'null', usage TEXT NOT NULL DEFAULT '{}',
+    error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS relationship_jobs_branch ON relationship_jobs(branch_id);
+CREATE INDEX IF NOT EXISTS relationship_jobs_request ON relationship_jobs(request_key);
+CREATE TRIGGER IF NOT EXISTS immutable_relationship_inputs BEFORE UPDATE OF branch_id,request_key,mode,snapshot ON relationship_jobs
+BEGIN SELECT RAISE(ABORT,'Relationship inputs are immutable'); END;
+CREATE TABLE IF NOT EXISTS relationship_attempts (
+    id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES relationship_jobs(id), attempt INTEGER NOT NULL,
+    status TEXT NOT NULL, output TEXT NOT NULL, result TEXT NOT NULL, usage TEXT NOT NULL,
+    error TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(job_id,attempt)
+);

@@ -102,7 +102,7 @@ def test_contributions_optional_and_empty_book_export_rejected(client, story):
 def test_archive_restores_manuscript_links_bookmarks_and_order(client, story):
     document, head = book_fixture(client, story)
     file, archive = backup(client, story)
-    assert archive['version'] == 33
+    assert archive['version'] == 37
     _, mapping = restore(client, file)
     restored = client.get(f"/api/stories/{mapping[story['story_id']]}/manuscript").json()
     assert restored['revision'] == 1

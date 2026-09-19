@@ -149,6 +149,8 @@
 .request-status small { flex-basis: 100%; color: var(--muted); overflow-wrap: anywhere; line-height: 1.6; }
 .request-details { color: var(--muted); font-size: .75rem; margin-top: 16px; line-height: 1.6; }
 .request-details summary { cursor: pointer; }
+.recall-receipt { min-width: 0; overflow-wrap: anywhere; }
+.recall-receipt pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 350px; overflow: auto; padding: 12px; background: var(--canvas); border-radius: 6px; font: 11px/1.7 'IBM Plex Mono', monospace; }
 .request-recovery { margin: 10px 20px; padding: 14px; border: 1px solid var(--accent-border); border-radius: 8px; background: var(--surface); font-size: .8125rem; line-height: 1.6; }
 .request-recovery .button, .request-recovery .text-button { margin: 8px 10px 0 0; }
 .status-dot.working { animation: request-pulse 1.5s ease-in-out infinite; }

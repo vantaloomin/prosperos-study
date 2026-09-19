@@ -18,6 +18,7 @@ export interface ContextSection {
   estimated_tokens: number; source_count: number
 }
 export interface ContextReport {
+  writer_recall?: { max_queries: number; max_reads: number; extra_calls_per_candidate: number; scope: string; final_input_pending: boolean; available_groups?: number; semantic_enabled?: boolean; relationship_annotations?: number }
   knowledge_lens?: import('./KnowledgeChoice').KnowledgeReceipt
   fingerprint: string; branch_id: string; head_id: string | null
   branch_revision: number; story_revision: number; prompt_version: number

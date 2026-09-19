@@ -202,7 +202,10 @@ def test_assessed_beat_cannot_consume_long_memory_overhead_margin():
 
 def test_legacy_unreviewed_operation_replays_without_new_null_field(client, story):
     body = GenerateRequest(operation_id=uuid4().hex, expected_revision=0)
-    payload = {'branch_id': story['branch_id'], **body.model_dump(exclude={'reviewed_fingerprint', 'knowledge_subject', 'knowledge_character_id'})}
+    # Freeze the historical shape; today's optional fields never existed in this receipt.
+    payload = {'branch_id': story['branch_id'], 'expected_revision': 0, 'profile_ids': [],
+               'direction': '', 'use_prepared_beat': True, 'assess_beat': True,
+               'assessment_profile_ids': [], 'operation_id': body.operation_id}
     recorded = {'id': 'historical-result', 'candidate_ids': []}
     with client.app.state.database.connect(write=True) as connection:
         remember(connection, body.operation_id, 'generate', payload, recorded)

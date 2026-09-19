@@ -16,6 +16,7 @@ from server.authoring.runner import AuthoringRunner
 from server.background.interpretation_routes import router as interpretation_router
 from server.background.routes import router as background_router
 from server.background.runner import BackgroundRunner
+from server.cleanup.routes import router as cleanup_router
 from server.database import Database
 from server.errors import DomainError
 from server.generation_routes import router as generation_router
@@ -31,12 +32,18 @@ from server.memory.control_routes import router as control_router
 from server.memory.enrichment_routes import router as enrichment_router
 from server.memory.maintenance_routes import router as maintenance_router
 from server.memory.maintenance_runner import MaintenanceRunner
+from server.memory.preparation_runner import PreparationRunner
+from server.memory.readiness import router as readiness_router
+from server.memory.relationship_routes import router as relationship_router
+from server.memory.relationship_runner import RelationshipRunner
 from server.memory.routes import router as memory_router
 from server.memory.summary_routes import router as summary_router
 from server.memory.summary_runner import SummaryRunner
+from server.phrases.routes import router as phrase_router
 from server.profile_routes import router as profile_router
 from server.prompts import initialize_prompts
 from server.providers.vault import SystemVault
+from server.reading_time_routes import router as reading_time_router
 from server.routes import router
 from server.scenes.routes import router as scene_router
 from server.scenes.runner import SceneRunner
@@ -68,6 +75,7 @@ async def invalid_request(_request: Request, error: RequestValidationError):
 async def lifespan(app):
     app.state.summary_runner.recover()
     app.state.maintenance_runner.recover()
+    app.state.relationship_runner.recover()
     app.state.authoring_runner.recover()
     app.state.background_runner.recover()
     app.state.assessment_runner.recover()
@@ -76,7 +84,11 @@ async def lifespan(app):
     app.state.review_runner.recover()
     app.state.scene_runner.recover()
     app.state.maintenance_runner.start()
+    app.state.preparation_runner.start()
+    app.state.relationship_runner.start()
     yield
+    await app.state.preparation_runner.shutdown()
+    await app.state.relationship_runner.shutdown()
     await app.state.maintenance_runner.shutdown()
     await app.state.assessment_runner.shutdown()
     await app.state.runner.shutdown()
@@ -89,7 +101,7 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.7.0", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.7.5", lifespan=lifespan)
     app.state.database = Database(database_path)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)
@@ -101,6 +113,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.state.authoring_runner = AuthoringRunner(app.state.database, app.state.runner.provider)
     app.state.summary_runner = SummaryRunner(app.state.database, app.state.runner.provider)
     app.state.maintenance_runner = MaintenanceRunner(app.state.database, app.state.summary_runner)
+    app.state.preparation_runner = PreparationRunner(app.state.database, app.state.runner.provider.scheduler)
+    app.state.relationship_runner = RelationshipRunner(app.state.database, app.state.runner.provider)
     initialize_prompts(app.state.database)
     initialize_tables(app.state.database)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
@@ -108,6 +122,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
+    app.include_router(reading_time_router)
     app.include_router(agent_template_router)
     app.include_router(manuscript_router)
     app.include_router(authoring_router)
@@ -116,10 +131,14 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.include_router(artwork_router)
     app.include_router(lore_router)
     app.include_router(memory_router)
+    app.include_router(readiness_router)
     app.include_router(control_router)
+    app.include_router(phrase_router)
+    app.include_router(cleanup_router)
     app.include_router(enrichment_router)
     app.include_router(summary_router)
     app.include_router(maintenance_router)
+    app.include_router(relationship_router)
     app.include_router(profile_router)
     app.include_router(generation_router)
     app.include_router(side_router)

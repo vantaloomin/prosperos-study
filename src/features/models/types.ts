@@ -12,6 +12,9 @@ export interface ProfileConfig {
   reasoning_effort: string | null
   local_protocol?: LocalProtocol
   local_reasoning?: LocalReasoning | null
+  resource_group?: string
+  embedding_model?: string
+  embedding_input_format?: 'plain' | 'nomic-search-v1'
   top_p?: number | null
   top_k?: number | null
   min_p?: number | null

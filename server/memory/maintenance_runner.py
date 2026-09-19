@@ -13,6 +13,7 @@ from server.memory.maintenance_service import (
 )
 from server.memory.maintenance_storage import batch_jobs, set_batch_status
 from server.operations import previous, remember
+from server.providers.scheduling import MAINTENANCE, Work, work_scope
 from server.workflow.runner import preserve_attempt
 
 
@@ -96,7 +97,8 @@ class MaintenanceRunner:
                 with self.database.connect() as connection:
                     status = one(connection, 'SELECT status FROM summary_jobs WHERE id=?', (job['id'],))['status']
                 if status != 'done':
-                    self.summaries.start(job['id'])
+                    with work_scope(MAINTENANCE if batch['kind'] == 'automatic' else Work(10, 'requested memory maintenance')):
+                        self.summaries.start(job['id'])
                     await asyncio.shield(self.summaries.tasks[job['id']])
                 if not self.check_finished(batch, job['id']):
                     return

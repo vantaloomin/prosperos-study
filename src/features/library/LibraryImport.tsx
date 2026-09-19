@@ -23,7 +23,7 @@ export function LibraryImport({ onClose, onPublishedClose, initialImportId, targ
   const [published, setPublished] = useState<AssetVersion[] | null>(null)
   const close = published ? onPublishedClose ?? onClose : onClose
   const finish = (versions: AssetVersion[]) => { setPublished(versions); setId(null) }
-  return <Modal open wide title="Bring your world along" description="Import Markdown, a Character Card, or an SGC knowledge pack. Review the conversion, edit its fields, then choose what to publish." onClose={close} focusOnClose={published ? focusOnPublishedClose : focusOnClose}>
+  return <Modal open wide title="Bring your world along" description="Review the imported fields and preserved sources, then choose what to publish." onClose={close} focusOnClose={published ? focusOnPublishedClose : focusOnClose}>
     {published ? <ImportSuccess versions={published} onClose={close} /> : <>
       <div className="dialog-body form-stack"><ImportUpload onReady={(preview) => setId(preview.id)} />
         {id && <ImportReview key={id} id={id} target={target} onPublished={finish} />}
@@ -43,8 +43,8 @@ function ImportUpload({ onReady }: { onReady: (preview: ImportPreview) => void }
     const source_base64 = await readImportFile(file)
     onReady(await api<ImportPreview>('/library-imports', { filename: file.name, source_base64 }))
   })
-  return <section className="import-upload"><label className="field"><span>Choose Markdown, an SGC pack, or a JSON / PNG Character Card</span><input type="file" accept=".md,.markdown,.json,.png" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
-    <p className="subtle">Up to 10 MiB · UTF-8 text or PNG · Card V1, V2 or V3; SGC brain packs. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
+  return <section className="import-upload"><label className="field"><span>Choose a character, lorebook, Markdown, or SGC pack</span><input type="file" accept=".md,.markdown,.json,.png,.lorebook" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
+    <p className="subtle">Up to 10 MiB · JSON, PNG, .lorebook or Markdown. Character Cards V1–V3, Pygmalion and Backyard legacy characters; portable, SillyTavern, NovelAI, Agnai and RisuAI lorebooks. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
     {action.busy && <Loading label="Preserving the source and preparing Markdown…" />}<ErrorNotice message={action.error} />
   </section>
 }
@@ -99,6 +99,7 @@ function PublicationButton({ reviewed, count, busy, uploading, onPublish }: { re
 }
 
 function importFormat(preview: ImportPreview) {
+  if (preview.format_label) return preview.format_label
   if (preview.format === 'sgc-brain') return 'SGC knowledge pack'
   return preview.card_version ? 'Character Card ' + preview.card_version.toUpperCase() : 'Markdown Canon collection'
 }

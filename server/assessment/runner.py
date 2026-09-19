@@ -2,6 +2,7 @@ from server.assessment.context import parse_assessment
 from server.assessment.service import Assessments
 from server.database import one
 from server.errors import DomainError
+from server.providers.scheduling import ASSESSMENT, work_scope
 from server.workflow.runner import ReviewRunner
 
 
@@ -17,7 +18,8 @@ class AssessmentRunner(ReviewRunner):
         return parse_assessment(output, snapshot)
 
     async def run(self, job_id):
-        await super().run(job_id)
+        with work_scope(ASSESSMENT):
+            await super().run(job_id)
         try:
             result = Assessments(self.database).auto_finish(job_id)
             if result and 'id' in result:

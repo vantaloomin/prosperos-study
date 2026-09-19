@@ -11,10 +11,10 @@
 .import-choice { border-top: 1px solid var(--border); padding-top: 20px; }
 .import-choice > .button { display: flex; margin-top: 14px; }
 .import-publish { position: sticky; bottom: -28px; background: var(--surface); padding: 16px 0; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.import-document-list { display: flex; flex-direction: column; max-height: 160px; overflow: auto; align-items: stretch; }
+.import-document-list { display: flex; flex-direction: column; flex-shrink: 0; max-height: 160px; overflow: auto; align-items: stretch; }
 .import-document-list button { padding: 10px; text-align: left; overflow-wrap: anywhere; }
 .import-document-list [aria-pressed=true] { background: var(--surface-hover); color: var(--text); }
-.import-document { font: 12px/1.8 'IBM Plex Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 350px; overflow: auto; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.import-document { flex-shrink: 0; font: 12px/1.8 'IBM Plex Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 350px; overflow: auto; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
 .library-toolbar .search { width: 230px; }
 .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px; }
 .asset-card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); text-align: left; overflow: hidden; padding: 0; transition: border-color 120ms; }

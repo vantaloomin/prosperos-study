@@ -16,6 +16,7 @@ LABELS = {
     'memory_guidance': 'How recalled evidence should be used',
     'reviewed_summaries': 'Reviewed summaries in context',
     'recalled_passages': 'Earlier passages recalled for this draft',
+    'recall_groups': 'Coverage of linked source evidence',
     'recalled_canon': 'Recalled Canon references',
     'prepared_beat': 'Prepared narrative beat', 'lore_header': 'Lore before the story',
     'lore_recent': 'Lore near recent context', 'lore_tail': 'Lore after the direction',
@@ -89,6 +90,7 @@ def preview_fingerprint(snapshot, budgets, assessment):
     identity = {'branch': snapshot['branch'], 'story_revision': snapshot['story_revision'],
                 'prompt': snapshot['prompt'], 'prompt_sections': snapshot.get('prompt_sections', []), 'content': snapshot['content'],
                 'budgets': budgets, 'assessment': assessment, 'memory': snapshot.get('memory'),
+                'writer_recall': snapshot.get('writer_recall'),
                 'opportunity_id': snapshot.get('opportunity_id'),
                 'background_state_id': snapshot.get('background_state_id')}
     return hashlib.sha256(encode(identity).encode('utf-8')).hexdigest()

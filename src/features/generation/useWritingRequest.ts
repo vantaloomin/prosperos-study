@@ -5,8 +5,9 @@ import { continuationRequest, type MessageReceipt } from './continuation'
 import type { AssessmentChoice, WritingResult } from './assessmentTypes'
 import { recoverRequest, type SavedRequest } from './requestRecovery'
 import { useRecovery } from './useRecovery'
+import { cleanupChoices } from '../phrases/cleanupRequest'
 
-interface Continuation { receipt: MessageReceipt; profile: string; usePrepared: boolean; choice: AssessmentChoice; knowledge: string }
+interface Continuation { receipt: MessageReceipt; profile: string; usePrepared: boolean; choice: AssessmentChoice; knowledge: string; cleanup_choices?: ReturnType<typeof cleanupChoices> }
 interface PendingWriting { request?: SavedRequest; continuation?: Continuation; anchor: string | null; rejected?: boolean }
 export interface WritingSelection { id: string; kind: 'generation' | 'assessment'; anchor: string | null }
 
@@ -34,7 +35,7 @@ export function useWritingRequest(branch: Branch, receive: (selection: WritingSe
   }
   const generate = (body: Record<string, unknown>) => action.run(async () => {
     if (latest()) throw new Error('Resolve the saved writing request before starting another.')
-    const saved: PendingWriting = { request: { kind: 'generate', path: `/branches/${branch.id}/generations`, body: { ...body, operation_id: operationId() } }, anchor: branch.head_id }
+    const saved: PendingWriting = { request: { kind: 'generate', path: `/branches/${branch.id}/generations`, body: { ...body, cleanup_choices: cleanupChoices(branch.id), operation_id: operationId() } }, anchor: branch.head_id }
     store(saved)
     await execute(saved)
   })
@@ -42,7 +43,7 @@ export function useWritingRequest(branch: Branch, receive: (selection: WritingSe
     // Store the handoff before letting the composer forget its submission.
     const current = latest()
     if (current && current.anchor !== continuation.receipt.node_id) throw new Error('Finish the earlier writing request first. This passage is saved and can be checked again afterward.')
-    const saved = current ?? { continuation, anchor: continuation.receipt.node_id }
+    const saved = current ?? { continuation: { ...continuation, cleanup_choices: cleanupChoices(branch.id) }, anchor: continuation.receipt.node_id }
     store(saved)
     await action.run(() => execute(saved))
   }
@@ -58,7 +59,7 @@ async function prepareContinuation(saved: PendingWriting): Promise<PendingWritin
   const { receipt, profile, usePrepared, choice } = continuation
   const branch = await api<Branch>(`/branches/${receipt.branch_id}`)
   if (branch.head_id !== receipt.node_id) throw new ApiError('Your passage is saved, but this path moved on. Review the current story before starting a new request.', 409)
-  const body = continuationRequest(branch, receipt, profile, usePrepared, choice)
+  const body = { ...continuationRequest(branch, receipt, profile, usePrepared, choice), cleanup_choices: continuation.cleanup_choices ?? null }
   return { ...saved, request: { kind: 'generate', path: `/branches/${receipt.branch_id}/generations`, body } }
 }
 

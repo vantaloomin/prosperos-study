@@ -100,6 +100,9 @@ class ProfileConfig(Input):
     reported_capabilities: ReportedCapabilities | None = None
     local_protocol: Literal["openai", "lmstudio"] = "openai"
     local_reasoning: Literal["off", "on", "low", "medium", "high"] | None = None
+    resource_group: str = Field(default='', max_length=80, pattern=r'^[a-zA-Z0-9 _.-]*$')
+    embedding_model: str = Field(default='', max_length=200)
+    embedding_input_format: Literal['plain', 'nomic-search-v1'] = 'plain'
 
     @model_validator(mode="after")
     def validate_capabilities(self, info: ValidationInfo):

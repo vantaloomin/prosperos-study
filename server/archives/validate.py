@@ -8,8 +8,10 @@ from server.archives.assessments import validate_assessments
 from server.archives.authoring import validate_authoring
 from server.archives.background import validate_background
 from server.archives.characters import validate_openings
+from server.archives.cleanup import validate_cleanups
 from server.archives.configuration import validate_configuration_links
 from server.archives.continuity import validate_continuity
+from server.archives.continuity_revision import validate_continuity_revisions
 from server.archives.format import JSON_FIELDS, MAX_ARCHIVE_BYTES, TABLES, ArchiveDocument
 from server.archives.identities import validate_identities
 from server.archives.interpretations import validate_interpretations
@@ -25,6 +27,7 @@ from server.archives.migrations import upgrade
 from server.archives.passage_revisions import validate_passage_revisions
 from server.archives.patches import validate_patches
 from server.archives.plans import validate_plan_edits
+from server.archives.relationships import validate_relationships
 from server.archives.reviews import validate_draft_reviews
 from server.archives.revisions import validate_revisions
 from server.archives.roles import validate_role_snapshot
@@ -34,6 +37,7 @@ from server.archives.summaries import validate_summaries
 from server.archives.summary_context import validate_writer_summaries
 from server.archives.v07 import validate_v07
 from server.archives.writer_memory import validate_writer_memory
+from server.archives.writer_recall import validate_writer_recall
 from server.character_content import validate_character
 from server.database import SCHEMA, decode, one
 from server.errors import DomainError, require
@@ -80,10 +84,12 @@ def validate_archive(document):
         validate_links(connection, document)
         validate_passage_revisions(connection, document['data'])
         validate_content(connection, document)
+        validate_relationships(connection, document['data'])
         validate_v07(connection, document['data'])
         validate_openings(connection, document['data'])
         validate_imports(connection, document['data'])
         validate_ownership(connection, document)
+        validate_cleanups(connection, document['data'])
         validate_scenes(connection, document)
         validate_revisions(connection, document)
         validate_patches(connection, document)
@@ -105,6 +111,8 @@ def validate_archive(document):
         validate_controls(connection, document['data'])
         validate_knowledge(connection, document['data'])
         report = validate_writer_memory(connection, document["data"])
+        validate_writer_recall(connection, document['data'])
+        validate_continuity_revisions(document['data'])
         connection.rollback()
         return report
 
@@ -247,7 +255,8 @@ def validate_runs(connection, data):
             one(connection, "SELECT id FROM branches WHERE id=?", (row["branch_id"],))
     for table in ("candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
         for row in data[table]:
-            require(row["status"] in {"queued", "running", "done", "error", "cancelled", "interrupted"}, "An archived job status is unsupported.")
+            allowed = {"queued", "running", "done", "error", "cancelled", "interrupted"}
+            require(row['status'] in (allowed | {'cleaning'} if table == 'candidates' else allowed), "An archived job status is unsupported.")
     for row in data["node_mechanics"]:
         opportunity = decode(row["state"]).get("last_opportunity_id")
         if opportunity:

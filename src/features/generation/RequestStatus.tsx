@@ -3,6 +3,8 @@ import type { Candidate } from './types'
 import { isWorking } from './types'
 
 function statusLabel(candidate: Candidate) {
+  if (candidate.status === 'cleaning') return 'Cleaning up wording'
+  if (candidate.status === 'running' && candidate.usage.writer_recall?.status === 'preparing') return 'Checking earlier evidence'
   if (candidate.status === 'running') return candidate.output ? 'Writing' : 'Waiting for the model'
   return { queued: 'Waiting to start', done: 'Draft ready', error: 'Could not finish this draft', cancelled: 'Stopped', interrupted: 'Interrupted' }[candidate.status]
 }

@@ -1,5 +1,6 @@
 from pydantic import Field
 
+from server.cleanup.models import CleanupChoices
 from server.models import Input
 
 
@@ -17,6 +18,7 @@ class ContextPreviewRequest(Input):
 class GenerateRequest(ContextPreviewRequest):
     operation_id: str = Field(min_length=8, max_length=100)
     reviewed_fingerprint: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    cleanup_choices: CleanupChoices | None = None
 
 
 class AcceptCandidate(Input):

@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.7.5 - 2026-09-19
+
+Optional story recall, reviewable corrections, and reading-time preparation. Application version: **0.7.5**. Includes the published v0.7 manuscript, model-control, and agent-template features.
+
+- **Memory readiness** in Writing tools shows the selected writer's local recall, prewriting search, semantic configuration, relationship-link dependencies, and automatic link preparation. Direct controls open the relevant preferences, model profile, or source links. Automatic links identify their separate Story writer. Checking readiness makes no model calls and does not rate narrative accuracy.
+- **Check earlier evidence before writing**, off by default, adds one bounded planning request per writer candidate, up to two searches and eight exact passages within the saved context allowance. Optional semantic search combines independent keyword and embedding rankings; missing setup, incomplete cache warming, or failure retains keyword search. The explicit Nomic input format separates query and document prefixes.
+- **Tentative relationship links**, off by default, connect source-quoted promises, handoffs, outcomes, testimony, and knowledge claims for retrieval. Prepare existing passages explicitly, or separately enable preparation after acceptance on a connection with verified interruption. Links never promote interpretations into accepted facts or completed plans.
+- Recall receipts retain search decisions, group coverage, exact final inputs, timing and usage. Current recall v6 includes frozen mode/agency guidance in budget accounting and protects relevant evidence already in context. Saved v1-v5 requests retain their original packing behavior.
+- **Revise continuity** proposes one alternative to an unaccepted draft using its complete saved evidence and profile. The original remains available; only Keep accepts a telling. Revision v2 includes frozen mode/agency instructions and the profile's safety margin, while v1 remains replayable. Over-budget requests fail without dropping sources. Automatic continuity checking remains experimental.
+- **Phrase check** finds recurring exact wording locally and links to source passages. Optional **Automated cleanup** can make one bounded polishing request per flagged draft. Original and cleaned wording remain selectable; cleanup cannot silently rewrite accepted prose.
+- **While I read** preparation yields to foreground writing, supports acknowledged interruption on verified LM Studio native connections, and separates preparation, queueing, first text and cleanup timings. Local chunk/index warming makes no model requests. Unsupported or unverified connections keep explicit preparation and cleanup-before-ready available.
+- **Broader Library imports** cover Pygmalion and Backyard/Faraday legacy characters plus supported portable, SillyTavern, NovelAI, Agnai and RisuAI lorebooks. Import previews preserve original files and unknown metadata; proposed native entries remain off until enabled. Foreign execution rules are not treated as equivalent.
+- **Archive format 37** preserves manuscripts, bookmarks, mode guidance, cleanup, relationship links and revision receipts together. Strict migration distinguishes published and development archives that independently used formats 32/33. Restores preserve original request bytes, remap references, and leave automation off without resending model work.
+- **Illustrated agent and memory guides** in the README explain Narrative/Passive and Roleplay/Active, including optional recall, character scope, and author acceptance. Each guide expands inline and links to its full-size image.
+
+Validation: the complete final-tree check passed **1,374 backend tests**, **94 UI-model tests**, Ruff, ESLint, TypeScript, and the production build. Desktop/mobile browser checks covered readiness controls, explicit continuity revision, and a restored v0.7.0 manuscript. An isolated restore → write → revise → keep → fork → restart → export/restore exercise passed with a controlled provider. Two upstream test-client deprecation warnings remain. See [the release-readiness goal](v075-release-readiness-goal.md) for exact evidence and the archive compatibility correction.
+
+These lifecycle checks do not establish live narrative quality. The [consolidation audit](narrative-reliability-audit.md) records earlier retrieval improvements and remaining writer errors; supplying relevant evidence does not guarantee correct long-form continuity. Earlier feature checks and their limitations remain in [historical development validation](v075-development-validation.md).
+
 ## v0.7 - 2026-09-18
 
 Manuscript organization, model controls, and Active/Passive Agent Templates. Application version: **0.7.0**.

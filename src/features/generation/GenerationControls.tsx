@@ -21,15 +21,18 @@ import { AssessmentHistory } from './AssessmentHistory'
 import { PreparedBeatStatus } from './PreparedBeatStatus'
 import { ContextPreviewButton } from './ContextPreviewButton'
 import { SummaryLauncher } from '../storyMemory/SummaryLauncher'
+import { PhraseCheckLauncher } from '../phrases/PhraseCheckLauncher'
+import { CleanupToggle } from '../phrases/CleanupToggle'
 import { useReviewedContext } from './useReviewedContext'
+import { MemoryReadiness } from './MemoryReadiness'
 const KnowledgeChoice = lazy(() => import('./KnowledgeChoice').then(module => ({ default: module.KnowledgeChoice })))
 import { characterRequest } from './knowledgeRequest'
 const AssessmentPanel = lazy(() => import('./AssessmentPanel'))
 const ComparisonSetup = lazy(() => import('./ComparisonSetup'))
 
-interface Props { branch: Branch; onBranch: (id: string) => void; open: boolean; onClose: () => void; onOpen: () => void; children: ReactNode }
+interface Props { branch: Branch; onBranch: (id: string) => void; onReadMessage: (id: string) => void; open: boolean; onClose: () => void; onOpen: () => void; children: ReactNode }
 
-export function GenerationControls({ branch, onBranch, open, onClose, onOpen, children }: Props) {
+export function GenerationControls({ branch, onBranch, onReadMessage, open, onClose, onOpen, children }: Props) {
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles })
   const history = useQuery({ queryKey: ['generations', branch.id], queryFn: () => api<GenerationSummary[]>(`/branches/${branch.id}/generations`), refetchInterval: query => hasActiveDrafts(query.state.data) ? 1500 : 10000 })
   const [override, setOverride] = useState('')
@@ -62,8 +65,10 @@ export function GenerationControls({ branch, onBranch, open, onClose, onOpen, ch
   </div><div hidden={Boolean(knowledge)}><PreparedChoice prepared={prepared} selected={usePrepared} onSkip={setSkippedBeat} /></div><ErrorNotice message={action.error || profiles.error?.message} />
     <Suspense fallback={<p role="status">Opening knowledge views...</p>}><KnowledgeChoice branchId={branch.id} value={knowledge} onChange={changeKnowledge} /></Suspense>
     <ContextPreviewButton key={branch.id} branchId={branch.id} request={contextRequest} onReviewed={preview.onReviewed} />{preview.notice}
+    <MemoryReadiness branch={branch} profileId={override} characterLens={Boolean(knowledge)} />
     <div hidden={Boolean(knowledge)}><AssessmentLinks branch={branch} onSaved={(id) => setAssessment({ id, follow: false })} /></div>
-    <SummaryLauncher branch={branch} />
+    <div className="writing-assistance-tools"><SummaryLauncher branch={branch} /><PhraseCheckLauncher branch={branch} onReadMessage={onReadMessage} /></div>
+    <CleanupToggle branchId={branch.id} />
     <DraftHistory history={history.data ?? []} onSelect={setRunId} />
     <AssessmentHistory branchId={branch.id} onSelect={(id) => setAssessment({ id, follow: false })} />
     </div></aside>}
@@ -86,7 +91,7 @@ function selectResult(result: WritingResult, anchor: string | null): WritingSele
 function selectionAnchor(selection: WritingSelection | null) { return selection?.anchor ?? null }
 
 function hasActiveDrafts(history: GenerationSummary[] | undefined) {
-  return history?.some(run => run.statuses.some(status => ['queued', 'running'].includes(status))) ?? false
+  return history?.some(run => run.statuses.some(status => ['queued', 'running', 'cleaning'].includes(status))) ?? false
 }
 
 function requestBusy(action: ReturnType<typeof useWritingRequest>, history: GenerationSummary[] | undefined, selection: WritingSelection | null) {
@@ -132,7 +137,7 @@ function useRecoverSelection(history: GenerationSummary[] | undefined, selected:
   const cache = useQueryClient()
   useEffect(() => {
     if (selected) return
-    const run = history?.find(item => item.statuses.some(status => ['queued', 'running'].includes(status))) ?? history?.[0]
+    const run = history?.find(item => item.statuses.some(status => ['queued', 'running', 'cleaning'].includes(status))) ?? history?.[0]
     if (!run || !run.unaccepted || dismissed.includes(run.id)) return
     let current = true
     void cache.fetchQuery({ queryKey: ['generation', run.id], queryFn: () => api<Generation>(`/generations/${run.id}`) }).then(value => {

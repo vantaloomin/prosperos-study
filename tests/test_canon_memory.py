@@ -308,7 +308,7 @@ def test_sgc_pack_disguised_as_png_card_is_rejected(client):
     response = client.post('/api/library-imports', json={
         'filename': 'not-a-card.png', 'source_base64': base64.b64encode(raw).decode()})
     assert response.status_code == 400
-    assert 'SGC packs as JSON' in response.json()['detail']
+    assert response.json()['detail'] == 'PNG metadata must contain a Character Card. Import knowledge packs and lorebooks as JSON files.'
 
 
 def test_small_profile_can_fit_one_relevant_full_sized_canon_excerpt():

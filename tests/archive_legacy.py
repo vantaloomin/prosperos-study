@@ -68,8 +68,15 @@ def remove_v061_records(document):
     assert document['data'].pop('path_revisions') == []
 
 
-def remove_v062_prompts(document):
-    remove_v07_records(document)
+def remove_v070_records(document):
+    for table in ('relationship_jobs', 'relationship_attempts'):
+        assert document['data'].pop(table) == []
+    for table in ('branch_cleanup_settings', 'candidate_cleanups', 'branch_cleanup_timing'):
+        assert document['data'].pop(table) == []
+
+
+def remove_v062_prompts(document, *, keep_memory=False):
+    remove_v07_records(document, keep_memory=keep_memory)
     from server.database import decode, encode
     from server.prompts import LEGACY_PROMPT_LABELS
     keys = set(document['prompt_heads']) - set(LEGACY_PROMPT_LABELS)
@@ -83,7 +90,9 @@ def remove_v062_prompts(document):
         story['settings'] = encode(settings)
 
 
-def remove_v07_records(document):
+def remove_v07_records(document, *, keep_memory=False):
+    if not keep_memory:
+        remove_v070_records(document)
     from server.database import decode, encode
     from server.section_prompts import SECTION_LABELS
     assert document['data'].pop('manuscripts') == []

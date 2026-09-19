@@ -13,6 +13,10 @@ class MemorySettings(Input):
     open_threads: bool = True
     summary_recall: bool = False
     summary_context: bool = False
+    writer_recall: bool = False
+    semantic_recall: bool = False
+    relationship_recall: bool = False
+    relationship_automatic: bool = False
     maintenance: MaintenanceSettings = Field(default_factory=MaintenanceSettings)
     canon_limit: int = Field(default=8, ge=1, le=16)
 

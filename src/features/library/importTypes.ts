@@ -3,7 +3,9 @@ import type { AssetContent, AssetKind, AssetVersion } from '../../types'
 
 export interface ImportDraft { part: AssetKind; kind: AssetKind; name: string; content: AssetContent }
 export interface ImportPreview {
-  id: string; filename: string; source_sha256: string; format: 'card' | 'png-card' | 'markdown' | 'sgc-brain'; card_version: string | null
+  id: string; filename: string; source_sha256: string; format: 'card' | 'png-card' | 'markdown' | 'sgc-brain' | 'native-character' | 'lorebook-json'; card_version: string | null
+  source_format?: string; format_label?: string
+  mapping?: { source: string; target: string; handling: 'mapped' | 'review' | 'reference' }[]
   issues: { path: string; message: string }[]; files: { path: string; characters: number }[]; drafts: ImportDraft[]
 }
 export interface ImportChoice extends ImportDraft { included: boolean; target?: AssetVersion; sourceHash?: string | null }

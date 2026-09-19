@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/brand/app-icon.svg" width="88" alt="A fountain pen inside a theatre arch" />
+  <img src="public/brand/prosperos-study-banner.png" width="100%" alt="Prospero’s Study banner showing a branching manuscript in a candlelit writing room" />
 </p>
 
 # Prospero's Study
@@ -8,7 +8,7 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.7 - manuscripts, model controls, and agent templates** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.7.5** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Agent & memory guides](#agents-and-long-memory-illustrated) · [Questions](#questions)
 
 ## A writing room for stories that keep growing
 
@@ -37,7 +37,7 @@ Submitting a passage can automatically request the next draft. Prefer to write u
 
 **Story brief** supplies the premise and standing guidance. **Author’s note** adds non-fiction instructions at a point on a path and can influence later requests while included by the selected context policy. **Scene goal** directs a particular planned scene. Stories collapse when you enter a workspace; use **Stories** to reopen the list. **Context** opens a spacious reference dialog. On narrow screens, **Tools** contains the workspace actions.
 
-Generation shows the current stage, model, elapsed time, and Stop. **Keep** accepts a finished draft without starting another request. Failed attempts preserve partial text; **Retry original inputs** reuses frozen settings and context. To use edited model settings, choose **Try with current settings** and start a new continuation in Writing tools. If a save or request response is lost, the recovery controls check its saved receipt before retrying.
+Generation shows the current stage, model, elapsed time, and Stop. **Keep** accepts a finished draft without requesting another prose draft. Enabled post-acceptance preparation can still run. Failed attempts preserve partial text; **Retry original inputs** reuses frozen settings and context. To use edited model settings, choose **Try with current settings** and start a new continuation in Writing tools. If a save or request response is lost, the recovery controls check its saved receipt before retrying.
 
 ### Explore without losing your favorite version
 
@@ -53,7 +53,40 @@ Open **Book** in the workspace header (or **Tools > Book** on narrow screens). A
 
 ### Keep the past, and what is still to come
 
-In **Story setup > Writing preferences > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows what each writing request includes. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
+In **Story setup > Writing preferences > Story memory**, choose **Long story** to keep recent prose and retrieve relevant earlier passages within your model's context allowance. Standard retrieval runs locally and makes no extra model calls. Your complete manuscript stays saved, and the context inspector shows the initial writing inputs. **Full history** remains available and pauses writing when the whole path exceeds the model's limit.
+
+Start with **Writing tools > Memory readiness > Open memory preferences**:
+
+1. Choose **Long story** for local recall without extra model requests.
+2. Optionally enable **Check earlier evidence before writing**. This is required for semantic search and relationship links to help a new draft.
+3. For semantic search, enable **Also search by meaning**, then use **Open writer profile** to set an embedding model and its input format.
+4. For relationship links, enable **Use tentative relationship links** and prepare existing passages in **Story memory > Relationship links**. Automatic preparation is a separate opt-in for newly accepted prose and uses the Story's default writer, including its writer-step override.
+
+**Memory readiness** updates for the selected writer and offers direct controls for missing dependencies. “Configured” means the embedding settings exist; the actual request still needs an available connection and sufficient cache coverage. Background eligibility expires with its verification. Character-lens writing reports its narrower scope. No readiness check makes a model request or measures narrative correctness; inspect each draft's receipt for the actual inputs and fallback.
+
+| Optional feature | Extra model work |
+| --- | --- |
+| Local recall, readiness, phrase check, local index warming | None |
+| Prewriting search | Up to one planning request per writer candidate |
+| Semantic search | Up to five embedding requests per candidate, including bounded cache warming |
+| Relationship preparation | Up to four text requests per explicit batch or newly accepted update |
+| Background interruption verification | Two short synthetic requests; no story text |
+| Automated wording cleanup | Up to one polishing request per flagged candidate |
+| Revise continuity | One text request per explicit proposal; reuses saved evidence |
+
+Comparing writers applies these limits separately to each candidate. Summary preparation, plan review, and other configured agents have their own explicit controls and costs.
+
+**Check earlier evidence before writing** is an optional extra step, off by default. Each writer candidate can make one preparation request using its saved model, suggest up to two searches, and consider up to eight exact passages from accepted prose on that frozen path. New evidence shares the existing input allowance and can replace optional excerpts; notes, required Canon, plans, and the latest context remain protected. The preparation request has a 60-second limit and a bounded output; failure retains the original context with an explanation. Each draft's **Prewriting recall** receipt records queries, selected/dropped passages, timing, and exact final writer context. Completed preparation is reused on explicit retry and **Try another**. Character-lens writing and scene workflows do not use this option yet. It does not guarantee that all relevant events were found, and it never accepts events or changes character knowledge. Implementation and verification are recorded in [the enhanced Story memory goal](enhanced-story-memory-goal.md).
+
+Recorded plan evidence can link a promise, a handoff and a later outcome across earlier plan edits. A search match can fetch those linked originals together. Accepted scene descriptions and enabled reviewed summaries can also locate exact earlier prose. Receipts show whether the known group was supplied completely or partially; unavailable or excluded evidence prevents a complete claim. Unrecorded relationships can still be missed.
+
+**Use tentative relationship links** adds optional model interpretations that help prewriting recall find related originals. Enable it in Story memory preferences, then open **Writing tools > Story memory > Relationship links** to prepare up to four missing passages. Each request uses the Story's writer profile, with ceilings of 60 seconds and 1,200 output tokens. Links keep exact supporting quotations and distinguish events, intentions, testimony and knowledge claims. Exact quotations do not make an interpretation true. These links never change accepted facts or plans, and reviewing each one is optional. You can inspect inputs and quotes, stop preparation, or explicitly retry a failed request.
+
+The separate **Prepare links after accepted prose** switch applies to newly accepted prose and requires verified background interruption on the model connection. It yields to foreground writing. Other connections, including OpenRouter, support explicit preparation. Enabling it does not backfill old prose; stopped or interrupted requests do not silently resend. Changes to the permitted source path invalidate dependent links. Draft receipts and story archives preserve frozen evidence and preparation records.
+
+**Also search by meaning** is a separate opt-in under prewriting recall. First add an **Embedding model ID** under the writer profile's **Semantic story recall** settings. Local, OpenAI and compatible connections use their embedding endpoint; the [LM Studio embedding endpoint](https://lmstudio.ai/docs/developer/openai-compat/embeddings) is supported even when writing uses its native protocol. Permitted prose and search queries go to that configured connection. Keyword and semantic searches run independently, then combine their ranks. Each candidate can make up to five embedding requests and take up to 30 additional seconds. At most 64 new source chunks are prepared per request, and keyword search remains active while the cache warms or if embeddings fail. Supported search size is at most 4,096 chunks and two million vector components. Saving a profile starts a fresh embedding cache version. The draft receipt records embedding model, calls, elapsed time, cache coverage and fallback. Completed preparation and final writer inputs survive retry and archive restore without another embedding request.
+
+For **Nomic Embed Text v1.5**, choose **Embedding input format > Nomic search prefixes** in that profile. This supplies the model's document and query prefixes and uses a separate cache. **Plain text** remains the default for existing profiles; select the format required by your embedding model.
 
 Open **Context > Memory** to record **Plans & commitments**: who agreed, who withdrew, what was postponed, and what actually happened. A planned camping trip stays distinct from a completed trip; one person's refusal does not automatically cancel everyone else's plans. Records keep supporting passages and version history on the relevant branch.
 
@@ -61,13 +94,71 @@ Open **Context > Memory** to record **Plans & commitments**: who agreed, who wit
 
 Memory is selective and can miss indirect references, changing motives, or important evidence. Model-generated suggestions and summaries can misinterpret a passage even when their quotations are exact. Inspect the supplied context and keep author review part of your workflow. This release does not promise perfect recall.
 
-See [what changed in v0.7](CHANGELOG.md#v07---2026-09-18) for release details.
+In a small equal-budget live comparison, linked recall supplied 19/19 required permitted passages, versus 12/19 for baseline and 17/19 for prewriting search. Drafts still omitted retrieved events and invented unsupported history. See [the evaluation](enhanced-story-memory-evaluation.md) for the seven cases, model, costs and limitations; this is evidence of improved retrieval in those fixtures, not guaranteed narrative accuracy.
+
+A subsequent [reliability evaluation](narrative-reliability-evaluation.md) adds repeated comparisons with two writers, fresh knowledge/uncertainty cases, live semantic retrieval and real-prose storage/timing measurements. The tested extra writer guidance and draft checker remain experiments because they still missed consequential mistakes. The completed [consolidation goal](narrative-reliability-goal.md) records measured gains and remaining limits.
+
+New prewriting requests retain query matches already supplied in context when making room for other evidence. [The follow-up](narrative-reliability-followup.md) records improved final-packet coverage at unchanged budgets, historical replay checks, and eight live continuations through a coherent manuscript and an earlier fork. Saved requests keep their original packing behavior. Quoted reading notes and extra thinking were also tested; neither established a general fix for unsupported history.
+
+Unaccepted drafts also offer **Revise continuity**: describe a suspected mismatch and request one alternative using the same saved evidence and profile. Compare it with the original before choosing **Keep**. The model can still miss a problem or introduce another; automatic checking remains experimental. Requests that cannot fit the original evidence plus draft fail without dropping sources. See the [consolidation audit](narrative-reliability-audit.md) for measured improvements and limits.
+
+### Agents and long memory, illustrated
+
+These guides show how the agent templates, accepted story history, and optional recall features fit together. Expand either guide, or open its full-size image to read the details. Templates can be customized; enabling a role does not run it on every turn.
+
+<details>
+<summary><strong>Narrative / Passive — author-led writing and the full scene team</strong></summary>
+
+Direct the story, review proposed prose, and choose what to keep. The optional scene route brings planning, drafting, readers, revision, and the Scribe together around your approvals. Long story memory selects relevant evidence from the current path within the writer's context allowance.
+
+[![Narrative and Passive infographic showing the writing loop, branch-specific memory, optional recall aids, scene agents, and author approval checkpoints](design/infographics/narrative-passive-agents-memory-v075.png)](design/infographics/narrative-passive-agents-memory-v075.png)
+
+</details>
+
+<details>
+<summary><strong>Roleplay / Active — character agency and the turn-by-turn team</strong></summary>
+
+Contribute your character's next move and review how the world responds. Active starts with a smaller set of enabled tasks. Author view remains the default; the optional character lens uses recorded permitted evidence and skips extra prewriting search. Character agency is a separate setting.
+
+[![Roleplay and Active infographic showing the response loop, character agency, Author-view and character-lens memory routes, enabled agents, and optional preparation after acceptance](design/infographics/roleplay-active-agents-memory-v075.png)](design/infographics/roleplay-active-agents-memory-v075.png)
+
+</details>
+
+Both guides describe v0.7.5. **Long story** is a deliberate memory setting, and extra recall aids start off. Generated prose still requires **Keep**; retrieving evidence does not guarantee that the writer uses it correctly.
+
+### Review recurring wording
+
+Open **Writing tools > Phrase check**, enable it for this path, and choose **Check wording**. The local check finds recurring phrases in accepted prose and shows exact highlighted excerpts with links back to the manuscript. It makes no model calls and leaves the story unchanged.
+
+Choose the latest 20 or 100 prose passages, or this path within the displayed size limit. Counts refer to the checked text. Author’s notes, removed passages, and unaccepted drafts are excluded. This first feature checks wording; it does not judge pacing or identify repeated meaning.
+
+Suggestions offer editable guidance for varying wording or considering a cut. Copy it when useful, dismiss a particular observation, or mark wording intentional. Hidden observations and intentional phrases can be restored. The phrase-check toggle and review choices are saved on this device for this path, independently of other branches, and are not included as preferences in story archives. Phrase checks leave writer instructions unchanged.
+
+**Writing tools > Automated cleanup** is a separate option, off by default. When enabled, the writer finishes its response, then the local phrase detector checks it against up to 20 recent accepted prose passages. Eligible repeated wording can trigger one polishing call with the same saved writer profile. It works with **Continue story**, **Continue after sending**, and writer comparisons; every candidate has its own one-call limit.
+
+Choose **Finish before draft is ready** to include cleanup in the writing turn, or **While I read** to use the original immediately while cleanup runs separately. With reading-time cleanup, the displayed wording stays original until you choose the cleaned version. **Keep** freezes that choice and stops pending cleanup. Typing or making another model request interrupts optional inference; foreground writing and required assessment take priority on shared hardware.
+
+Reading-time inference currently supports LM Studio native profiles using local HTTP, no API authentication, and model-default reasoning. Load the saved model, then open **Settings > Models > Edit > Verify background interruption**. Two short synthetic requests check a server-acknowledged stop and a completed follow-up; no story text is sent. Verification lasts 30 minutes in this app session and applies to that saved configuration. Unsupported or unverified connections skip reading-time cleanup with an explanation; cleanup before ready remains available. If a stop is not acknowledged, the shared resource stays blocked until you restart the model server and explicitly reset the check.
+
+Cleanup changes only flagged spans and preserves the complete original. Open **Compare original and cleaned wording**, then choose **Use original wording** or **Use cleaned wording** before **Keep**. Nothing enters the manuscript until you keep it. **Stop cleanup; keep original**, turning the toggle off, provider failures, and interruption leave the original usable. Changed paths, author memory decisions, and draft revisions prevent stale cleanup from being applied.
+
+New accepted passages also warm the existing local chunk and word indexes during idle time, without model calls. Work is bounded and yields to writing; ordinary retrieval handles anything not cached. Branch eligibility, plans, and memory choices are still computed from the current story. Automatic model-based summary maintenance uses the same verified background admission; manually requested summaries remain available with other connections. **Observed timings** separates context preparation, model queueing, first text, and draft readiness; cleanup has its own usage and elapsed time. Profiles on the same local hardware share one inference slot by default. The optional **Shared inference resource** setting can identify independent hardware or explicitly group connections.
+
+Intentional and dismissed phrase choices from this browser are captured when the writing request starts; matching wording is protected during cleanup even if manual phrase checks are off. Enabled author-memory motifs also protect matching wording. New choices apply to new requests; stop pending cleanup to keep its original. Names, numeric wording, and capitalized content words are conservatively left alone. The detector is deterministic phrase matching, not ML or a judgement of meaning. The polishing model can still misjudge equivalence or voice, so inspect its changes before keeping them.
+
+The cleanup toggle is saved for this path in the local workspace; new branches and restored archives start with it off. Archives preserve both draft versions, captured request choices, and cleanup evidence. Interrupted cleanup is not automatically retried or resent. The detector scans at most 200,000 characters or 40,000 words across the draft and complete recent passages, and permits at most 12 short, nonoverlapping replacements. Semantic detectors and homeostatic retrieval remain future work.
+
+See the [v0.7.5 release notes](releases/v0.7.5.md) and [detailed changelog](CHANGELOG.md#v075---2026-09-19). The [published v0.7 features](CHANGELOG.md#v07---2026-09-18) are included.
 
 ### Give your world a home
 
 The Library holds **Characters** and **Canon collections**: people, places, setting details, rules, and reference material. A collection can belong to several stories, and a story can draw on several collections.
 
-Canon has Markdown working files you can edit with your preferred editor. Import Markdown or Character Card V1/V2/V3 JSON, including supported PNG character cards, and review the converted material before publishing it. Compatibility notes explain imported features that need attention.
+Canon has Markdown working files you can edit with your preferred editor. **Library > Import file** accepts Markdown, SGC knowledge packs, Character Card V1/V2/V3 JSON or supported PNG cards, and Pygmalion or Backyard/Faraday legacy characters. Standalone portable character lorebooks, SillyTavern world info, NovelAI lorebooks (versions 3–6), Agnai memory books, and RisuAI lorebook exports (version 1) can arrive as JSON or `.lorebook` files. Each file is limited to 10 MiB; conversion runs locally without a model.
+
+Review the proposed fields before publishing. Native imports show where each supported field goes and what remains reference material. The exact original and converted Markdown stay available for download. Imported lorebook entries remain separate from the active Canon overview: after publishing, use **Edit Canon entries > Bring in preserved entries** to review individual entries and their primary keyword proposals. Added entries start off. Native regex, secondary conditions, timing, ordering and priority values need review; their original fields remain preserved.
+
+Archive containers such as `.charx` and `.byaf`, document formats such as DOCX/PDF/EPUB, and chat transcripts are not yet supported by this importer.
 
 Publishing an edit creates a new version. Existing stories keep their selected versions; you can compare changes and apply an update to the stories you choose. Earlier versions remain available.
 
@@ -96,7 +187,7 @@ Bring your character cards and preferred model connections, then try a workflow 
 - Choose a different writer, reviewer, or collaborator for each job.
 - Export a readable Markdown manuscript or a private archive of your work.
 
-Character Card import includes a review step. Compatibility with every third-party extension, macro, or automation is not assumed; unsupported material is preserved with conversion notes.
+Character and lorebook imports include a review step. Compatibility with every third-party extension, macro, or automation is not assumed; unsupported material is preserved with conversion notes. Imported scripts are never executed, media links are not fetched, and macros stay literal.
 
 ## Bring your own writing partner
 
@@ -159,7 +250,9 @@ Stories and Library material are stored locally in the project's `data/` folder.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
 - **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included in v0.7. Archive format 33 includes manuscript organization, bookmarks, and mode-guidance versions while preserving historical tasks and request bytes. Prepared publication downloads can be regenerated from the restored manuscript. Keep a pre-update backup if you need an older app version.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included.
+
+**Archive format 37** preserves manuscript organization, bookmarks, mode-guidance versions, cleanup originals and proposals, tentative links, and continuity-revision receipts. It accepts the published v0.7.0 format-33 manuscript layout and the earlier memory-branch layouts, checking their record groups before migration. Restoring creates independent stories, preserves historical request bytes, disables automation, and requires explicit retry for interrupted work. It does not resend model requests. Prepared DOCX/EPUB downloads can be regenerated from the restored manuscript. Keep a pre-update backup if you may return to an older app version.
 
 ## Questions
 
@@ -185,7 +278,7 @@ No. Randomness starts off, individual systems are optional, and prompts/agents c
 
 Yes. Stories select versions independently, and publishing an edit does not silently change existing stories.
 
-**Is v0.6.1 a finished product?**
+**Is v0.7.5 a finished product?**
 
 It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. Companion Mode, social feeds, built-in image generation, and automated backups are future ideas, not features of this release.
 

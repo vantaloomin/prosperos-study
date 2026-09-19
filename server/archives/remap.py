@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+from server.archives.cleanup import restore_cleanup
+from server.archives.continuity_revision import remap_revision_usage
 from server.archives.lore import remap_lore, remap_state
 from server.archives.memory_controls import remap_controls
 from server.archives.v07 import remap_manuscript
@@ -70,7 +72,7 @@ def story_settings(value, document, mapping):
 def snapshot(value, mapping):
     updated = fields(value, mapping)
     updated.update({key: [fields(item, mapping) for item in value[key]] for key in ('prompt_sections',) if key in value})
-    for key in ("branch", "prompt", "profile"):
+    for key in ("branch", "prompt", "profile", 'cleanup'):
         if key in value:
             updated[key] = fields(value[key], mapping)
     updated.update(remap_snapshot_lore(value, mapping))
@@ -146,7 +148,8 @@ def remap_json(table, row, document, mapping):
         "manifests": {"attachments": lambda value: [fields(item, mapping) for item in value]},
         "nodes": {"metadata": lambda value: fields(value, mapping)},
         "node_mechanics": {"state": lambda value: remap_state(value, mapping)},
-        "candidates": {"profile": lambda value: fields(value, mapping)},
+        "candidates": {"profile": lambda value: fields(value, mapping), 'usage': lambda value: remap_revision_usage(value, mapping)},
+        'generation_attempts': {'usage': lambda value: remap_revision_usage(value, mapping)},
         "side_replies": {"profile": lambda value: fields(value, mapping)},
         "review_runs": {"selections": lambda value: pins(value, mapping)},
         "scene_runs": {"state": lambda value: scene_state(value, mapping)},
@@ -178,14 +181,14 @@ def remap_record(table, row, document, mapping):
         return source_record({**version, 'id': mapping[version['id']], 'content': remap_dependencies(decode(version['content']), mapping)})
     updated = fields(row, mapping)
     updated = remap_json(table, updated, document, mapping)
-    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'} and row["status"] in {"running", "queued"}:
+    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs'} and row["status"] in {"running", "queued"}:
         updated["status"] = "interrupted"
         updated["error"] = "Restored from an archive. Partial output is preserved; retry is explicit."
     if table == 'summary_batches' and row['status'] in {'queued', 'running'}:
         updated.update(status='interrupted', error='Restored maintenance waits for explicit resume.')
     if table == 'summary_wakeups' and row['status'] == 'pending':
         updated.update(status='interrupted', error='Restored automatic maintenance waits for explicit resume.')
-    return updated
+    return restore_cleanup(table, row, updated)
 
 
 def assessment_snapshot(value, mapping):

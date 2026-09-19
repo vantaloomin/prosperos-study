@@ -30,6 +30,7 @@ def decode(value: str):
 class Database:
     def __init__(self, path: str | Path | None = None):
         self.path = Path(path or os.environ.get("ROLEPLAY_DB", "data/roleplay.sqlite3"))
+        self.node_listeners = []
         self.path.parent.mkdir(parents=True, exist_ok=True)
         from server.asset_migration import migrate_asset_kinds
         migrate_asset_kinds(self.path)
@@ -46,13 +47,32 @@ class Database:
         connection.execute("PRAGMA journal_mode=WAL")
         try:
             connection.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            watermark = self.node_watermark(connection) if write and self.node_listeners else None
             yield connection
+            nodes = self.new_nodes(connection, watermark) if watermark is not None else []
             connection.commit()
+            for listener in self.node_listeners:
+                if nodes:
+                    try:
+                        listener(nodes)
+                    except Exception:
+                        pass  # Cache notifications cannot turn a committed write into a failure.
         except BaseException:
             connection.rollback()
             raise
         finally:
             connection.close()
+
+    @staticmethod
+    def node_watermark(connection):
+        return connection.execute('SELECT COALESCE(MAX(rowid),0) FROM nodes').fetchone()[0]
+
+    @staticmethod
+    def new_nodes(connection, watermark):
+        # Bounded notifications, including large imports. Missing cache entries are
+        # always prepared normally when actually needed by foreground retrieval.
+        return many(connection, 'SELECT id,role,text FROM nodes WHERE rowid>? AND length(text)<=64000 '
+                    'ORDER BY rowid DESC LIMIT 64', (watermark,))
 
 
 def one(connection, sql: str, values=()) -> dict:

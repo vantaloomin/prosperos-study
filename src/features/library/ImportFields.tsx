@@ -10,12 +10,19 @@ import { VersionDiff } from './VersionDiff'
 import type { ImportChoice, ImportPreview } from './importTypes'
 
 export function ImportCompatibility({ preview }: { preview: ImportPreview }) {
-  const isCard = preview.format === 'card' || preview.format === 'png-card'
+  const isCard = preview.drafts.some(draft => draft.kind === 'character')
   return <section className="import-compatibility" aria-label="Import compatibility"><h3>What becomes part of your world</h3>
     <p>{isCard ? 'The edited character fields and Canon overview below can guide the writer. Greetings stay optional.' : 'The reviewed Markdown below becomes this Canon collection’s world knowledge.'} Nothing is added to a Story automatically.</p>
     {preview.issues.length > 0 && <ul>{preview.issues.map((issue, index) => <li key={`${issue.path}-${index}`}>{issue.message}</li>)}</ul>}
+    <ImportMapping mapping={preview.mapping} />
     <p>{isCard ? 'Originals, unknown metadata and converted documents stay available as source material. Imported instructions never replace your application prompts.' : 'Your original source file stays available after later edits.'}</p>
   </section>
+}
+
+function ImportMapping({ mapping }: { mapping: ImportPreview['mapping'] }) {
+  if (!mapping?.length) return null
+  const labels = { mapped: 'Proposed field', review: 'Review before using', reference: 'Reference only' }
+  return <details><summary>How this file maps to the Study</summary><ul>{mapping.map((item, index) => <li key={index}><strong>{item.source}</strong> → {item.target}. <span className="subtle">{labels[item.handling]}.</span></li>)}</ul></details>
 }
 
 export function ImportChoiceEditor({ choice, assets, onChange, onBusy }: { choice: ImportChoice; assets: AssetVersion[]; onChange: (patch: Partial<ImportChoice>) => void; onBusy: (busy: boolean) => void }) {

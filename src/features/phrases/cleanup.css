@@ -1,0 +1,15 @@
+.cleanup-setting, .cleanup-review { display: grid; gap: 0.65rem; min-width: 0; }
+.writing-assistance-tools { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.cleanup-setting { border-block: 1px solid var(--border); padding-block: 1rem; }
+.cleanup-setting p, .cleanup-review p { margin: 0; }
+.cleanup-review { border-top: 1px solid var(--border); padding-block: 1rem; }
+.cleanup-review details { min-width: 0; }
+.cleanup-review pre { max-height: 18rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cleanup-versions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.cleanup-versions .prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cleanup-comparison li { margin-block: 0.5rem; overflow-wrap: anywhere; }
+.cleanup-comparison del { text-decoration-color: currentColor; }
+.cleanup-comparison ins { text-decoration-thickness: 2px; }
+.cleanup-review .candidate-actions { flex-wrap: wrap; }
+.cleanup-review button { white-space: normal; }
+@media (max-width: 640px) { .cleanup-versions { grid-template-columns: minmax(0, 1fr); } }

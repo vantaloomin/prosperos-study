@@ -5,10 +5,11 @@ export interface Candidate {
   id: string
   generation_id: string
   profile: ModelProfile
-  status: 'queued' | 'running' | 'done' | 'error' | 'cancelled' | 'interrupted'
+  status: 'queued' | 'running' | 'cleaning' | 'done' | 'error' | 'cancelled' | 'interrupted'
+  cleanup?: import('../phrases/cleanupTypes').Cleanup | null
   output: string
   error: string
-  usage: Record<string, unknown>
+  usage: Record<string, unknown> & { writer_recall?: import('./RecallReceipt').RecallReceiptData; continuity_revision?: import('./ContinuityRevision').ContinuityRevisionData }
   attempt: number
   accepted_branch_id: string | null
   accepted_node_id: string | null
@@ -20,6 +21,7 @@ export interface Generation {
   stale: boolean
   candidates: Candidate[]
   snapshot: {
+    writer_recall?: { version: number }
     knowledge_lens?: import('./KnowledgeChoice').KnowledgeReceipt
     lore?: LoreReceipt
     opportunity_id: string | null
@@ -31,4 +33,5 @@ export interface Generation {
   }
 }
 export interface GenerationSummary { id: string; branch_id: string; created_at: string; statuses: Candidate['status'][]; unaccepted: boolean }
-export const isWorking = (candidate: Candidate) => candidate.status === 'running' || candidate.status === 'queued'
+export const isWorking = (candidate: Candidate) => ['running', 'queued', 'cleaning'].includes(candidate.status)
+export const isUpdating = (candidate: Candidate) => isWorking(candidate) || Boolean(candidate.usage.cleanup_pending)

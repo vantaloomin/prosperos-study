@@ -12,8 +12,8 @@ export function SourceDownloads({ id }: { id: string }) {
 
 export function ConvertedDocuments({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useQuery({ queryKey: ['library-import', id], queryFn: () => api<ImportPreview>(`/library-imports/${id}`) })
-  return <Modal open wide title="Converted source documents" description="Preserved reference material. These files do not automatically become prompts, active Canon entries or Story events." onClose={onClose}>
-    <div className="dialog-body form-stack"><ErrorNotice message={query.error?.message} />
+  return <Modal open wide title="Converted source documents" description="Preserved source material for review." onClose={onClose}>
+    <div className="dialog-body form-stack"><p className="subtle">These files do not automatically become prompts, active Canon entries or Story events.</p><ErrorNotice message={query.error?.message} />
       {query.isPending && <Loading label="Opening the converted documents…" />}
       {query.data && <DocumentBrowser preview={query.data} />}<SourceDownloads id={id} />
     </div><footer className="dialog-footer"><button className="button" onClick={onClose}>Done</button></footer>

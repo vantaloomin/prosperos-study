@@ -11,6 +11,8 @@ import { profileSaveState } from './profileReadiness'
 import { LocalProtocolField } from './LocalSettings'
 import { localAddressHint } from './localProtocol'
 import { GenerationSettings } from './GenerationSettings'
+import { BackgroundVerification } from './BackgroundVerification'
+import { EmbeddingSettings } from './EmbeddingSettings'
 import { initialConfig, providers } from './types'
 import type { ModelProfile, ProfileConfig, Provider } from './types'
 
@@ -45,6 +47,8 @@ export function ProfileEditor({ profile, first, onClose, onSaved }: { profile?: 
       <ModelDiscovery config={config} result={discovery.result} busy={discovery.busy} error={discovery.error} connect={() => { void discovery.connect(config, key, onDiscovered) }} patch={patch} />
       <Field label="Model ID" value={config.model} onChange={(e) => patch(typedModelSettings(e.target.value, config, discovery.result?.model_details))} placeholder="Choose a returned model, or enter an ID" />
       <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={discovery.result?.model_details?.find(model => model.id === config.model)} /></details>
+      <SavedProfileVerification profile={profile} config={config} apiKey={key} />
+      <EmbeddingSettings config={config} patch={patch} />
       <label className="check-row"><input type="checkbox" disabled={!ready} checked={primary && ready} onChange={(e) => setPrimary(e.target.checked)} />Use as Primary Writer</label>{!ready && <p className="subtle">Save your API key now and finish setup later. Choose a model before using this connection for writing.</p>}<ErrorNotice message={action.error} />
     </div></div><footer className="dialog-footer"><span className="subtle">API keys stay in your OS credential vault.</span><button className="button primary" onClick={save} disabled={!canSave || action.busy}>{action.busy ? 'Saving…' : ready ? 'Save profile' : 'Save connection'}</button></footer>
   </Modal>
@@ -54,6 +58,10 @@ function ConnectionFields({ config, apiKey, saved, patch, onKey }: { config: Pro
   if (config.provider === 'codex') return <p className="connection-note">Uses the CLI's existing authentication. No API key is needed here. Codex runs in an isolated temporary folder with shell, plugins, and web tools disabled.</p>
   const local = config.provider === 'local' || config.provider === 'kobold'
   return <><LocalProtocolField config={config} patch={patch} />{(local || config.provider === 'compatible') && <Field label="Server address" value={config.base_url} onChange={(e) => patch({ base_url: e.target.value })} hint={localAddressHint(config)} />}<TokenEntry key={config.provider} saved={saved} value={apiKey} onChange={onKey} /></>
+}
+
+function SavedProfileVerification({ profile, config, apiKey }: { profile?: ModelProfile; config: ProfileConfig; apiKey: string }) {
+  return profile ? <BackgroundVerification profileId={profile.profile_id} dirty={Boolean(apiKey) || JSON.stringify(config) !== JSON.stringify(profile.config)} /> : null
 }
 
 function TokenEntry({ saved, value, onChange }: { saved: boolean; value: string; onChange: (value: string) => void }) {

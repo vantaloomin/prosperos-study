@@ -15,7 +15,6 @@ from server.library_formats.sources import source_record
 from server.memory.summary_catalog import SUMMARY_KEYS
 from server.prompts import DEFAULT_PROMPTS
 from server.prompts import LEGACY_PROMPT_LABELS as PROMPT_LABELS
-from server.role_prompts import ROLE_PROMPTS
 from server.scenes.catalog import DRAFT_KEYS, PLAN_KEYS, SCENE_PROMPTS
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
 from server.scenes.patch_catalog import PATCH_KEYS
@@ -206,33 +205,8 @@ def upgrade_twenty_eight(document):
 
 
 def upgrade_thirty_one(document):
-    if document['version'] == 31:
-        require(set(document['prompt_heads']) == set(PROMPT_LABELS), 'Version 31 needs its original supported prompts.')
-        for key in sorted(set(ROLE_PROMPTS) - set(PROMPT_LABELS)):
-            version_id = f'{key}-archive-upgrade-v31'
-            document['data']['prompt_versions'].append({
-                'id': version_id, 'key': key, 'number': 1, 'template': ROLE_PROMPTS[key],
-                'created_at': document['created_at'],
-            })
-            document['prompt_heads'][key] = version_id
-        document['version'] = 32
-    return upgrade_thirty_two(document)
-
-
-def upgrade_thirty_two(document):
-    if document['version'] == 32:
-        from server.archives.format import V32_TABLES
-        from server.section_prompts import SECTION_PROMPTS
-        require(set(document['data']) == set(V32_TABLES), 'Version 32 needs its original record groups.')
-        require(set(document['prompt_heads']) == set(PROMPT_LABELS) | set(ROLE_PROMPTS), 'Version 32 needs its original prompts.')
-        for key, template in SECTION_PROMPTS.items():
-            version_id = f'{key}-archive-upgrade-v32'
-            document['data']['prompt_versions'].append({'id': version_id, 'key': key, 'number': 1,
-                                                       'template': template, 'created_at': document['created_at']})
-            document['prompt_heads'][key] = version_id
-        document['data']['manuscripts'] = []
-        document['version'] = 33
-    return document
+    from server.archives.lineages import upgrade_lineages
+    return upgrade_lineages(document)
 
 
 def add_prompts(document, keys, source_version):

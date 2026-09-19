@@ -1,13 +1,13 @@
 {
   "name": "roleplay-interface",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.7.5",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test:ui-models": "node --experimental-strip-types --test tests/branchTree.test.mjs tests/readingPosition.test.mjs tests/setup.test.mjs tests/navigationMetrics.test.mjs tests/routingState.test.mjs tests/versionChanges.test.mjs tests/tellingSwipe.test.mjs tests/authoringTargets.test.mjs tests/storyMode.test.mjs tests/transcriptWindow.test.mjs tests/modelDiscovery.test.mjs tests/settingsWorkflows.test.mjs tests/decisionDraft.test.mjs tests/requestRecovery.test.mjs tests/workspacePreferences.test.mjs",
+    "test:ui-models": "node --experimental-strip-types --test tests/branchTree.test.mjs tests/readingPosition.test.mjs tests/setup.test.mjs tests/navigationMetrics.test.mjs tests/routingState.test.mjs tests/versionChanges.test.mjs tests/tellingSwipe.test.mjs tests/authoringTargets.test.mjs tests/storyMode.test.mjs tests/transcriptWindow.test.mjs tests/modelDiscovery.test.mjs tests/settingsWorkflows.test.mjs tests/decisionDraft.test.mjs tests/requestRecovery.test.mjs tests/workspacePreferences.test.mjs tests/phrasePreferences.test.mjs tests/cleanupPresentation.test.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

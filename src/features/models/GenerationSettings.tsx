@@ -27,6 +27,7 @@ export function GenerationSettings(props: Props) {
     {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} />}
     <p className="subtle">Set preferred prose length in Story setup. A short prose request can still need a larger token allowance for thinking. Profile changes apply to new requests; “Retry original inputs” keeps the recorded limits.</p>
     <SamplingControls {...props} />
+    <Field label="Shared inference resource (optional)" value={config.resource_group ?? ''} maxLength={80} onChange={event => patch({ resource_group: event.target.value })} hint="Profiles with the same name share one inference slot. Leave blank to share all local connections by default; use different names only for independent hardware." />
     <Field label="Timeout (seconds)" type="number" min={10} max={1800} value={config.timeout_seconds} onChange={event => patch({ timeout_seconds: Number(event.target.value) })} />
   </div>
 }

@@ -400,7 +400,9 @@ def test_assessment_and_prepared_chance_preserve_summary_receipts(client, monkey
     from tests.test_assessments import AssessmentProvider
     from tests.test_mechanics import configure
     story, _, _, _, _ = setup_story(client)
-    small_profile(client, limit=8192)
+    # Leave room for the fixed assessed beat while retaining summary selection.
+    # This test checks receipt replay; an exactly full packet correctly refuses it.
+    small_profile(client, limit=8192 + 128)
     monkeypatch.setattr('server.assessment.context.secrets.token_hex', lambda *_: '03' * 32)
     configure(client, story, automatic_assessment=True, chance=100, cooldown=0)
     scribe = client.post('/api/profiles', json={'name': 'Scribe', 'config': {
