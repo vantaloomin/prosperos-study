@@ -42,3 +42,4 @@ class ManuscriptUpdate(Input):
 
 class PublicationCreate(Input):
     expected_revision: int = Field(ge=0)
+    html_contents: bool = True

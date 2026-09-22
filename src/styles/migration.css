@@ -1,0 +1,20 @@
+.migration-message { border: 1px solid var(--border); border-radius: 10px; padding: 1rem; min-width: 0; }
+.migration-review-fields { border: 0; padding: 0; min-width: 0; margin: 0; }
+.migration-review-fields legend { font-weight: 600; margin-block: 1rem; }
+.migration-review-fields small { display: block; margin-top: .5rem; }
+.migration-review-fields .check-row { overflow-wrap: anywhere; }
+.migration-message h4 { margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.migration-message .field { margin-block: .75rem; }
+.migration-prose { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.65; max-height: 24rem; overflow: auto; padding: .75rem; background: var(--surface); border-radius: 6px; }
+.migration-mapping { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.migration-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.migration-history { display: block; margin-block: .75rem; text-align: left; overflow-wrap: anywhere; }
+.migration-tabs { flex-wrap: wrap; }
+.migration-batch-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.migration-batch-row { display: grid; gap: .4rem; text-align: left; white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.migration-batch-row strong, .migration-batch-row span, .migration-batch-row small { min-width: 0; }
+.migration-batch-row[aria-pressed="true"] { border-color: var(--accent); background: var(--surface); }
+.migration-batch-detail { border-top: 1px solid var(--border); padding-top: 1rem; min-width: 0; }
+.migration-batch-detail > h3 { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .migration-batch-list { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .migration-mapping { grid-template-columns: 1fr; } }

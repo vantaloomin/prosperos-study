@@ -163,3 +163,8 @@
 .decision-conflict { border: 1px solid var(--border); border-radius: 8px; min-width: 0; padding: 16px; }
 .decision-conflict legend { padding: 0 6px; }
 .decision-merge p { overflow-wrap: anywhere; }
+.import-attached-assets { overflow-wrap: anywhere; }
+.import-asset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; padding-top: 16px; }
+.import-asset-item { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.import-asset-item img { max-width: 100%; width: 120px; height: 140px; object-fit: contain; align-self: start; }
+.import-asset-item small { color: var(--muted); overflow-wrap: anywhere; }

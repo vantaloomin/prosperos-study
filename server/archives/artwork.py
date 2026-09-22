@@ -8,11 +8,13 @@ from server.archives.records import related_rows
 from server.database import decode
 from server.errors import require
 from server.library_formats.artwork import decode_image
+from server.library_formats.container_assets import artwork_references
 
 
 def collect_artwork(connection, data):
     refs = {decode(row['content']).get('artwork_sha256') for row in data['asset_versions']} - {None}
-    refs.update(row['source_sha256'] for row in data['library_imports'] if decode(row['conversion'])['format'] == 'png-card')
+    for row in data['library_imports']:
+        refs.update(artwork_references(row, decode(row['conversion'])))
     data['library_media'] = related_rows(connection, 'library_media', 'sha256', refs)
 
 
@@ -30,5 +32,5 @@ def validate_artwork(data):
                 require(parsed.format == 'PNG' and not parsed.info, 'Artwork previews must be metadata-free PNG images.')
     available = {row['sha256'] for row in data['library_media']}
     for row in data['library_imports']:
-        if decode(row['conversion'])['format'] == 'png-card':
-            require(row['source_sha256'] in available, 'A PNG import is missing its preserved artwork.')
+        require(artwork_references(row, decode(row['conversion'])) <= available,
+                'An image or character-container import is missing its preserved artwork.')

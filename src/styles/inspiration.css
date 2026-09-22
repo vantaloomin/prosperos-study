@@ -1,0 +1,15 @@
+.deck-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.deck-actions > div:first-child { flex: 1 1 16rem; }
+.deck-actions input { padding: .6rem; max-width: 100%; min-width: 0; }
+.deck-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
+.deck-card-editor { border: 1px solid var(--border); border-radius: 10px; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
+.deck-field-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 1rem; }
+.deck-card-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.deck-json { max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+.deck-odds { max-height: 26rem; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+.deck-odds-row { display: grid; gap: .4rem; padding: .8rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.deck-probability { height: .3rem; background: var(--border); border-radius: 4px; }
+.deck-probability span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.deck-pack-card { padding-block: .8rem; border-bottom: 1px solid var(--border); }
+.library-filter-tabs { flex-wrap: wrap; }
+@media (max-width: 600px) { .deck-field-pair { grid-template-columns: 1fr; } }

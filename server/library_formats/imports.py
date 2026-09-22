@@ -4,8 +4,14 @@ from server.character_content import canonical_kind
 from server.database import decode, encode, identifier, many, now, one
 from server.errors import DomainError, require
 from server.library import create_asset, publish_asset
-from server.library_formats.artwork import prepare_artwork, store_artwork
+from server.library_formats.artwork import store_artwork
+from server.library_formats.container_assets import imported_artwork
 from server.library_formats.import_conversion import convert_import, source_bytes
+from server.library_formats.import_duplicates import (
+    import_duplicates,
+    publication_payload,
+    split_duplicates,
+)
 from server.library_formats.import_files import materialize_import
 from server.models import AssetCreate, AssetPublish
 from server.operations import previous, remember
@@ -15,7 +21,7 @@ def preview(row):
     conversion = decode(row['conversion'])
     return {key: row[key] for key in ('id', 'filename', 'source_sha256', 'created_at')} | {
         **{key: conversion[key] for key in ('format', 'card_version', 'issues', 'drafts')},
-        **{key: conversion[key] for key in ('source_format', 'format_label', 'mapping') if key in conversion},
+        **{key: conversion[key] for key in ('source_format', 'format_label', 'mapping', 'assets') if key in conversion},
         'files': [{'path': path, 'characters': len(text)} for path, text in conversion['files'].items()]}
 
 
@@ -32,22 +38,24 @@ class LibraryImports:
 
     def stage(self, body):
         conversion = validated_conversion(body.filename, body.source_base64)
-        artwork = prepare_artwork(source_bytes(body.source_base64)) if conversion['format'] == 'png-card' else None
+        artwork = imported_artwork(source_bytes(body.source_base64), conversion)
         row = {'id': identifier(), 'filename': body.filename, 'source_base64': body.source_base64,
                'source_sha256': conversion['source_sha256'], 'conversion': encode(conversion), 'created_at': now()}
         materialize_import(self.database, row, conversion)
         with self.database.connect(write=True) as connection:
-            if artwork:
-                store_artwork(connection, artwork)
+            for image in artwork:
+                store_artwork(connection, image)
             connection.execute('INSERT INTO library_imports VALUES (?,?,?,?,?,?)', tuple(row.values()))
-        return preview(row)
+        return self.view(row['id'])
 
     def row(self, import_id):
         with self.database.connect() as connection:
             return one(connection, 'SELECT * FROM library_imports WHERE id=?', (import_id,))
 
     def view(self, import_id):
-        return preview(self.row(import_id))
+        with self.database.connect() as connection:
+            row = one(connection, 'SELECT * FROM library_imports WHERE id=?', (import_id,))
+            return {**preview(row), 'duplicates': import_duplicates(connection, row)}
 
     def origins(self, version_id):
         with self.database.connect() as connection:
@@ -56,7 +64,7 @@ class LibraryImports:
                         'FROM asset_import_origins o JOIN library_imports i ON i.id=o.import_id WHERE o.version_id=? ORDER BY i.created_at', (version_id,))
 
     def publish(self, import_id, body):
-        payload = {'import_id': import_id, **body.model_dump(exclude={'operation_id'})}
+        payload = publication_payload(import_id, body)
         with self.database.connect(write=True) as connection:
             cached = previous(connection, body.operation_id, 'library-import', payload)
             if cached is not None:
@@ -65,8 +73,9 @@ class LibraryImports:
             conversion = decode(row['conversion'])
             validate_choices(row, conversion, body)
             materialize_import(self.database, row, conversion)
-            versions = publish_choices(connection, self.database, row, body.choices)
-            return remember(connection, body.operation_id, 'library-import', payload, {'versions': versions})
+            selected, skipped = split_duplicates(connection, row, body.choices)
+            versions = publish_choices(connection, self.database, row, selected)
+            return remember(connection, body.operation_id, 'library-import', payload, {'versions': versions, 'skipped': skipped})
 
 
 def validate_choices(row, conversion, body):

@@ -15,6 +15,7 @@ from server.archives.continuity import validate_continuity
 from server.archives.continuity_revision import validate_continuity_revisions
 from server.archives.format import JSON_FIELDS, MAX_ARCHIVE_BYTES, TABLES, ArchiveDocument
 from server.archives.identities import validate_identities
+from server.archives.inspiration import validate_inspiration
 from server.archives.interpretations import validate_interpretations
 from server.archives.knowledge import validate_knowledge
 from server.archives.library_imports import validate_imports
@@ -24,10 +25,12 @@ from server.archives.lore import validate_lore
 from server.archives.lore_sources import validate_entry_sources
 from server.archives.maintenance import validate_maintenance
 from server.archives.memory_controls import validate_controls
+from server.archives.migration_sources import validate_migration_sources
 from server.archives.migrations import upgrade
 from server.archives.passage_revisions import validate_passage_revisions
 from server.archives.patches import validate_patches
 from server.archives.plans import validate_plan_edits
+from server.archives.presets import validate_presets
 from server.archives.recipes import validate_recipes
 from server.archives.relationships import validate_relationships
 from server.archives.reviews import validate_draft_reviews
@@ -100,6 +103,9 @@ def validate_archive(document):
         acyclic(document['data']['text_edit_receipts'], 'undo_of')
         validate_openings(connection, document['data'])
         validate_imports(connection, document['data'])
+        validate_migration_sources(connection, document['data'])
+        validate_presets(connection, document['data'])
+        validate_inspiration(connection, document['data'])
         validate_ownership(connection, document)
         validate_cleanups(connection, document['data'])
         validate_scenes(connection, document)

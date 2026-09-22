@@ -10,7 +10,9 @@ import type { AssetVersion } from '../../types'
 import { AdoptionDialog } from './AdoptionDialog'
 import { ImportChoiceEditor, ImportCompatibility } from './ImportFields'
 import { ConvertedDocuments, SourceDownloads } from './ImportSources'
-import { importChoices, publicationChoices, readImportFile, type ImportPreview } from './importTypes'
+import { ImportedAssets } from './ImportedAssets'
+import { importChoices, publicationChoices, readImportFile, type ImportPreview, type ImportResult } from './importTypes'
+import { SkippedImports } from './ImportDuplicates'
 
 interface ImportProps {
   onClose: () => void; onPublishedClose?: () => void; initialImportId?: string; target?: AssetVersion
@@ -20,11 +22,11 @@ interface ImportProps {
 export function LibraryImport({ onClose, onPublishedClose, initialImportId, target, focusOnClose, focusOnPublishedClose }: ImportProps) {
   const [id, setId] = usePersistent<string | null>(initialImportId ? `roleplay:library-import:${initialImportId}` : 'roleplay:library-import', initialImportId ?? null)
   useEffect(() => { rememberImport(id) }, [id])
-  const [published, setPublished] = useState<AssetVersion[] | null>(null)
+  const [published, setPublished] = useState<ImportResult | null>(null)
   const close = published ? onPublishedClose ?? onClose : onClose
-  const finish = (versions: AssetVersion[]) => { setPublished(versions); setId(null) }
+  const finish = (result: ImportResult) => { setPublished(result); setId(null) }
   return <Modal open wide title="Bring your world along" description="Review the imported fields and preserved sources, then choose what to publish." onClose={close} focusOnClose={published ? focusOnPublishedClose : focusOnClose}>
-    {published ? <ImportSuccess versions={published} onClose={close} /> : <>
+    {published ? <ImportSuccess result={published} onClose={close} /> : <>
       <div className="dialog-body form-stack"><ImportUpload onReady={(preview) => setId(preview.id)} />
         {id && <ImportReview key={id} id={id} target={target} onPublished={finish} />}
       </div>{!id && <footer className="dialog-footer"><button className="button" onClick={onClose}>Done</button></footer>}
@@ -43,20 +45,20 @@ function ImportUpload({ onReady }: { onReady: (preview: ImportPreview) => void }
     const source_base64 = await readImportFile(file)
     onReady(await api<ImportPreview>('/library-imports', { filename: file.name, source_base64 }))
   })
-  return <section className="import-upload"><label className="field"><span>Choose a character, lorebook, Markdown, or SGC pack</span><input type="file" accept=".md,.markdown,.json,.png,.lorebook" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
-    <p className="subtle">Up to 10 MiB · JSON, PNG, .lorebook or Markdown. Character Cards V1–V3, Pygmalion and Backyard legacy characters; portable, SillyTavern, NovelAI, Agnai and RisuAI lorebooks. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
+  return <section className="import-upload"><label className="field"><span>Choose a character, lorebook, Markdown, or SGC pack</span><input type="file" accept=".md,.markdown,.json,.png,.lorebook,.charx,.byaf" aria-disabled={action.busy} onClick={(event) => { if (action.busy) event.preventDefault() }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file) }} /></label>
+    <p className="subtle">Up to 10 MiB · Character Cards V1–V3 JSON/PNG, CHARX V3 and BYAF v1 containers, Pygmalion and Backyard legacy characters; portable, SillyTavern, NovelAI, Agnai and RisuAI lorebooks, Markdown and SGC packs. Container images can be reviewed and chosen as artwork. Conversion stays on this device and uses no model. Choosing another file replaces the preview.</p>
     {action.busy && <Loading label="Preserving the source and preparing Markdown…" />}<ErrorNotice message={action.error} />
   </section>
 }
 
-function ImportReview({ id, target, onPublished }: { id: string; target?: AssetVersion; onPublished: (versions: AssetVersion[]) => void }) {
+function ImportReview({ id, target, onPublished }: { id: string; target?: AssetVersion; onPublished: (result: ImportResult) => void }) {
   const query = useQuery({ queryKey: ['library-import', id], queryFn: () => api<ImportPreview>(`/library-imports/${id}`) })
   return <><ErrorNotice message={query.error?.message} />{query.isPending && <Loading label="Opening your import preview…" />}
     {query.data && <ImportPublication preview={query.data} target={target} onPublished={onPublished} />}</>
 }
 
-function ImportPublication({ preview, target, onPublished }: { preview: ImportPreview; target?: AssetVersion; onPublished: (versions: AssetVersion[]) => void }) {
-  const key = `roleplay:library-import-draft:${preview.id}`
+export function ImportPublication({ preview, target, onPublished, publishChoices, batchDuplicateParts = [], draftKey }: { preview: ImportPreview; target?: AssetVersion; onPublished: (result: ImportResult) => void; publishChoices?: (choices: object) => Promise<ImportResult>; batchDuplicateParts?: string[]; draftKey?: string }) {
+  const key = draftKey ?? `roleplay:library-import-draft:${preview.id}`
   const [draft, setDraft] = usePersistent(key, { choices: importChoices(preview, target), reviewed: false, operation: operationId() })
   const [inspect, setInspect] = useState(false)
   const [uploads, setUploads] = useState<Record<string, boolean>>({})
@@ -67,28 +69,30 @@ function ImportPublication({ preview, target, onPublished }: { preview: ImportPr
   useEffect(() => { heading.current?.focus() }, [])
   const selected = publicationChoices(draft.choices)
   const publish = () => action.run(async () => {
-    const result = await api<{ versions: AssetVersion[] }>(`/library-imports/${preview.id}/publish`, {
+    const send = publishChoices ?? ((choices: object) => api<ImportResult>(`/library-imports/${preview.id}/publish`, choices))
+    const result = await send({
       operation_id: draft.operation, source_sha256: preview.source_sha256, reviewed_compatibility: draft.reviewed, choices: selected })
     localStorage.removeItem(key)
-    onPublished(result.versions)
+    onPublished(result)
   })
   return <section className="import-review form-stack"><h3 ref={heading} tabIndex={-1}>{preview.filename}</h3>
     <p className="subtle">{importFormat(preview)} · Preserved Markdown files: {preview.files.length}</p>
     <SourceDownloads id={preview.id} /><button className="button" onClick={() => setInspect(true)}>Inspect converted Markdown</button>
-    <ImportCompatibility preview={preview} /><ErrorNotice message={assets.error?.message} />
-    {draft.choices.map((choice, index) => <ImportChoiceEditor key={choice.part} choice={choice} assets={assets.data ?? []} onBusy={(busy) => setUploads((previous) => previous[choice.part] === busy ? previous : { ...previous, [choice.part]: busy })} onChange={(patch) => { action.clearError(); setDraft({ ...draft, operation: operationId(), choices: draft.choices.map((item, at) => at === index ? { ...item, ...patch } : item) }) }} />)}
+    <ImportCompatibility preview={preview} /><ImportedAssets preview={preview} /><ErrorNotice message={assets.error?.message} />
+    {draft.choices.map((choice, index) => <ImportChoiceEditor key={choice.part} choice={choice} assets={assets.data ?? []} importedAssets={preview.assets} duplicates={preview.duplicates} hasBatchDuplicate={batchDuplicateParts.includes(choice.part)} onBusy={(busy) => setUploads((previous) => previous[choice.part] === busy ? previous : { ...previous, [choice.part]: busy })} onChange={(patch) => { action.clearError(); setDraft({ ...draft, reviewed: false, operation: operationId(), choices: draft.choices.map((item, at) => at === index ? { ...item, ...patch } : item) }) }} />)}
     <label className="check-row"><input type="checkbox" checked={draft.reviewed} onChange={(event) => setDraft({ ...draft, reviewed: event.target.checked })} />I reviewed the active fields and the material kept only as reference.</label>
     <ErrorNotice message={action.error} /><div className="import-publish"><p className="subtle">Selected for publication: {selected.length}. Existing Stories keep their current versions.</p><PublicationButton reviewed={draft.reviewed} count={selected.length} busy={action.busy} uploading={uploading} onPublish={publish} /></div>
     {inspect && <ConvertedDocuments id={preview.id} onClose={() => setInspect(false)} />}
   </section>
 }
 
-function ImportSuccess({ versions, onClose }: { versions: AssetVersion[]; onClose: () => void }) {
+function ImportSuccess({ result, onClose }: { result: ImportResult; onClose: () => void }) {
   const [adoption, setAdoption] = useState<AssetVersion | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
   return <><div className="dialog-body form-stack"><h3 ref={heading} tabIndex={-1}>Ready in your Library</h3><p className="subtle">Published sources and earlier versions are preserved. Story updates are a separate, reviewed action.</p>
-    {versions.map((version) => <section className="import-choice" key={version.id}><h3>{version.name} · v{version.number}</h3><span className="eyebrow">{assetLabel(version.kind)}</span><button className="button" onClick={() => setAdoption(version)}>Review Story updates for {version.name}</button></section>)}
+    <SkippedImports skipped={result.skipped} />
+    {result.versions.map((version) => <section className="import-choice" key={version.id}><h3>{version.name} · v{version.number}</h3><span className="eyebrow">{assetLabel(version.kind)}</span><button className="button" onClick={() => setAdoption(version)}>Review Story updates for {version.name}</button></section>)}
   </div><footer className="dialog-footer"><button className="button primary" onClick={onClose}>Back to Library</button></footer>
     {adoption && <AdoptionDialog version={adoption} onClose={() => setAdoption(null)} />}
   </>

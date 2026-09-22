@@ -1,4 +1,6 @@
 @import './styles/components.css';
+@import './styles/migration.css';
+@import './styles/inspiration.css';
 @import './styles/library.css';
 @import './styles/models.css';
 @import './styles/collaborator.css';

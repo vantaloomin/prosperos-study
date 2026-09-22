@@ -7,6 +7,7 @@ import { useAction } from '../../hooks/useAction'
 import { newWritingDraft, type Starter, type WritingDraft, type WritingKind, type WritingResource } from './types'
 import './writing.css'
 import { UnsupportedSettings } from './UnsupportedSettings'
+import { PresetOrigins } from '../migration/PresetOrigins'
 
 const WritingEditor = lazy(() => import('./WritingEditor').then(module => ({ default: module.WritingEditor })))
 const WritingBundleExport = lazy(() => import('./WritingBundleExport').then(module => ({ default: module.WritingBundleExport })))
@@ -65,5 +66,5 @@ function EditorView({ editor, resources, onClose }: { editor: EditorState; resou
 function VersionHistory({ item, onDuplicate, onExport }: { item: WritingResource; onDuplicate: (version: WritingResource) => void; onExport: (version: WritingResource) => void }) {
   const [open, setOpen] = useState(false)
   const history = useQuery({ queryKey: ['writing-history', item.asset_id, item.id], queryFn: () => api<WritingResource[]>(`/writing-resources/${item.asset_id}/versions`), enabled: open })
-  return <details onToggle={event => setOpen(event.currentTarget.open)}><summary>Earlier versions</summary><ErrorNotice message={history.error?.message} />{history.isPending && open && <Loading label="Reading versions…" />}{history.data?.map(version => <div className="writing-version" key={version.id}><span>v{version.number} · {version.name}<small>{version.note}</small></span><div className="writing-resource-actions"><button className="text-button" onClick={() => onDuplicate(version)}>Copy this version</button><button className="text-button" onClick={() => onExport(version)}>Export v{version.number}</button></div></div>)}</details>
+  return <details onToggle={event => setOpen(event.currentTarget.open)}><summary>Earlier versions</summary><ErrorNotice message={history.error?.message} />{history.isPending && open && <Loading label="Reading versions…" />}{open && history.data?.map(version => <div key={version.id}><div className="writing-version"><span>v{version.number} · {version.name}<small>{version.note}</small></span><div className="writing-resource-actions"><button className="text-button" onClick={() => onDuplicate(version)}>Copy this version</button><button className="text-button" onClick={() => onExport(version)}>Export v{version.number}</button></div></div>{version.kind === 'recipe' && <PresetOrigins versionId={version.id} />}</div>)}</details>
 }

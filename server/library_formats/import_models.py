@@ -17,6 +17,7 @@ class ImportChoice(Input):
     target_asset_id: str | None = None
     expected_version_id: str | None = None
     expected_source_hash: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
+    duplicate_action: Literal['skip', 'new'] = 'skip'
 
 
 class ImportPublish(Input):

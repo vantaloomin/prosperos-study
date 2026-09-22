@@ -28,12 +28,15 @@ def convert_import(filename, source):
     suffix = PureWindowsPath(filename).suffix.lower()
     if len(source) > MAX_SOURCE_BYTES:
         raise ValueError('Library imports are limited to 10 MiB per file.')
+    if suffix in {'.charx', '.byaf'} or source.startswith(b'PK\x03\x04'):
+        from server.library_formats.containers import convert_container
+        return convert_container(source)
     if suffix in {'.json', '.lorebook'}:
         return convert_json(source, filename)
     if suffix == '.png':
         return convert_png(source)
     if suffix not in {'.md', '.markdown'}:
-        raise ValueError('Choose Markdown, supported character JSON / PNG, or a lorebook JSON / .lorebook file.')
+        raise ValueError('Choose Markdown, supported character JSON / PNG / CHARX / BYAF, or a lorebook JSON / .lorebook file.')
     return convert_markdown(filename, source)
 
 

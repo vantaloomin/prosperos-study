@@ -16,12 +16,17 @@ from server.authoring.runner import AuthoringRunner
 from server.background.interpretation_routes import router as interpretation_router
 from server.background.routes import router as background_router
 from server.background.runner import BackgroundRunner
+from server.backups.routes import router as backup_router
+from server.backups.runner import BackupRunner
+from server.backups.service import Backups
 from server.branch_tools.routes import router as branch_tools_router
 from server.cleanup.routes import router as cleanup_router
 from server.database import Database
 from server.errors import DomainError
 from server.generation_routes import router as generation_router
 from server.generation_runner import GenerationRunner
+from server.inspiration.pack_routes import router as inspiration_pack_router
+from server.inspiration.routes import router as inspiration_router
 from server.library_formats.artwork_routes import router as artwork_router
 from server.library_formats.import_routes import router as library_import_router
 from server.library_formats.routes import router as library_source_router
@@ -40,6 +45,9 @@ from server.memory.relationship_runner import RelationshipRunner
 from server.memory.routes import router as memory_router
 from server.memory.summary_routes import router as summary_router
 from server.memory.summary_runner import SummaryRunner
+from server.migration.batch_routes import router as migration_batch_router
+from server.migration.preset_routes import router as preset_import_router
+from server.migration.routes import router as migration_router
 from server.phrases.routes import router as phrase_router
 from server.profile_routes import router as profile_router
 from server.prompts import initialize_prompts
@@ -95,7 +103,9 @@ async def lifespan(app):
     app.state.maintenance_runner.start()
     app.state.preparation_runner.start()
     app.state.relationship_runner.start()
+    app.state.backup_runner.start()
     yield
+    await app.state.backup_runner.shutdown()
     await app.state.preparation_runner.shutdown()
     await app.state.relationship_runner.shutdown()
     await app.state.maintenance_runner.shutdown()
@@ -112,8 +122,10 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.8.0", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.9.0", lifespan=lifespan)
     app.state.database = Database(database_path)
+    app.state.backups = Backups(app.state.database)
+    app.state.backup_runner = BackupRunner(app.state.backups)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)
     app.state.assessment_runner = AssessmentRunner(app.state.database, app.state.runner)
@@ -146,6 +158,11 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.include_router(authoring_router)
     app.include_router(library_source_router)
     app.include_router(library_import_router)
+    app.include_router(migration_router)
+    app.include_router(migration_batch_router)
+    app.include_router(inspiration_router)
+    app.include_router(inspiration_pack_router)
+    app.include_router(preset_import_router)
     app.include_router(artwork_router)
     app.include_router(lore_router)
     app.include_router(memory_router)
@@ -165,6 +182,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.include_router(scene_router)
     app.include_router(transcript_router)
     app.include_router(archive_router)
+    app.include_router(backup_router)
     app.include_router(assessment_router)
     app.include_router(background_router)
     app.include_router(interpretation_router)

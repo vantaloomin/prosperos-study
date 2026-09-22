@@ -9,6 +9,7 @@ from server.branches import path_nodes
 from server.database import decode, encode, identifier, now, one
 from server.errors import require
 from server.manuscript.exports import export_docx, export_epub
+from server.manuscript.html_publication import export_html
 from server.manuscript.models import ManuscriptUpdate, PublicationCreate
 from server.manuscript.service import assemble, load_manuscript, save_manuscript, search_manuscript
 from server.stories import check_revision
@@ -61,20 +62,23 @@ def prepare(story_id: str, body: PublicationCreate, request: Request):
         require(all(scene['passages'] for chapter in result['chapters'] for scene in chapter['scenes']),
                 'Some scenes have no prose after excluding character contributions. Include contributions or remove those scenes before exporting.', 409)
         export_id = identifier()
-        result.update(publication_id=export_id, created_at=now())
+        result.update(publication_id=export_id, created_at=now(), html_contents=body.html_contents)
         connection.execute('INSERT INTO prepared_publications VALUES (?,?,?,?)',
                            (export_id, manuscript['id'], encode(result), result['created_at']))
     return {'id': export_id, 'revision': result['revision'], 'words': result['words'],
-            'docx_url': f'/api/publications/{export_id}/docx', 'epub_url': f'/api/publications/{export_id}/epub'}
+            'docx_url': f'/api/publications/{export_id}/docx', 'epub_url': f'/api/publications/{export_id}/epub',
+            'html_url': f'/api/publications/{export_id}/html'}
 
 
 @router.get('/publications/{publication_id}/{format}')
-def download(publication_id: str, format: Literal['docx', 'epub'], request: Request):
+def download(publication_id: str, format: Literal['docx', 'epub', 'html'], request: Request):
     with request.app.state.database.connect() as connection:
         row = one(connection, 'SELECT document FROM prepared_publications WHERE id=?', (publication_id,))
         document = decode(row['document'])
-    content = export_docx(document) if format == 'docx' else export_epub(document)
-    media = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if format == 'docx' else 'application/epub+zip'
+    exporters = {'docx': (export_docx, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+                 'epub': (export_epub, 'application/epub+zip'), 'html': (export_html, 'text/html')}
+    exporter, media = exporters[format]
+    content = exporter(document)
     slug = re.sub(r'[^\w-]+', '-', document['title']).strip('-')[:80] or 'manuscript'
     return Response(content, media_type=media, headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
                     'Content-Disposition': f"attachment; filename*=UTF-8''{quote(slug + '.' + format, safe='')}"})

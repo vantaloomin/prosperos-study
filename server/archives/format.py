@@ -6,7 +6,7 @@ from pydantic import Field, StringConstraints
 
 from server.models import Input
 
-ARCHIVE_VERSION = 51
+ARCHIVE_VERSION = 54
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 V1_TABLES = (
     "stories", "assets", "asset_versions", "manifests", "branches", "nodes", "adoptions",
@@ -65,8 +65,17 @@ V49_TABLES = V47_TABLES + SIDE_EDIT_TABLES
 STYLE_ANALYSIS_TABLES = ('style_analysis_jobs', 'style_analysis_attempts')
 V50_TABLES = V49_TABLES + STYLE_ANALYSIS_TABLES
 RECIPE_TABLES = ('recipe_runs', 'recipe_jobs', 'recipe_attempts', 'recipe_results')
-TABLES = V50_TABLES + RECIPE_TABLES
+V51_TABLES = V50_TABLES + RECIPE_TABLES
+MIGRATION_TABLES = ('migration_sources', 'story_imports')
+V52_TABLES = V51_TABLES + MIGRATION_TABLES
+PRESET_TABLES = ('preset_imports', 'preset_origins')
+V53_TABLES = V52_TABLES + PRESET_TABLES
+INSPIRATION_TABLES = ('inspiration_decks', 'inspiration_versions', 'inspiration_draws', 'inspiration_pack_sources', 'inspiration_pack_origins')
+TABLES = V53_TABLES + INSPIRATION_TABLES
 JSON_FIELDS = {
+    'inspiration_versions': ('content', 'unsupported'), 'inspiration_draws': ('selection',),
+    'preset_imports': ('conversion',), 'preset_origins': ('receipt', 'configuration'),
+    'migration_sources': ('conversion',), 'story_imports': ('receipt',),
     'recipe_runs': ('snapshot', 'bindings', 'target', 'chance'),
     'recipe_jobs': ('snapshot', 'result', 'usage'), 'recipe_attempts': ('result', 'usage'),
     'style_analysis_jobs': ('snapshot', 'result', 'usage'), 'style_analysis_attempts': ('result', 'usage'),
@@ -108,7 +117,7 @@ JSON_FIELDS = {
 
 class ArchiveDocument(Input):
     format: Literal["roleplay-archive"] = "roleplay-archive"
-    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51] = ARCHIVE_VERSION
+    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54] = ARCHIVE_VERSION
     scope: Literal["story", "workspace"]
     title: str = Field(min_length=1, max_length=200)
     created_at: str

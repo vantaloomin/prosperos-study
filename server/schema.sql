@@ -205,6 +205,22 @@ CREATE TABLE IF NOT EXISTS archive_files (
     id TEXT PRIMARY KEY, kind TEXT NOT NULL, filename TEXT NOT NULL,
     sha256 TEXT NOT NULL, summary TEXT NOT NULL, byte_count INTEGER NOT NULL, created_at TEXT NOT NULL
 );
+-- Local scheduling authority and destinations are deliberately excluded from portable archives.
+CREATE TABLE IF NOT EXISTS backup_settings (
+    id INTEGER PRIMARY KEY CHECK(id=1), workspace_id TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 0, enabled INTEGER NOT NULL DEFAULT 0,
+    interval_minutes INTEGER NOT NULL DEFAULT 1440, keep_count INTEGER NOT NULL DEFAULT 10,
+    destination TEXT NOT NULL DEFAULT '', include_sidebar INTEGER NOT NULL DEFAULT 0,
+    next_run_at TEXT, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS backup_runs (
+    id TEXT PRIMARY KEY, operation_id TEXT UNIQUE, trigger TEXT NOT NULL,
+    status TEXT NOT NULL, settings TEXT NOT NULL, directory TEXT NOT NULL,
+    started_at TEXT NOT NULL, finished_at TEXT, error TEXT NOT NULL DEFAULT '',
+    sha256 TEXT NOT NULL DEFAULT '', byte_count INTEGER NOT NULL DEFAULT 0,
+    summary TEXT NOT NULL DEFAULT '{}', archive_id TEXT REFERENCES archive_files(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS one_running_backup ON backup_runs(status) WHERE status='running';
 CREATE TABLE IF NOT EXISTS archive_restores (
     id TEXT PRIMARY KEY, archive_id TEXT NOT NULL REFERENCES archive_files(id),
     identity_map TEXT NOT NULL, created_at TEXT NOT NULL
@@ -608,3 +624,93 @@ CREATE TRIGGER IF NOT EXISTS immutable_recipe_job BEFORE UPDATE OF run_id,stage,
 BEGIN SELECT RAISE(ABORT,'Recipe step inputs are immutable'); END;
 CREATE TRIGGER IF NOT EXISTS immutable_recipe_result BEFORE UPDATE ON recipe_results
 BEGIN SELECT RAISE(ABORT,'Recipe results retain their original proposal'); END;
+
+CREATE TABLE IF NOT EXISTS migration_sources (
+    id TEXT PRIMARY KEY, filename TEXT NOT NULL, source_base64 TEXT NOT NULL,
+    source_sha256 TEXT NOT NULL, content_sha256 TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('transcript')), conversion TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS migration_source_hash ON migration_sources(source_sha256);
+CREATE INDEX IF NOT EXISTS migration_content_hash ON migration_sources(content_sha256);
+CREATE TRIGGER IF NOT EXISTS immutable_migration_sources BEFORE UPDATE ON migration_sources
+BEGIN SELECT RAISE(ABORT,'Migration sources and conversion reports are immutable'); END;
+CREATE TABLE IF NOT EXISTS story_imports (
+    id TEXT PRIMARY KEY, import_id TEXT NOT NULL REFERENCES migration_sources(id),
+    story_id TEXT NOT NULL UNIQUE REFERENCES stories(id), branch_id TEXT NOT NULL REFERENCES branches(id),
+    receipt TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_story_imports BEFORE UPDATE ON story_imports
+BEGIN SELECT RAISE(ABORT,'Story import mappings and selected variants are immutable'); END;
+
+CREATE TABLE IF NOT EXISTS preset_imports (
+    id TEXT PRIMARY KEY, filename TEXT NOT NULL, source_base64 TEXT NOT NULL,
+    source_sha256 TEXT NOT NULL, content_sha256 TEXT NOT NULL, conversion TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS preset_source_hash ON preset_imports(source_sha256);
+CREATE INDEX IF NOT EXISTS preset_content_hash ON preset_imports(content_sha256);
+CREATE TRIGGER IF NOT EXISTS immutable_preset_imports BEFORE UPDATE ON preset_imports
+BEGIN SELECT RAISE(ABORT,'Preset source bytes and conversion reports are immutable'); END;
+CREATE TABLE IF NOT EXISTS preset_origins (
+    version_id TEXT PRIMARY KEY REFERENCES writing_versions(id), import_id TEXT NOT NULL REFERENCES preset_imports(id),
+    profile_id TEXT REFERENCES profiles(id), profile_version_id TEXT REFERENCES profile_versions(id),
+    base_profile_id TEXT REFERENCES profiles(id), base_profile_version_id TEXT REFERENCES profile_versions(id),
+    receipt TEXT NOT NULL, configuration TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_preset_origins BEFORE UPDATE ON preset_origins
+BEGIN SELECT RAISE(ABORT,'Reviewed preset mappings and saved configuration proposals are immutable'); END;
+
+-- Installation-local migration work queues. Published source provenance belongs
+-- to the versioned import tables above; unfinished queues never activate on restore.
+CREATE TABLE IF NOT EXISTS migration_batches (
+    id TEXT PRIMARY KEY, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS migration_batch_items (
+    id TEXT PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES migration_batches(id), position INTEGER NOT NULL,
+    filename TEXT NOT NULL, source_base64 TEXT NOT NULL, source_sha256 TEXT NOT NULL,
+    candidates TEXT NOT NULL, kind TEXT NOT NULL DEFAULT '', import_id TEXT,
+    status TEXT NOT NULL CHECK(status IN ('choose','preparing','preparation-error','review','publishing','complete','omitted','rejected')),
+    revision INTEGER NOT NULL DEFAULT 0, publication TEXT NOT NULL DEFAULT 'null', result TEXT NOT NULL DEFAULT 'null',
+    error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, UNIQUE(batch_id,position)
+);
+CREATE INDEX IF NOT EXISTS migration_batch_item_status ON migration_batch_items(batch_id,status);
+CREATE INDEX IF NOT EXISTS migration_batch_item_source ON migration_batch_items(source_sha256);
+CREATE TRIGGER IF NOT EXISTS immutable_batch_source BEFORE UPDATE OF batch_id,position,filename,source_base64,source_sha256,candidates ON migration_batch_items
+BEGIN SELECT RAISE(ABORT,'Batch original sources and detection reports are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_completed_batch_item BEFORE UPDATE ON migration_batch_items WHEN OLD.status='complete'
+BEGIN SELECT RAISE(ABORT,'Completed migration results are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS frozen_batch_publication BEFORE UPDATE OF publication,kind,import_id ON migration_batch_items
+WHEN OLD.status='publishing' AND NEW.status!='review'
+BEGIN SELECT RAISE(ABORT,'An interrupted publication keeps its frozen choices'); END;
+
+CREATE TABLE IF NOT EXISTS inspiration_decks (
+    id TEXT PRIMARY KEY, latest_version_id TEXT REFERENCES inspiration_versions(id),
+    archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)), revision INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS inspiration_versions (
+    id TEXT PRIMARY KEY, deck_id TEXT NOT NULL REFERENCES inspiration_decks(id), number INTEGER NOT NULL CHECK(number>0),
+    name TEXT NOT NULL, description TEXT NOT NULL, content TEXT NOT NULL, unsupported TEXT NOT NULL,
+    note TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(deck_id,number)
+);
+CREATE TRIGGER IF NOT EXISTS immutable_inspiration_versions BEFORE UPDATE ON inspiration_versions
+BEGIN SELECT RAISE(ABORT,'Published deck versions are immutable'); END;
+CREATE TABLE IF NOT EXISTS inspiration_draws (
+    id TEXT PRIMARY KEY, version_id TEXT NOT NULL REFERENCES inspiration_versions(id),
+    branch_id TEXT REFERENCES branches(id), head_id TEXT REFERENCES nodes(id),
+    selection TEXT NOT NULL, ticket INTEGER NOT NULL CHECK(ticket>=0), card_id TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS inspiration_draw_branch ON inspiration_draws(branch_id,created_at);
+CREATE TRIGGER IF NOT EXISTS immutable_inspiration_draws BEFORE UPDATE ON inspiration_draws
+BEGIN SELECT RAISE(ABORT,'Recorded inspiration draws are immutable'); END;
+CREATE TABLE IF NOT EXISTS inspiration_pack_sources (
+    id TEXT PRIMARY KEY, filename TEXT NOT NULL, source_base64 TEXT NOT NULL, source_sha256 TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_inspiration_pack_sources BEFORE UPDATE ON inspiration_pack_sources
+BEGIN SELECT RAISE(ABORT,'Original inspiration packs are immutable'); END;
+CREATE TABLE IF NOT EXISTS inspiration_pack_origins (
+    version_id TEXT PRIMARY KEY REFERENCES inspiration_versions(id), import_id TEXT NOT NULL REFERENCES inspiration_pack_sources(id),
+    item_key TEXT NOT NULL, content_sha256 TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS inspiration_pack_content ON inspiration_pack_origins(content_sha256);
+CREATE TRIGGER IF NOT EXISTS immutable_inspiration_pack_origins BEFORE UPDATE ON inspiration_pack_origins
+BEGIN SELECT RAISE(ABORT,'Inspiration pack origins are immutable'); END;

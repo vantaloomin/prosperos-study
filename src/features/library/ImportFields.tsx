@@ -7,7 +7,9 @@ import { CanonMemory } from './CanonMemory'
 import { ArtworkField } from './ArtworkField'
 import { MarkdownSource } from './MarkdownSource'
 import { VersionDiff } from './VersionDiff'
-import type { ImportChoice, ImportPreview } from './importTypes'
+import { ImportedArtworkChoice } from './ImportedAssets'
+import type { ImportAsset, ImportChoice, ImportDuplicate, ImportPreview } from './importTypes'
+import { ImportDuplicates } from './ImportDuplicates'
 
 export function ImportCompatibility({ preview }: { preview: ImportPreview }) {
   const isCard = preview.drafts.some(draft => draft.kind === 'character')
@@ -25,13 +27,15 @@ function ImportMapping({ mapping }: { mapping: ImportPreview['mapping'] }) {
   return <details><summary>How this file maps to the Study</summary><ul>{mapping.map((item, index) => <li key={index}><strong>{item.source}</strong> → {item.target}. <span className="subtle">{labels[item.handling]}.</span></li>)}</ul></details>
 }
 
-export function ImportChoiceEditor({ choice, assets, onChange, onBusy }: { choice: ImportChoice; assets: AssetVersion[]; onChange: (patch: Partial<ImportChoice>) => void; onBusy: (busy: boolean) => void }) {
+export function ImportChoiceEditor({ choice, assets, importedAssets, duplicates = [], hasBatchDuplicate = false, onChange, onBusy }: { choice: ImportChoice; assets: AssetVersion[]; importedAssets?: ImportAsset[]; duplicates?: ImportDuplicate[]; hasBatchDuplicate?: boolean; onChange: (patch: Partial<ImportChoice>) => void; onBusy: (busy: boolean) => void }) {
   const contentChange = (patch: Partial<AssetContent>) => onChange({ content: { ...choice.content, ...patch } })
   return <section className="import-choice">
     <label className="check-row"><input type="checkbox" checked={choice.included} onChange={(event) => onChange({ included: event.target.checked })} /><strong>Publish {assetLabel(choice.kind)}</strong></label>
     {choice.included && <div className="form-stack character-advanced">
       <ImportTarget choice={choice} assets={assets} onChange={onChange} />
+      <ImportDuplicates choice={choice} matches={duplicates.filter(item => item.part === choice.part)} hasBatchDuplicate={hasBatchDuplicate} onChange={onChange} />
       <Field label={`${choice.kind === 'character' ? 'Character' : 'Canon collection'} name`} value={choice.name} maxLength={120} onChange={(event) => onChange({ name: event.target.value })} />
+      {choice.kind === 'character' && <ImportedArtworkChoice assets={importedAssets} value={choice.content.artwork_sha256} onChange={(artwork_sha256) => contentChange({ artwork_sha256 })} />}
       <ArtworkField value={choice.content.artwork_sha256} onChange={(artwork_sha256) => contentChange({ artwork_sha256 })} onBusy={onBusy} />
       <TextField label={choice.kind === 'character' ? 'Character & background' : 'Canon overview · Markdown'} value={choice.content.text ?? ''} rows={6} onChange={(event) => contentChange({ text: event.target.value })} />
       {choice.kind === 'character' && <details className="advanced-settings"><summary>Voice, greetings & other character fields</summary><div className="character-advanced"><CharacterFields content={choice.content} onChange={contentChange} /></div></details>}
@@ -45,7 +49,7 @@ function ImportTarget({ choice, assets, onChange }: { choice: ImportChoice; asse
   const available = assets.filter((asset) => libraryKind(asset.kind) === libraryKind(choice.kind))
   const current = available.find((asset) => asset.asset_id === choice.target?.asset_id)
   return <><label className="field"><span>{choice.kind === 'character' ? 'Character destination' : 'Canon collection destination'}</span>
-    <select value={choice.target?.asset_id ?? ''} onChange={(event) => onChange({ target: available.find((asset) => asset.asset_id === event.target.value), sourceHash: null })}>
+    <select aria-label={choice.kind === 'character' ? 'Character destination' : 'Canon collection destination'} value={choice.target?.asset_id ?? ''} onChange={(event) => onChange({ target: available.find((asset) => asset.asset_id === event.target.value), sourceHash: null })}>
       <option value="">Create a new Library item</option>{available.map((asset) => <option key={asset.asset_id} value={asset.asset_id}>{asset.name} · publish after v{asset.number}</option>)}
     </select></label>
     {choice.target && <p className="subtle">A new version of {choice.target.name} will be created. Earlier versions and existing Story selections stay preserved.</p>}

@@ -8,9 +8,9 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.8.0** · [Download release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.8.0) · [What's new](releases/v0.8.0.md) · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+**v0.9.0** · [Download release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.9.0) · [What's new](releases/v0.9.0.md) · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
 
-This release adds writing styles and reusable recipes, comparison and organization of alternate tellings, a Sidebar Companion that can pop out and help edit text, and **Skip setup** to start writing immediately.
+This release adds configurable automatic backups, reviewed migration of supported writing projects, weighted inspiration decks and portable collections, and standalone HTML publishing for your Book.
 
 ## A writing room for stories that keep growing
 
@@ -21,13 +21,15 @@ The interesting part often comes after the first response: a better line, a diff
 | Try the other ending | Compare tellings, favorite a path, archive an alternative, and search across branches without merging their story context. |
 | Keep earlier events within reach | Long story memory recalls older passages locally; review plans and commitments without rewriting the manuscript. |
 | Keep control of the draft | Generated prose appears inline as an unaccepted draft. Keep it, keep it on a new branch, try another, or dismiss it. |
-| Assemble a book | Organize chapters and scenes, choose each scene's telling, bookmark passages, search the manuscript, and export DOCX or EPUB. |
+| Assemble a book | Organize chapters and scenes, choose each scene's telling, bookmark passages, search the manuscript, and export DOCX, EPUB or standalone HTML. |
 | Build a world across several stories | Reuse Characters and Canon collections. Each story keeps its chosen versions until you decide to update it. |
 | Keep your preferred voice | Save versioned writing styles with your own examples and choose them for a Story, recipe, or individual request. |
 | Reuse a writing workflow | Share a recipe, fill in its inputs, inspect its steps, and explicitly run drafting, review, and revision. |
 | Work with a Companion | Discuss or revise selected text with the Collaborator, including a separate Pop Out window and reviewable Apply/Undo actions. |
 | Give different jobs to different models | Choose a Primary Writer, override individual steps, and deliberately compare several models on the same inputs. |
-| Make room for surprise | Optional narrative tables introduce atmosphere, encounters, complications, and other prompts. Turn individual systems on or off. |
+| Make room for surprise | Create weighted inspiration decks, inspect exact odds, and deliberately draw a prompt for your unsent input. Optional Story chance systems remain separate. |
+| Protect your workspace | Schedule local backups, inspect their history, and deliberately restore a verified copy as new Stories. |
+| Bring earlier writing | Review supported characters, world info, transcripts and presets together, with original files and recoverable import receipts. |
 
 ### Write, direct, or roleplay
 
@@ -57,7 +59,7 @@ Use the branch tools to compare two tellings side by side, navigate changed pass
 
 Open **Book** in the workspace header (or **Tools > Book** on narrow screens). Add chapters, then select a telling and a passage range for each named scene. Move scenes within or between chapters and reorder chapters. **Save manuscript** records the organization; unsaved edits remain a local draft. Each selection captures a point on its path, so later writing cannot silently change the assembled book. **Choose telling** deliberately updates a selection.
 
-**Read & bookmark** presents the chosen scenes in book order. **Search** covers all saved chapters and jumps to matching passages. **Publish** prepares a fixed version for download as editable **DOCX** or **EPUB 3** with a linked contents page. Publication settings include title, author, language, optional scene titles, and whether to include character contributions. Author's notes, bookmarks, private context, and model records are excluded. The source Story and its alternate tellings stay available.
+**Read & bookmark** presents the chosen scenes in book order. **Search** covers all saved chapters and jumps to matching passages. **Publish** prepares a fixed version for download as editable **DOCX**, **EPUB 3**, or standalone **HTML**. HTML has optional linked contents and embedded reading/print styles; it opens offline without JavaScript or network access. Publication settings include title, author, language, optional scene titles, and whether to include character contributions. Author's notes, bookmarks, private context, and model records are excluded. The source Story and its alternate tellings stay available. See [HTML publishing](html-publishing.md) for formatting, privacy and print details.
 
 ### Keep the past, and what is still to come
 
@@ -182,9 +184,17 @@ Canon has Markdown working files you can edit with your preferred editor. **Libr
 
 Review the proposed fields before publishing. Native imports show where each supported field goes and what remains reference material. The exact original and converted Markdown stay available for download. Imported lorebook entries remain separate from the active Canon overview: after publishing, use **Edit Canon entries > Bring in preserved entries** to review individual entries and their primary keyword proposals. Added entries start off. Native regex, secondary conditions, timing, ordering and priority values need review; their original fields remain preserved.
 
-Archive containers such as `.charx` and `.byaf`, document formats such as DOCX/PDF/EPUB, and chat transcripts are not yet supported by this importer.
+The character importer also accepts bounded **CHARX V3** and **Backyard BYAF schema-1** containers, with explicit artwork selection. DOCX/PDF/EPUB import and arbitrary source-application compatibility remain outside the supported matrix.
+
+For a project with several files, use **Library > Migrate writing > Mixed files**. Review up to 20 supported files together, correct transcript roles and reply choices, and publish items separately. Supported transcripts include SillyTavern JSONL, role/content JSON, and explicitly labeled text or Markdown. Supported SillyTavern and NovelAI presets become inert recipes and optional inactive local profiles; connections and credentials are not imported. Duplicate proposals default to skip, with explicit copy or version-update choices. Saved receipts recover interrupted publication after restart. See the [migration compatibility matrix](migration-compatibility.md) for exact variants, bounds and retained reference material.
 
 Publishing an edit creates a new version. Existing stories keep their selected versions; you can compare changes and apply an update to the stories you choose. Earlier versions remain available.
+
+### Keep inspiration at hand
+
+Open **Library > Inspiration** to create weighted decks or review the three starter collections. Publish a version, then use **Preview & draw** to inspect exact odds, required tags and exclusions before recording a draw. Each draw uses its saved deck version; editing the deck preserves earlier results. Seeded previews are separate from recorded draws, and draws use replacement.
+
+In a Story, open **Inspiration**, inspect or copy a result, or **Add to unsent input**. Sending remains a separate action. These draws do not enable Story randomness, request a model or accept Canon. Export selected deck versions as a portable collection and review duplicates before importing. See [inspiration decks and collections](inspiration-compatibility.md) for limits and recovery behavior.
 
 ### Keep a collaborator in the wings
 
@@ -244,7 +254,7 @@ Provider usage, pricing, and access depend on your chosen service. Models and AP
 
 ## Get started on Windows
 
-1. **Download and extract [the v0.8.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.8.0/prosperos-study-v0.8.0-source.zip).** Open the extracted folder before running the scripts. The [release page](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.8.0) also provides a file manifest and SHA-256 checksums. Git users can check out the `v0.8.0` tag.
+1. **Download and extract [the v0.9.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.9.0/prosperos-study-v0.9.0-source.zip).** Open the extracted folder before running the scripts. The [release page](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.9.0) also provides a file manifest and SHA-256 checksums. Git users can check out the `v0.9.0` tag.
 2. **Run [install.bat](install.bat).** It sets up the dependencies and builds the interface. It looks for Python 3.12+ and Node.js 22.12+, and can install missing runtimes through WinGet. An internet connection is needed for downloads.
 3. **Run [launch.bat](launch.bat).** Your browser opens the Study at `http://127.0.0.1:8765`. Keep the launcher terminal open while writing; press **Ctrl+C** there to stop the app.
 4. **Start a new story.** Follow the guided setup, or choose **Skip setup** to start writing immediately. Any choices already entered are retained. You can write manually without a model and change settings later.
@@ -255,7 +265,7 @@ If WinGet is unavailable, install Python and Node.js yourself and rerun the inst
 
 ## Get started on macOS
 
-Download and extract [the v0.8.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.8.0/prosperos-study-v0.8.0-source.zip), or clone this repository and check out the `v0.8.0` tag. In Terminal, change to the project folder and run:
+Download and extract [the v0.9.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.9.0/prosperos-study-v0.9.0-source.zip), or clone this repository and check out the `v0.9.0` tag. In Terminal, change to the project folder and run:
 
 ```bash
 cd "/path/to/prosperos-study"
@@ -278,13 +288,13 @@ Stories and Library material are stored locally in the project's `data/` folder.
 
 - **Export transcript** creates readable Markdown for a selected branch or passage.
 - **Private archive & recovery** saves a story with its branches, connected Library versions, and saved workflow records.
-- **Settings > Backups** creates a workspace backup or restores a saved archive as new stories.
+- **Settings > Backups & recovery** creates a workspace backup or restores a saved archive as new Stories. **Automatic backups** adds an off-by-default schedule with interval, retention, destination and private-sidebar controls.
 
-Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included.
+Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep saved backups somewhere safe. Automatic copies are created while the app server is running, with one catch-up copy after downtime. Choose the default folder beside your database or an existing absolute folder accessible to the server. History shows success, failure and file availability; **Review & recover** verifies a copy before deliberate restore. Scheduled retention removes only this workspace's owned scheduled copies after a successful new backup. Manual copies are retained separately. Imported archives never activate a backup schedule or destination.
 
-**Archive format 51** adds writing styles, portable-import records, sample analyses, saved recipe runs, branch curation/comparisons, scoped text edits, and Companion pins and drafts to the existing manuscripts, memory, mode guidance, cleanup, and revision records. It accepts earlier supported archives, including the published v0.7.0 format-33 manuscript layout and the distinct memory-development layouts, by validating their complete record groups before migration. Restoring creates independent stories, remaps live identities, preserves historical provider-input bytes, disables automation, and leaves interrupted work for explicit retry. It never resends a model request or reapplies an edit. Prepared DOCX/EPUB downloads can be regenerated from the restored manuscript.
+**Archive format 54** adds accepted transcript/preset provenance, inspiration deck versions, recorded draws and collection originals to the existing manuscripts, memory, writing resources, branch curation, text edits and Companion records. It accepts earlier supported archives, including the published v0.7.0 format-33 manuscript layout and the distinct memory-development layouts, by validating their complete record groups before migration. Restoring creates independent stories, remaps live identities, preserves historical provider-input bytes, disables automation, and leaves interrupted work for explicit retry. It never resends a model request or reapplies an edit. Prepared DOCX/EPUB/HTML downloads can be regenerated from the restored manuscript. Prepared download snapshots, migration staging queues and local backup settings remain installation-local; accepted foreign sources travel with their published records.
 
-Private Companion conversations are an explicit archive inclusion choice. Excluding them still retains the edit provenance needed to validate included text changes, without copying private questions or discussion history. Portable writing bundles contain only selected style/recipe material and reference slots; they omit credentials, endpoint configuration, private conversations, and unrelated Story data. New archives are not backward-compatible with older app versions. Keep a pre-update backup if you may return to an older version. See [v0.8.0 compatibility and validation notes](releases/v0.8.0.md).
+Private Companion conversations are an explicit archive inclusion choice. Excluding them still retains the edit provenance needed to validate included text changes, without copying private questions or discussion history. Portable writing bundles contain only selected style/recipe material and reference slots; they omit credentials, endpoint configuration, private conversations, and unrelated Story data. New archives are not backward-compatible with older app versions. Keep a pre-update backup if you may return to an older version. See [v0.9.0 compatibility and validation notes](releases/v0.9.0.md).
 
 ## Questions
 
@@ -310,9 +320,9 @@ No. Randomness starts off, individual systems are optional, and prompts/agents c
 
 Yes. Stories select versions independently, and publishing an edit does not silently change existing stories.
 
-**Is v0.8.0 a finished product?**
+**Is v0.9.0 a finished product?**
 
-It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. The writing Sidebar Companion described above is separate from the future simulated-character Companion / Date Mode. Social feeds, built-in image generation, and automated backups also remain future ideas. Styles and supplied evidence guide models but do not guarantee voice adherence or continuity accuracy.
+It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. The writing Sidebar Companion described above is separate from the future simulated-character Companion / Date Mode. Packaged installers, social feeds and built-in image generation remain future work. Styles and supplied evidence guide models but do not guarantee voice adherence or continuity accuracy.
 
 Found a problem or have a suggestion? [Open an issue](https://github.com/vantaloomin/prosperos-study/issues). Include what you tried, your provider/model, and any error message; leave out API keys and private story content.
 

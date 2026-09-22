@@ -206,7 +206,10 @@ def upgrade_twenty_eight(document):
 
 def upgrade_thirty_one(document):
     from server.archives.branch_tools import upgrade_branch_tools
+    from server.archives.inspiration import upgrade_inspiration
     from server.archives.lineages import upgrade_lineages
+    from server.archives.migration_sources import upgrade_migration_sources
+    from server.archives.presets import upgrade_presets
     from server.archives.recipes import upgrade_recipes
     from server.archives.scene_writing import upgrade_scene_writing
     from server.archives.side_drafts import upgrade_side_drafts
@@ -217,7 +220,7 @@ def upgrade_thirty_one(document):
     from server.archives.text_edits import upgrade_text_edits
     from server.archives.writing import upgrade_writing
     document = upgrade_side_edits(upgrade_side_targets(upgrade_side_drafts(upgrade_text_edits(upgrade_side_organization(upgrade_branch_tools(upgrade_writing(upgrade_lineages(document))))))))
-    return upgrade_recipes(upgrade_analyses(upgrade_scene_writing(document)))
+    return upgrade_inspiration(upgrade_presets(upgrade_migration_sources(upgrade_recipes(upgrade_analyses(upgrade_scene_writing(document))))))
 
 
 def add_prompts(document, keys, source_version):

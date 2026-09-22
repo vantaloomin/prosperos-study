@@ -6,9 +6,10 @@ import { ErrorNotice, Loading } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
 import type { Selection, Story } from '../../types'
 import { ArchiveVerification, type WriterVerification } from './ArchiveVerification'
+import { AutomaticBackups } from './AutomaticBackups'
 import '../../styles/archives.css'
 
-interface ArchiveFile {
+export interface ArchiveFile {
   id: string; kind: 'backup' | 'import'; filename: string; sha256: string; byte_count: number; created_at: string; download_url: string
   summary: { writer_verification?: WriterVerification | null; version?: number; title: string; scope: string; include_sidebar: boolean; counts: Record<string, number>; running_jobs: number; stories: { id: string; title: string; archived: boolean }[] }
 }
@@ -26,6 +27,7 @@ export function Archives({ story, selection, onOpen }: Props) {
   const [selected, setSelected] = useState<ArchiveFile | null>(null)
   const files = (query.data ?? []).filter((file) => !story || file.summary.stories.some((item) => item.id === story.id))
   return <section className="archives-panel form-stack"><div><h2>{story ? 'Keep every path' : 'Backups & recovery'}</h2><p className="subtle">A private archive keeps saved history, working text, old Library versions, styles, recipes, model settings, prompts, tables and recorded results. Credentials, appearance settings and unsaved browser-only recovery copies are excluded.</p></div>
+    {!story && <AutomaticBackups onReview={setSelected} />}
     <ArchiveCreate story={story} selection={selection} onReady={setSelected} />
     {!story && <ArchiveUpload onReady={setSelected} />}
     <ErrorNotice message={query.error?.message} />
@@ -78,7 +80,7 @@ function ArchivePreview({ file, onOpen }: { file: ArchiveFile; onOpen: (selectio
   </section>
 }
 
-function ArchiveCounts({ counts }: { counts: Record<string, number> }) {
+export function ArchiveCounts({ counts }: { counts: Record<string, number> }) {
   return <dl className="archive-counts">{[['stories', 'Stories'], ['branches', 'Branches'], ['nodes', 'Contributions'], ['assets', 'Library items'], ['asset_versions', 'Library versions'], ['writing_assets', 'Styles & recipes'], ['style_analysis_jobs', 'Sample analyses'], ['recipe_runs', 'Recipe runs'], ['text_edit_receipts', 'Applied text changes'], ['candidates', 'Writer drafts'], ['review_jobs', 'Reviews'], ['scene_runs', 'Scene plans'], ['side_turns', 'Side turns']].map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{(counts[key] ?? 0).toLocaleString()}</dd></div>)}</dl>
 }
 

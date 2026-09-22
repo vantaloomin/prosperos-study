@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from server.archives.format import ARCHIVE_VERSION
 from server.database import decode
 from server.main import create_app
 from server.prompt_sections import system_prompt
@@ -169,7 +170,7 @@ def test_v080_portable_workflow_preserves_released_book_through_restart_and_rest
         assert reply(client, identity)['output'] == response['output']
         assert client.get(manuscript).json() == original_book
         archive, document = backup(client, include_sidebar=True)
-        assert document['version'] == 51
+        assert document['version'] == ARCHIVE_VERSION
         _, mapping = restore(client, archive)
         restored_run = detail(client, mapping[run_id])
         assert [(job['snapshot']['instructions'], job['snapshot']['content']) for job in restored_run['jobs']] == [

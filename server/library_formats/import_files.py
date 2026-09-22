@@ -12,7 +12,7 @@ from server.library_formats.png_cards import embedded_card
 
 def package_files(row, conversion):
     suffix = {'card': 'json', 'native-character': 'json', 'lorebook-json': 'json',
-              'png-card': 'png', 'markdown': 'md', 'sgc-brain': 'json'}[conversion['format']]
+              'png-card': 'png', 'markdown': 'md', 'sgc-brain': 'json', 'charx': 'charx', 'byaf': 'byaf'}[conversion['format']]
     report = {key: value for key, value in conversion.items() if key not in {'files', 'drafts'}}
     report['files'] = list(conversion['files'])
     original = source_bytes(row['source_base64'])

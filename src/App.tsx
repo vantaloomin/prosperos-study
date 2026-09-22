@@ -99,7 +99,7 @@ interface WorkspaceProps {
 }
 
 function Workspace(props: WorkspaceProps) {
-  if (props.page === 'library') return <Suspense fallback={<Loading label="Opening the Library…" />}><Library /></Suspense>
+  if (props.page === 'library') return <Suspense fallback={<Loading label="Opening the Library…" />}><Library onOpen={props.onOpen} /></Suspense>
   if (props.page === 'settings') return <Suspense fallback={<Loading label="Opening settings…" />}><Settings appearance={props.appearance} onChange={props.onAppearance} selection={props.selection} onOpen={props.onOpen} /></Suspense>
   return <>{props.storiesOpen && <div className="desktop-stories"><button className="text-button collapse-stories" onClick={props.onCollapse}>Collapse stories</button><StoryList stories={props.stories} selected={props.selection.storyId} onSelect={props.onSelect} onNew={props.onNew} /></div>}<StorySurface {...props} /></>
 }

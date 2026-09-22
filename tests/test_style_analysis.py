@@ -167,9 +167,15 @@ def test_queued_analysis_restores_interrupted_and_recovery_never_dispatches(clie
 
 
 def test_format_49_upgrades_with_only_empty_analysis_groups(client):
-    from server.archives.format import RECIPE_TABLES, STYLE_ANALYSIS_TABLES
+    from server.archives.format import (
+        INSPIRATION_TABLES,
+        MIGRATION_TABLES,
+        PRESET_TABLES,
+        RECIPE_TABLES,
+        STYLE_ANALYSIS_TABLES,
+    )
     _, document = backup(client)
-    for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES:
+    for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES + MIGRATION_TABLES + PRESET_TABLES + INSPIRATION_TABLES:
         assert document['data'].pop(table) == []
     document['version'] = 49
     imported = client.post('/api/archives/imports', json={'content': json.dumps(document)})

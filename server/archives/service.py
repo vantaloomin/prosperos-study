@@ -26,6 +26,10 @@ class Archives:
             return [file_view(row) for row in many(connection, "SELECT * FROM archive_files ORDER BY created_at DESC")]
 
     def create(self, body):
+        document, content, verification = self.build(body)
+        return self.save(document, content, "backup", verification)
+
+    def build(self, body):
         with self.database.connect() as connection:
             document = collect(connection, body)
             document['library_drafts'] = collect_drafts(self.database, document['data'])
@@ -33,7 +37,7 @@ class Archives:
         content = canonical(document)
         verification = {}
         parse_archive(content, verification=verification)
-        return self.save(document, content, "backup", verification)
+        return document, content, verification
 
     def stage(self, content):
         verification = {}

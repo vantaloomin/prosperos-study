@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Response
 
 from server.database import decode
 from server.errors import require
+from server.library_formats.containers import asset_member
 from server.library_formats.import_conversion import source_bytes
 from server.library_formats.import_files import package_zip
 from server.library_formats.import_models import ImportPublish, ImportUpload
@@ -40,6 +41,18 @@ def original(import_id: str, request: Request):
     row = LibraryImports(request.app.state.database).row(import_id)
     return Response(source_bytes(row['source_base64']), media_type='application/octet-stream',
                     headers={'Content-Disposition': f"attachment; filename*=UTF-8''{quote(row['filename'], safe='')}"})
+
+
+@router.get('/library-imports/{import_id}/assets/{index}')
+def download_asset(import_id: str, index: int, request: Request):
+    row = LibraryImports(request.app.state.database).row(import_id)
+    try:
+        name, content = asset_member(source_bytes(row['source_base64']), decode(row['conversion']), index)
+    except ValueError as error:
+        require(False, str(error), 404)
+    return Response(content, media_type='application/octet-stream', headers={
+        'Content-Disposition': f"attachment; filename*=UTF-8''{quote(name, safe='')}",
+        'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
 
 
 @router.get('/library-imports/{import_id}/package')

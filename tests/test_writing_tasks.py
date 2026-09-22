@@ -2,7 +2,13 @@ import json
 
 import pytest
 
-from server.archives.format import RECIPE_TABLES, STYLE_ANALYSIS_TABLES
+from server.archives.format import (
+    INSPIRATION_TABLES,
+    MIGRATION_TABLES,
+    PRESET_TABLES,
+    RECIPE_TABLES,
+    STYLE_ANALYSIS_TABLES,
+)
 from server.database import decode, encode
 from tests.legacy_assessment import dispatch
 from tests.test_archives import backup, restore
@@ -51,7 +57,7 @@ def test_beat_assessment_omits_prose_guidance_but_preserves_historical_inputs(cl
     file, document = backup(client, story)
     if legacy:
         document['version'] = 48
-        for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES:
+        for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES + MIGRATION_TABLES + PRESET_TABLES + INSPIRATION_TABLES:
             assert document['data'].pop(table) == []
         response = client.post('/api/archives/imports', json={'content': json.dumps(document)})
         assert response.status_code == 201, response.text

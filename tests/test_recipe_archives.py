@@ -3,7 +3,13 @@ from uuid import uuid4
 
 import pytest
 
-from server.archives.format import RECIPE_TABLES
+from server.archives.format import (
+    ARCHIVE_VERSION,
+    INSPIRATION_TABLES,
+    MIGRATION_TABLES,
+    PRESET_TABLES,
+    RECIPE_TABLES,
+)
 from server.database import decode, encode
 from server.writing.recipe_models import RecipeStepStart
 from server.writing.recipe_service import RecipeRuns
@@ -30,7 +36,7 @@ def test_recipe_restores_twice_and_resumes_with_exact_frozen_inputs(client, stor
     next_input = client.post(f'/api/recipe-runs/{run_id}/preview-step').json()
     for _ in range(2):
         file, document = backup(client, story)
-        assert document['version'] == 51 and len(document['data']['recipe_runs']) == 1
+        assert document['version'] == ARCHIVE_VERSION and len(document['data']['recipe_runs']) == 1
         assert 'credential_ref":null' in document['data']['recipe_runs'][0]['snapshot']
         _, mapping = restore(client, file)
         run_id, story = mapping[run_id], imported_story(story, mapping)
@@ -150,7 +156,7 @@ def test_format_50_requires_original_groups_and_no_recipe_origins(client):
     _, document = backup(client)
     document['version'] = 50
     malformed = deepcopy(document)
-    for table in RECIPE_TABLES:
+    for table in RECIPE_TABLES + MIGRATION_TABLES + PRESET_TABLES + INSPIRATION_TABLES:
         assert document['data'].pop(table) == []
     response = client.post('/api/archives/imports', json={'content': encode(document)})
     assert response.status_code == 201, response.text

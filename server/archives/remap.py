@@ -4,6 +4,7 @@ from server.archives.cleanup import restore_cleanup
 from server.archives.continuity_revision import remap_revision_usage
 from server.archives.lore import remap_lore, remap_state
 from server.archives.memory_controls import remap_controls
+from server.archives.migration_sources import remap_receipt
 from server.archives.v07 import remap_manuscript
 from server.database import decode, encode, identifier
 from server.library_formats.sources import source_record
@@ -13,6 +14,9 @@ from server.roles import ROLE_LABELS
 from server.section_prompts import SECTION_LABELS
 
 REFERENCES = {
+    'deck_id',
+    'profile_version_id', 'base_profile_id', 'base_profile_version_id',
+    'migration_receipt_id',
     'reply_id', 'edit_origin_id',
     'context_id',
     'left_branch_id', 'right_branch_id', 'left_head_id', 'right_head_id',
@@ -154,6 +158,7 @@ def scene_decision(value, mapping):
 
 def remap_json(table, row, document, mapping):
     converters = {
+        'story_imports': {'receipt': lambda value: remap_receipt(value, mapping)},
         'manuscripts': {'document': lambda value: remap_manuscript(value, mapping)},
         'memory_control_versions': {'payload': lambda value: remap_controls(value, mapping)},
         "stories": {"settings": lambda value: story_settings(value, document, mapping)},

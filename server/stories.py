@@ -42,17 +42,7 @@ class Stories:
             cached = previous(connection, body.operation_id, 'story-create', payload) if body.operation_id else None
             if cached is not None:
                 return cached
-            validate_starting_profile(connection, body.settings)
-            opening = opening_metadata(connection, body)
-            story_id = identifier()
-            connection.execute("INSERT INTO stories VALUES (?,?,?,?,NULL,0,0,?,?)",
-                               (story_id, body.title, body.premise, encode(normalize_story_settings(initial_agent_settings(body.settings))), now(), now()))
-            manifest_id = create_manifest(connection, story_id, [a.model_dump() for a in body.attachments])
-            connection.execute("UPDATE stories SET manifest_id=? WHERE id=?", (manifest_id, story_id))
-            branch_id = create_branch(connection, story_id, manifest_id)
-            if body.opening_text:
-                save_opening(connection, branch_id, body.opening_text, opening)
-            result = {"story_id": story_id, "branch_id": branch_id}
+            result = create_story(connection, body)
             if body.operation_id:
                 return remember(connection, body.operation_id, 'story-create', payload, result)
             return result
@@ -84,6 +74,21 @@ class Stories:
             manifest_id = create_manifest(connection, story_id, [a.model_dump() for a in body.attachments])
             adopt_manifest(connection, story, manifest_id, body.operation_id)
             return remember(connection, body.operation_id, "attach", payload, {"manifest_id": manifest_id})
+
+
+def create_story(connection, body):
+    """Create inside the caller's transaction, including source-import receipts."""
+    validate_starting_profile(connection, body.settings)
+    opening = opening_metadata(connection, body)
+    story_id = identifier()
+    connection.execute("INSERT INTO stories VALUES (?,?,?,?,NULL,0,0,?,?)",
+                       (story_id, body.title, body.premise, encode(normalize_story_settings(initial_agent_settings(body.settings))), now(), now()))
+    manifest_id = create_manifest(connection, story_id, [a.model_dump() for a in body.attachments])
+    connection.execute("UPDATE stories SET manifest_id=? WHERE id=?", (manifest_id, story_id))
+    branch_id = create_branch(connection, story_id, manifest_id)
+    if body.opening_text:
+        save_opening(connection, branch_id, body.opening_text, opening)
+    return {"story_id": story_id, "branch_id": branch_id}
 
 
 def validate_starting_profile(connection, settings):

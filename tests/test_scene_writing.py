@@ -3,7 +3,14 @@ from uuid import uuid4
 
 import pytest
 
-from server.archives.format import ARCHIVE_VERSION, RECIPE_TABLES, STYLE_ANALYSIS_TABLES
+from server.archives.format import (
+    ARCHIVE_VERSION,
+    INSPIRATION_TABLES,
+    MIGRATION_TABLES,
+    PRESET_TABLES,
+    RECIPE_TABLES,
+    STYLE_ANALYSIS_TABLES,
+)
 from server.database import decode, encode
 from tests.test_archives import backup, restore
 from tests.test_memory import small_profile
@@ -193,7 +200,7 @@ def test_format_48_scene_restores_unchanged_without_new_writing_fields(client, s
     job = run_stage(client, run_id, 'scene-draft')[0]
     _, document = backup(client, story)
     document['version'] = 48
-    for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES:
+    for table in STYLE_ANALYSIS_TABLES + RECIPE_TABLES + MIGRATION_TABLES + PRESET_TABLES + INSPIRATION_TABLES:
         assert document['data'].pop(table) == []
     imported = client.post('/api/archives/imports', json={'content': json.dumps(document)})
     assert imported.status_code == 201, imported.text

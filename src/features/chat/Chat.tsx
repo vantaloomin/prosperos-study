@@ -27,6 +27,7 @@ const WindowedTranscript = lazy(() => import('./WindowedTranscript').then((modul
 const BranchMap = lazy(() => import('./BranchMap').then(module => ({ default: module.BranchMap })))
 
 const Randomness = lazy(() => import('../mechanics/Randomness').then((module) => ({ default: module.Randomness })))
+const InspirationPicker = lazy(() => import('../inspiration/DeckPlay').then(module => ({ default: module.InspirationPicker })))
 const Workflow = lazy(() => import('../workflow/Workflow').then((module) => ({ default: module.Workflow })))
 const ManuscriptWorkspace = lazy(() => import('../manuscript/ManuscriptWorkspace').then(module => ({ default: module.ManuscriptWorkspace })))
 
@@ -59,6 +60,7 @@ function ChatWorkspace({ story, branch, reading, onBranch, onOpen, onOpenPassage
   const layout = useCollaboratorLayout()
   const fullscreen = [side, layout.presentation === 'full'].every(Boolean)
   const [randomness, setRandomness] = useState(false)
+  const [inspiration, setInspiration] = useState(false)
   const [workflow, setWorkflow] = useState(false)
   const [manuscript, setManuscript] = useState(false)
   const [transfer, setTransfer] = useState<DraftTransfer | null>(null)
@@ -75,14 +77,19 @@ function ChatWorkspace({ story, branch, reading, onBranch, onOpen, onOpenPassage
     <ChatHeading story={story} branchName={branch.name} curation={branch.curation} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onManuscript={() => setManuscript(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
     <ErrorNotice message={connectionError} />
     {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript reader={reading.connect} key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript reader={reading.connect} key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
-    <WritingRecovery /><Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
+    <WritingRecovery /><Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} onInspiration={() => setInspiration(true)} />
   </main></GenerationControls>{context && <ContextDock onReadMessage={readMessage} story={story} branch={branch} onClose={() => setContext(false)} />}
     <CollaboratorWindow open={side} layout={layout} story={story} branch={branch} onClose={() => setSide(false)} onInsert={(text) => { setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text }); requestAnimationFrame(() => workspace.current?.querySelector<HTMLTextAreaElement>('[aria-label="Story message"]')?.focus()) }} />
     {map && <Suspense fallback={<Loading label="Opening tellings…" />}><BranchMap storyId={story.id} branches={story.branches} selected={branch.id} onSelect={onBranch} onOpen={(branchId, nodeId) => { onOpenPassage(branchId, nodeId); setContext(false) }} onClose={() => setMap(false)} openedAt={mapOpenedAt} /></Suspense>}
     {details && <StoryDetails story={story} branchId={branch.id} onOpen={onOpen} onClose={() => setDetails(false)} />}
+    <InspirationView open={inspiration} branch={branch} onUse={text => setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text })} onClose={() => setInspiration(false)} />
     {randomness && <Modal open title="A little room for chance" description="Shape the unexpected. A reply is not automatically a beat, and a roll is only a proposal until its draft is accepted." onClose={() => setRandomness(false)} wide><Suspense fallback={<Loading label="Opening your tables…" />}><Randomness branch={branch} onBranch={onBranch} /></Suspense></Modal>}
     {workflow && <Modal open title="Story workflow" description="Plan a scene, invite independent readers, and choose the right partner for each step." onClose={() => setWorkflow(false)} wide><Suspense fallback={<Loading label="Opening the workflow…" />}><Workflow key={branch.id} branch={branch} onBranch={(id) => { setWorkflow(false); onBranch(id) }} /></Suspense></Modal>}
   </div>
+}
+
+function InspirationView({ open, branch, onUse, onClose }: { open: boolean; branch: Branch; onUse: (text: string) => void; onClose: () => void }) {
+  return open && <Suspense fallback={<Loading label="Opening inspiration…" />}><InspirationPicker key={branch.id} branch={branch} onUse={onUse} onClose={onClose} /></Suspense>
 }
 
 function useCompanionReturn(companionReturn: number, workspace: React.RefObject<HTMLDivElement | null>) {

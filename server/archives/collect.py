@@ -3,8 +3,11 @@ from server.archives.authoring import collect_authoring
 from server.archives.configuration import collect_configuration
 from server.archives.format import ARCHIVE_VERSION, TABLES
 from server.archives.identities import collect_identities
+from server.archives.inspiration import collect_inspiration
 from server.archives.library_imports import collect_imports
 from server.archives.library_sources import collect_sources
+from server.archives.migration_sources import collect_migration_sources
+from server.archives.presets import collect_presets, preset_profiles
 from server.archives.records import related_rows
 from server.archives.style_analysis import collect_analyses
 from server.archives.text_edit_versions import asset_references
@@ -130,8 +133,11 @@ def collect(connection, options):
     collect_authoring(connection, data, options.scope == 'workspace')
     collect_sources(connection, data)
     collect_imports(connection, data)
+    collect_migration_sources(connection, data)
     collect_artwork(connection, data)
     collect_writing(connection, data, options.scope == 'workspace')
+    collect_presets(connection, data)
+    collect_inspiration(connection, data, options.scope == 'workspace')
     collect_analyses(connection, data, options.scope == 'workspace')
     return complete_configuration(connection, options, data)
 
@@ -141,7 +147,7 @@ def complete_configuration(connection, options, data):
     if options.scope == "story":
         primary = decode(data["stories"][0]["settings"]).get("primary_profile_id") or primary
     profiles = many(connection, "SELECT id FROM profiles") if options.scope == "workspace" else []
-    profile_ids = {row["id"] for row in profiles} | referenced_profiles(data, primary) | writing_profiles(data)
+    profile_ids = {row["id"] for row in profiles} | referenced_profiles(data, primary) | writing_profiles(data) | preset_profiles(data)
     data["profiles"] = related_rows(connection, "profiles", "id", profile_ids)
     data["profile_versions"] = related_rows(connection, "profile_versions", "profile_id", profile_ids)
     prompt_heads = collect_configuration(connection, data, options.scope)

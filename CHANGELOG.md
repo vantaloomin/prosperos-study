@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.9.0 - 2026-09-22
+
+Protect, bring, reuse, and publish your writing. Application version: **0.9.0**.
+
+- Configurable automatic workspace backups start off and run while the server is open. Choose an interval, retention and destination; inspect saved copies and failures; verify a copy before deliberate recovery as new Stories. Retention protects manual copies and unrelated files, and imported archives cannot activate a schedule.
+- A durable mixed-file migration queue connects format detection, detailed review, duplicate choices and independent publication. Added bounded CHARX/BYAF character containers, supported transcript migration and inert preset conversion preserve originals and recover interrupted publication. Foreign instructions, credentials and runtime behavior never gain authority through import.
+- Versioned weighted inspiration decks provide exact odds, tags/exclusions, isolated seeded previews, explicit recorded draws, history, editable starters and portable reviewed collections. Story handoff appends to unsent input without sending, accepting Canon or enabling Story randomness.
+- Book publishing adds standalone HTML beside DOCX and EPUB, using the same frozen selection. Optional contents and embedded reading/print styles work offline; selected prose and publication metadata are separated from private workspace records.
+- Private archive format **54** preserves accepted migration sources, deck versions, draw receipts and collection origins. Historical inputs and selected prose remain intact across restore; installation-local schedules, queues and prepared downloads remain local.
+
+The full backend gate passed **1,948 tests**; a later overlapping **30-test focused run** covered final hardening and two additional cases. All **113 UI-model tests**, Ruff, ESLint, TypeScript and the production build passed. Rendered-browser checks cover the four workstreams, recovery, narrow/enlarged layouts, offline reading and a four-page print preview. See [release notes](releases/v0.9.0.md) and [measured validation](v090-validation.md) for scope and limits. The [tagged source release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.9.0) includes the source ZIP, per-file manifest and SHA-256 checksums.
+
 ## v0.8.0 - 2026-09-21
 
 Personal writing tools and an editable Sidebar Companion. Application version: **0.8.0**.

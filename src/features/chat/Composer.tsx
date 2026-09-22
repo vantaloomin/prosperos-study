@@ -13,9 +13,9 @@ import { DocumentTools } from '../textEdits/DocumentTools'
 
 export interface DraftTransfer { id: string; branchId: string; text: string }
 
-interface Props { branch: Branch; mode: StoryMode; transfer?: DraftTransfer | null; onTransferred?: () => void; onRandomness: () => void }
+interface Props { branch: Branch; mode: StoryMode; transfer?: DraftTransfer | null; onTransferred?: () => void; onRandomness: () => void; onInspiration: () => void }
 
-export function Composer({ branch, mode, transfer, onTransferred, onRandomness }: Props) {
+export function Composer({ branch, mode, transfer, onTransferred, onRandomness, onInspiration }: Props) {
   const { onSubmitted, busy: generationBusy, canGenerate } = useWritingActions()
   const draft = useComposerDraft(branch, mode)
   const { text, role, edit, setRole } = draft
@@ -60,7 +60,7 @@ export function Composer({ branch, mode, transfer, onTransferred, onRandomness }
   return <div className="composer-wrap"><ErrorNotice message={action.error} /><SubmissionRecovery action={action} onCheck={() => void send()} /><PreparedNarration prepared={prepared} narrative={narrative} useBeat={useBeat} onSkip={setSkippedBeat} /><form className="composer" onSubmit={(event) => { event.preventDefault(); void send() }}>
     <textarea ref={input} aria-label="Story message" placeholder={copy.placeholder} value={text} onChange={(e) => { edit(e.target.value); noteComposing() }} onKeyDown={onKeyDown} rows={3} disabled={[locked, draft.phase === 'loading'].some(Boolean)} />
     <MessageModes mode={mode} role={role} onChange={setRole} disabled={locked} /><div className="composer-bottom"><label className="auto-continue"><input type="checkbox" checked={autoContinue} disabled={!canGenerate} onChange={event => setAutoContinue(event.target.checked)} />Continue after sending</label><span className="composer-hint">⌘ / Ctrl + Enter</span><button type="submit" className="button primary" disabled={sendDisabled}><ArrowUp size={18} />{submitLabel(copy.submit, autoContinue, canGenerate)}</button></div>
-  </form><DocumentTools draft={draft} disabled={locked} inputRef={input} /><div className="composer-caption"><span>{continuationCaption(canGenerate, autoContinue, copy.caption)}</span><button onClick={onRandomness}><Dice5 size={12} />Randomness {branch.mechanics.enabled ? 'on' : 'off'}</button></div></div>
+  </form><DocumentTools draft={draft} disabled={locked} inputRef={input} /><div className="composer-caption"><span>{continuationCaption(canGenerate, autoContinue, copy.caption)}</span><button onClick={onInspiration}>Inspiration</button><button onClick={onRandomness}><Dice5 size={12} />Randomness {branch.mechanics.enabled ? 'on' : 'off'}</button></div></div>
 }
 
 function submitLabel(label: string, automatic: boolean, available: boolean) { return label + (automatic && available ? ' & continue' : '') }

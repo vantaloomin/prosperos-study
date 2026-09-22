@@ -5,6 +5,7 @@ import { ErrorNotice, Loading } from '../../components/Feedback'
 import { Modal } from '../../components/Modal'
 import type { AssetVersion } from '../../types'
 import type { ImportPreview } from './importTypes'
+import { ImportedAssets } from './ImportedAssets'
 
 export function SourceDownloads({ id }: { id: string }) {
   return <div className="import-downloads"><a className="text-button" href={`/api/library-imports/${id}/original`} download>Download original file</a><a className="text-button" href={`/api/library-imports/${id}/package`} download>Download Markdown package</a></div>
@@ -15,7 +16,7 @@ export function ConvertedDocuments({ id, onClose }: { id: string; onClose: () =>
   return <Modal open wide title="Converted source documents" description="Preserved source material for review." onClose={onClose}>
     <div className="dialog-body form-stack"><p className="subtle">These files do not automatically become prompts, active Canon entries or Story events.</p><ErrorNotice message={query.error?.message} />
       {query.isPending && <Loading label="Opening the converted documents…" />}
-      {query.data && <DocumentBrowser preview={query.data} />}<SourceDownloads id={id} />
+      {query.data && <><ImportedAssets preview={query.data} /><DocumentBrowser preview={query.data} /></>}<SourceDownloads id={id} />
     </div><footer className="dialog-footer"><button className="button" onClick={onClose}>Done</button></footer>
   </Modal>
 }

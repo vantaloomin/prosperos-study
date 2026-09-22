@@ -11,6 +11,7 @@ import { UnsupportedSettings } from './UnsupportedSettings'
 import { SampleAnalysis } from './SampleAnalysis'
 import { mergeStyleSuggestions, type StylePatch } from './analysisTypes'
 import type { RecipeContent, StyleContent, WritingDraft, WritingResource } from './types'
+import { PresetOrigins } from '../migration/PresetOrigins'
 
 const VersionedTextEdit = lazy(() => import('../textEdits/VersionedTextEdit').then(module => ({ default: module.VersionedTextEdit })))
 
@@ -38,6 +39,7 @@ export function WritingEditor({ initial, resource, resources, onClose }: { initi
   return <Modal open wide onClose={onClose} title={resource ? `Edit ${resource.name}` : `New ${initial.kind === 'style' ? 'writing style' : 'writing recipe'}`} description="Publishing saves a new version. Stories keep their chosen versions until you adopt an update."><div className="dialog-body form-stack"><Field label="Name" autoFocus maxLength={120} value={draft.name} onChange={event => patch({ name: event.target.value })} /><TextField label="Description" rows={2} maxLength={2000} value={draft.description} onChange={event => patch({ description: event.target.value })} />
     <WritingContent draft={draft} resource={resource} resources={resources} draftKey={key} onChange={content => patch({ content })} onApply={applySuggestions} />
     <UnsupportedSettings value={draft.unsupported} />
+    {resource?.kind === 'recipe' && <PresetOrigins versionId={resource.id} />}
     <ScopedWritingButton resource={resource} initial={initial} draft={draft} busy={action.busy} onOpen={setScopedEdit} />
     <TextField label="Version note" rows={2} maxLength={2000} value={draft.note} onChange={event => patch({ note: event.target.value })} /><ErrorNotice message={action.error} /></div><footer className="dialog-footer"><button className="text-button" onClick={onClose}>Close · keep draft</button><button className="button primary" disabled={!draft.name.trim() || action.busy} onClick={save}>{action.busy ? 'Publishing…' : 'Publish version'}</button></footer></Modal>
 }
