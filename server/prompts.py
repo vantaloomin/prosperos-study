@@ -226,21 +226,8 @@ class Prompts:
             return set_agents(connection, keys, body.enabled, body.expected_revision)
 
     def update(self, key: str, body: PromptUpdate, story_id=None):
-        require(key in ALL_PROMPT_LABELS, 'Unknown prompt role.', 404)
-        require(not story_id or key not in AUTHORING_KEYS | {'library-assist'}, 'Library assistant prompts are workspace settings.')
         with self.database.connect(write=True) as connection:
-            story = one(connection, "SELECT * FROM stories WHERE id=?", (story_id,)) if story_id else None
-            current = original_prompt(connection, key, story)
-            require(current["id"] == body.expected_version_id, "This prompt has changed. Reopen it first.", 409)
-            version_id = identifier()
-            number = one(connection, "SELECT MAX(number)+1 AS next FROM prompt_versions WHERE key=?", (key,))["next"]
-            connection.execute("INSERT INTO prompt_versions VALUES (?,?,?,?,?)",
-                               (version_id, key, number, body.template, now()))
-            if story:
-                pin_prompt(connection, story, key, version_id)
-            else:
-                connection.execute("UPDATE prompt_heads SET version_id=? WHERE key=?", (version_id, key))
-            return display_prompt(one(connection, "SELECT * FROM prompt_versions WHERE id=?", (version_id,)))
+            return publish_prompt(connection, key, body.expected_version_id, body.template, story_id)
 
     def history(self, key: str):
         with self.database.connect() as connection:
@@ -262,6 +249,23 @@ class Prompts:
                 # Retain every version; the old built-in head means inherit the combined role.
                 connection.execute('UPDATE prompt_heads SET version_id=? WHERE key=?', (f'{key}-default-v1', key))
             return {'key': key, 'role': role_key(key)}
+
+
+def publish_prompt(connection, key, expected_version_id, template, story_id=None):
+    require(key in ALL_PROMPT_LABELS, 'Unknown prompt role.', 404)
+    require(not story_id or key not in AUTHORING_KEYS | {'library-assist'}, 'Library assistant prompts are workspace settings.')
+    require(isinstance(template, str) and 0 < len(template.strip()) and len(template) <= 100000, 'Prompt instructions need 1–100,000 characters.')
+    story = one(connection, 'SELECT * FROM stories WHERE id=?', (story_id,)) if story_id else None
+    current = original_prompt(connection, key, story)
+    require(current['id'] == expected_version_id, 'This prompt has changed. Reopen it first.', 409)
+    version_id = identifier()
+    number = one(connection, 'SELECT MAX(number)+1 AS next FROM prompt_versions WHERE key=?', (key,))['next']
+    connection.execute('INSERT INTO prompt_versions VALUES (?,?,?,?,?)', (version_id, key, number, template, now()))
+    if story:
+        pin_prompt(connection, story, key, version_id)
+    else:
+        connection.execute('UPDATE prompt_heads SET version_id=? WHERE key=?', (version_id, key))
+    return display_prompt(one(connection, 'SELECT * FROM prompt_versions WHERE id=?', (version_id,)))
 
 
 def pin_prompt(connection, story, key, version_id):

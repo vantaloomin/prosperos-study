@@ -4,6 +4,8 @@ from pydantic import Field, model_validator
 
 from server.models import Input
 from server.scenes.chance_models import ChanceBoundary
+from server.text_edits.models import ExactInput
+from server.writing.models import WritingChoices
 
 
 class SceneCreate(Input):
@@ -13,6 +15,7 @@ class SceneCreate(Input):
     direction: str = Field(min_length=1, max_length=30000)
     propose_options: bool = True
     dialogue_split: bool = False
+    expected_document_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', exclude_if=lambda value: value is None)
 
 
 class DialogueActor(Input):
@@ -36,6 +39,7 @@ class SceneStep(Input):
     profile_ids: list[str] = Field(default_factory=list, max_length=4)
     review_job_ids: list[str] = Field(default_factory=list, max_length=10)
     item_id: str | None = None
+    writing: WritingChoices | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class SceneStart(SceneStep):
@@ -102,6 +106,12 @@ class SceneApproval(Input):
     note: str = Field(default="", max_length=5000)
 
 
+class SceneDraftEdit(ExactInput):
+    text: str = Field(max_length=100000)
+    receipt_id: str = Field(min_length=1, max_length=100)
+    job_id: str = Field(min_length=1, max_length=100)
+
+
 class SceneState(Input):
     selections: dict[str, str] = Field(default_factory=dict)
     option_id: str | None = None
@@ -113,3 +123,4 @@ class SceneState(Input):
     patch_round: Literal[0, 1] = 0
     repair_selections: dict[str, str] = Field(default_factory=dict)
     accepted: dict | None = None
+    draft_edits: dict[str, SceneDraftEdit] = Field(default_factory=dict, max_length=200, exclude_if=lambda value: not value)

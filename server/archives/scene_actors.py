@@ -7,6 +7,7 @@ from server.errors import require
 from server.scenes.actor_context import actor_frame
 from server.scenes.actor_runner import combined_result
 from server.scenes.output import parse_scene
+from server.writing.scene_requests import writing_task
 
 
 def validate_actors(connection, row, snapshot, origin):
@@ -38,7 +39,10 @@ def validate_actor(connection, actor, origin, slots):
             'A character writer changed its scene boundary or knowledge version.')
     require(actor['slot_ids'] == [key for key in slots if key in actor['slot_ids']], 'Assigned dialogue slots are out of order.')
     validate_snapshot(connection, {**actor, 'content': actor['knowledge_content']})
-    expected = encode({**decode(actor['knowledge_content']), **actor_frame(actor['knowledge_lens']['subject'], actor['slot_ids'])})
+    frame = actor_frame(actor['knowledge_lens']['subject'], actor['slot_ids'])
+    if actor.get('writing_guidance'):
+        frame['writing_task'] = writing_task('scene-dialogue')
+    expected = encode({**decode(actor['knowledge_content']), **frame})
     require(actor['content'] == expected and actor['content_sha256'] == hashlib.sha256(expected.encode('utf-8')).hexdigest(),
             'A character writer received changed or additional scene material.')
 

@@ -6,7 +6,7 @@ import { providers, type ProfileList } from '../models/types'
 import { OpeningPassage } from './SetupOpening'
 
 export function SetupStory({ draft, patch }: { draft: SetupDraft; patch: (next: Partial<SetupDraft>) => void }) {
-  return <div className="form-stack"><Field label="Story title" value={draft.title} maxLength={120} placeholder="The observatory" onChange={(event) => patch({ title: event.target.value })} hint="The only required creative detail. Everything else can grow later." /><StoryStyle value={draft} onChange={patch} /><TextField label="Story brief" rows={4} value={draft.premise} maxLength={30000} onChange={(event) => patch({ premise: event.target.value })} placeholder="A place, a person, an unfinished question…" hint="Premise, tone, and lasting guidance for the whole story. This is not a passage or a path-specific author’s note." />
+  return <div className="form-stack"><Field label="Story title" value={draft.title} maxLength={120} placeholder="The observatory" onChange={(event) => patch({ title: event.target.value })} hint="Add a title, or choose Skip setup to begin with Untitled Story." /><StoryStyle value={draft} onChange={patch} /><TextField label="Story brief" rows={4} value={draft.premise} maxLength={30000} onChange={(event) => patch({ premise: event.target.value })} placeholder="A place, a person, an unfinished question…" hint="Premise, tone, and lasting guidance for the whole story. This is not a passage or a path-specific author’s note." />
     <details className="advanced-settings"><summary>Add an opening passage (optional)</summary><div className="setup-writing-options"><OpeningPassage draft={draft} patch={patch} /></div></details>
   </div>
 }

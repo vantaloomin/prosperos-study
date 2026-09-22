@@ -14,11 +14,16 @@ import { StoryList } from './features/stories/StoryList'
 import { Chat } from './features/chat/Chat'
 import { defaultAppearance, appearanceStyles, type Appearance } from './features/settings/appearance'
 import { beginBranchNavigation } from './features/chat/navigationTiming'
+import { acknowledgeReturn, isCompanionWindow, returnSelection } from './features/collaborator/popOutWindow'
+import { companionOpenEvent } from './features/collaborator/companionFocus'
+import { useStartWritingFocus } from './features/stories/useStartWritingFocus'
 
 type Page = 'chat' | 'library' | 'settings'
 const Library = lazy(() => import('./features/library/Library').then((module) => ({ default: module.Library })))
 const Settings = lazy(() => import('./features/settings/Settings').then((module) => ({ default: module.Settings })))
 const NewStory = lazy(() => import('./features/stories/NewStory').then((module) => ({ default: module.NewStory })))
+const CompanionPopOut = lazy(() => import('./features/collaborator/CompanionPopOut').then(module => ({ default: module.CompanionPopOut })))
+const companionWindow = isCompanionWindow()
 
 export default function App() {
   const cache = useQueryClient()
@@ -33,19 +38,40 @@ export default function App() {
     return () => { for (const [name] of values) document.documentElement.style.removeProperty(name === 'colorScheme' ? 'color-scheme' : name) }
   }, [appearance])
   const [creating, setCreating] = useState(false)
+  const startWriting = useStartWritingFocus(selection, page === 'chat', creating)
   const [mobileStories, setMobileStories] = useState(!selection.storyId)
+  const [companionReturn, setCompanionReturn] = useState(() => new URLSearchParams(window.location.search).has('companion_return') ? 1 : 0)
+  useEffect(() => {
+    if (companionWindow) return
+    const receive = (event: MessageEvent) => {
+      const next = returnSelection(event)
+      if (!next) return
+      setSelection(next); setPage('chat'); setMobileStories(false); setCompanionReturn(value => value + 1)
+      acknowledgeReturn(event)
+    }
+    window.addEventListener('message', receive)
+    const open = (event: Event) => {
+      const next = (event as CustomEvent<Selection>).detail
+      setSelection(next); setPage('chat'); setMobileStories(false); setCompanionReturn(value => value + 1)
+    }
+    window.addEventListener(companionOpenEvent, open)
+    return () => { window.removeEventListener('message', receive); window.removeEventListener(companionOpenEvent, open) }
+  }, [setSelection])
   const narrow = useMediaQuery('(max-width: 900px)')
-  const stories = useQuery({ queryKey: ['stories'], queryFn: () => api<StorySummary[]>('/stories') })
+  const showMobileStories = [mobileStories, narrow, page === 'chat'].every(Boolean)
+  const stories = useQuery({ queryKey: ['stories'], queryFn: () => api<StorySummary[]>('/stories'), enabled: !companionWindow })
   const select = (storyId: string) => { setSelection({ storyId, branchId: '' }); setPage('chat'); setMobileStories(false) }
   const branch = (branchId: string) => {
     beginBranchNavigation(branchId, !!cache.getQueryData(['branch', branchId]))
     setSelection({ ...selection, branchId })
   }
-  return <MotionConfig reducedMotion={appearance.reducedMotion ? 'always' : 'user'}><div className="app-shell" data-theme={appearance.theme} data-reduce-motion={appearance.reducedMotion} style={appearanceStyles(appearance) as CSSProperties}>
+  return <MotionConfig reducedMotion={appearance.reducedMotion ? 'always' : 'user'}><div className={`app-shell${companionWindow ? ' companion-app' : ''}`} data-theme={appearance.theme} data-reduce-motion={appearance.reducedMotion} style={appearanceStyles(appearance) as CSSProperties}>
+    {companionWindow ? <Suspense fallback={<Loading label="Opening Companion Pop Out…" />}><CompanionPopOut /></Suspense> : <>
     <Rail page={page} onPage={setPage} onStories={() => { setPage('chat'); setMobileStories(!mobileStories) }} />
-    <Workspace page={page} storiesOpen={mobileStories && !narrow} onCollapse={() => setMobileStories(false)} stories={stories.data ?? []} pending={stories.isPending} error={stories.error?.message} selection={selection} appearance={appearance} onAppearance={setAppearance} onSelect={select} onBranch={branch} onOpen={(next) => { beginBranchNavigation(next.branchId, !!cache.getQueryData(['branch', next.branchId])); setSelection(next); setPage('chat'); setMobileStories(false) }} onNew={() => setCreating(true)} />
-    {creating && <Suspense fallback={<Loading label="Opening Story setup…" />}><NewStory onClose={() => setCreating(false)} onCreated={(next) => { setSelection(next); setPage('chat'); setMobileStories(false) }} /></Suspense>}
-    {mobileStories && narrow && <MobileStories stories={stories.data ?? []} selected={selection.storyId} onClose={() => setMobileStories(false)} onSelect={select} onNew={() => { setMobileStories(false); setCreating(true) }} />}
+    <Workspace companionReturn={companionReturn} page={page} storiesOpen={mobileStories && !narrow} onCollapse={() => setMobileStories(false)} stories={stories.data ?? []} pending={stories.isPending} error={stories.error?.message} selection={selection} appearance={appearance} onAppearance={setAppearance} onSelect={select} onBranch={branch} onOpen={(next) => { beginBranchNavigation(next.branchId, !!cache.getQueryData(['branch', next.branchId])); setSelection(next); setPage('chat'); setMobileStories(false) }} onNew={() => setCreating(true)} />
+    {creating && <Suspense fallback={<Loading label="Opening Story setup…" />}><NewStory onClose={() => setCreating(false)} onCreated={(next) => { setSelection(next); startWriting(next); setPage('chat'); setMobileStories(false) }} /></Suspense>}
+    {showMobileStories && <MobileStories stories={stories.data ?? []} selected={selection.storyId} onClose={() => setMobileStories(false)} onSelect={select} onNew={() => { setMobileStories(false); setCreating(true) }} />}
+    </>}
     <Tooltips />
   </div></MotionConfig>
 }
@@ -64,6 +90,7 @@ function Rail({ page, onPage, onStories }: { page: Page; onPage: (page: Page) =>
 }
 
 interface WorkspaceProps {
+  companionReturn: number
   storiesOpen: boolean; onCollapse: () => void
   page: Page; stories: StorySummary[]; pending: boolean; error?: string; selection: Selection
   appearance: Appearance; onAppearance: (next: Appearance) => void
@@ -77,10 +104,10 @@ function Workspace(props: WorkspaceProps) {
   return <>{props.storiesOpen && <div className="desktop-stories"><button className="text-button collapse-stories" onClick={props.onCollapse}>Collapse stories</button><StoryList stories={props.stories} selected={props.selection.storyId} onSelect={props.onSelect} onNew={props.onNew} /></div>}<StorySurface {...props} /></>
 }
 
-function StorySurface({ pending, error, selection, onBranch, onNew, onOpen }: WorkspaceProps) {
+function StorySurface({ pending, error, selection, onBranch, onNew, onOpen, companionReturn }: WorkspaceProps) {
   if (pending) return <Loading />
   if (error) return <main className="page"><ErrorNotice message={error} /><p className="subtle">Check that the local application server is running.</p></main>
-  if (selection.storyId) return <Chat storyId={selection.storyId} branchId={selection.branchId} onBranch={onBranch} onOpen={onOpen} />
+  if (selection.storyId) return <Chat storyId={selection.storyId} branchId={selection.branchId} onBranch={onBranch} onOpen={onOpen} companionReturn={companionReturn} />
   return <main className="welcome" aria-labelledby="welcome-title">
     <div className="welcome-top"><span className="eyebrow">YOUR WRITING ROOM</span><span className="subtle">Make yourself at home.</span></div>
     <section className="welcome-body">

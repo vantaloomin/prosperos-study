@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import { api } from '../../api'
 import { Modal } from '../../components/Modal'
 import { TextField } from '../../components/Fields'
-import { ErrorNotice } from '../../components/Feedback'
+import { ErrorNotice, Loading } from '../../components/Feedback'
 import { useAction } from '../../hooks/useAction'
 import { sectionState } from './sectionState'
 import { usePersistent } from '../../hooks/usePersistent'
@@ -12,6 +12,8 @@ import type { TaskSetting } from '../workflow/types'
 import { RetiredPrompts, TaskSettings } from './TaskSettings'
 import { LibraryModels } from './LibraryModels'
 import { ModeGuidance, TemplateChoice } from './AgentTemplates'
+
+const VersionedTextEdit = lazy(() => import('../textEdits/VersionedTextEdit').then(module => ({ default: module.VersionedTextEdit })))
 
 export interface Prompt { id: string; key: string; label: string; number: number; template: string; enabled?: boolean; enabled_source?: string; activation_revision?: number; order?: number; group?: string; description?: string; tasks?: TaskSetting[] }
 
@@ -66,10 +68,12 @@ export function PromptCard({ prompt, onEdit, disabled, editDisabled, onToggle, s
 }
 
 export function PromptEditor({ prompt, onClose, storyId }: { prompt: Prompt; onClose: () => void; storyId?: string }) {
+  const [scopedEdit, setScopedEdit] = useState(false)
+  const [returnFocus] = useState(() => document.activeElement as HTMLElement | null)
   const draftKey = `roleplay:prompt-draft:${storyId ?? 'workspace'}:${prompt.id}`
   const [text, setText] = usePersistent(draftKey, previousDraft(prompt, storyId))
   const history = useQuery({ queryKey: ['prompt-history', prompt.key], queryFn: () => api<Prompt[]>(`/prompts/${prompt.key}/versions`) })
-  const combined = history.data?.find(version => version.id === `${prompt.key}-default-v070`) ?? history.data?.find(version => version.id === `${prompt.key}-default-v062`)
+  const combined = currentBuiltin(prompt.key, history.data)
   const action = useAction()
   const save = () => action.run(async () => {
     await api(`/prompts/${prompt.key}${storyId ? `?story_id=${storyId}` : ''}`, { expected_version_id: prompt.id, template: text }, 'PUT')
@@ -77,6 +81,17 @@ export function PromptEditor({ prompt, onClose, storyId }: { prompt: Prompt; onC
     if (!storyId) localStorage.removeItem(`roleplay:prompt-draft:${prompt.id}`)
     onClose()
   })
+  if (scopedEdit) return <Suspense fallback={<Loading />}><VersionedTextEdit source={{ kind: 'prompt', prompt_key: prompt.key, prompt_scope: storyId ? 'story' : 'workspace' }} storyId={storyId} expectedEdition={prompt.id} onClose={onClose} focusOnClose={() => promptReturnFocus(returnFocus)} /></Suspense>
   const scope = storyId ? 'Save an override for future requests in this Story.' : 'Edit the workspace default for future requests that inherit it.'
-  return <Modal open onClose={onClose} title={`Edit ${prompt.label} instructions`} description={`${scope} Recorded inputs and application permissions stay unchanged.`} wide><div className="dialog-body form-stack"><TaskSettings prompt={prompt} storyId={storyId} />{combined && combined.id !== prompt.id && <button className="button" onClick={() => setText(combined.template)}>Load current built-in default as a draft</button>}<TextField label="Role instructions" rows={15} value={text} onChange={(e) => setText(e.target.value)} /><details className="advanced-settings"><summary>Earlier versions</summary><div className="version-buttons">{history.data?.map((version) => <button className="button" key={version.id} onClick={() => setText(version.template)}>Use v{version.number} as draft</button>)}</div></details><ErrorNotice message={action.error} /></div><footer className="dialog-footer"><span className="subtle">Unpublished edits are saved as a local draft.</span><button className="button primary" disabled={!text.trim() || action.busy} onClick={save}>Publish new version</button></footer></Modal>
+  return <Modal open onClose={onClose} title={`Edit ${prompt.label} instructions`} description={`${scope} Recorded inputs and application permissions stay unchanged.`} wide><div className="dialog-body form-stack"><TaskSettings prompt={prompt} storyId={storyId} />{combined && combined.id !== prompt.id && <button className="button" onClick={() => setText(combined.template)}>Load current built-in default as a draft</button>}<button className="button" disabled={text !== prompt.template || action.busy} onClick={() => setScopedEdit(true)}>Review a scoped text change</button><TextField label="Role instructions" rows={15} value={text} onChange={(e) => setText(e.target.value)} /><details className="advanced-settings"><summary>Earlier versions</summary><div className="version-buttons">{history.data?.map((version) => <button className="button" key={version.id} onClick={() => setText(version.template)}>Use v{version.number} as draft</button>)}</div></details><ErrorNotice message={action.error} /></div><footer className="dialog-footer"><span className="subtle">Unpublished edits are saved as a local draft.</span><button className="button primary" disabled={!text.trim() || action.busy} onClick={save}>Publish new version</button></footer></Modal>
+}
+
+function currentBuiltin(key: string, versions?: Prompt[]) {
+  return versions?.find(version => version.id === `${key}-default-v070`) ?? versions?.find(version => version.id === `${key}-default-v062`)
+}
+
+function promptReturnFocus(previous: HTMLElement | null) {
+  if (previous?.isConnected) return previous
+  const label = previous?.getAttribute('aria-label')
+  return Array.from(document.querySelectorAll<HTMLElement>('button[aria-label]')).find(button => button.getAttribute('aria-label') === label) ?? null
 }

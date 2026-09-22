@@ -1,6 +1,20 @@
 # Changelog
 
-## v0.7.5 - 2026-09-19
+## v0.8.0 - 2026-09-21
+
+Personal writing tools and an editable Sidebar Companion. Application version: **0.8.0**.
+
+- **Skip setup** opens the writing area directly from any unfinished wizard step. Entered choices and selected Library versions are retained; empty titles become **Untitled Story**. Manual writing needs no model, and saved-request recovery prevents duplicate Stories after a lost response.
+- Versioned writing styles, author examples, explicit sample analysis, per-Story pins, and per-request overrides guide supported prose and revision tasks without changing factual memory or source authority.
+- Portable writing recipes include typed inputs, models, task switches, reader lenses, optional styles and chance settings. Complete previews and explicit per-step execution retain frozen inputs, reports, attempts, and editable final proposals. Importing or browsing starts no work.
+- Compare tellings, favorite and archive branches reversibly, and search across paths with archived-source filtering. Curation and edits preserve existing manuscript selections.
+- The Collaborator now has a genuine Pop Out, pinned selections/comparisons, focused text tasks, scoped application permission, and rename/search/archive controls. Concurrent views protect unsent wording and recover saved operations without automatic resending.
+- Shared text proposals support add/insert/replace/update, conflict review, immutable accepted-passage revisions with preserved suffixes, versioned Library/prompt edits, application receipts and Undo.
+- Archive format **51** preserves the new resources and workflows alongside existing manuscripts and memory. Historical requests retain their exact provider-input bytes through migration and restore. Private discussion inclusion remains explicit; restore never replays calls or edits.
+
+Before the Skip setup addition, the full pipeline passed **1,756 backend tests**, **110 UI-model tests**, Ruff, ESLint, TypeScript and the production build. The addition passed **113 UI-model tests**, **7 onboarding backend tests**, **24 browser checks**, ESLint, TypeScript and a fresh production build; the full backend suite was not rerun for this frontend change. Combined acceptance and rendered-browser/restart checks passed in the earlier implementation; [representative live-output evaluation](v080-output-evaluation.md) records 15 calls, explicit retries and author corrections. See [v0.8.0 release notes](releases/v0.8.0.md), [validation evidence](v080-validation.md) and [the Skip setup goal](v080-skip-setup-goal.md) for results and limits. The [tagged source release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.8.0) includes a source ZIP, file manifest and SHA-256 checksums.
+
+## v0.7.5 - Unreleased
 
 Optional story recall, reviewable corrections, and reading-time preparation. Application version: **0.7.5**. Includes the published v0.7 manuscript, model-control, and agent-template features.
 

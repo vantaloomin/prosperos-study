@@ -1,0 +1,18 @@
+.recipe-workspace { min-width: 0; }
+.recipe-stages { display: grid; gap: 1.2rem; padding-left: 1.5rem; margin: 0; }
+.recipe-stages > li { min-width: 0; padding-left: .35rem; }
+.recipe-request { margin-top: .8rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.recipe-request h4, .recipe-request h5 { margin: 0; }
+.recipe-literal { max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .83rem/1.65 'IBM Plex Mono', monospace; padding: .9rem; border: 1px solid var(--border); border-radius: 8px; }
+.recipe-awaiting { border-left: 2px solid var(--accent); padding-left: .8rem; }
+.recipe-inheritance { display: grid; gap: .75rem; font-size: .86rem; }
+.recipe-inheritance dt { font-weight: 600; }
+.recipe-inheritance dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.recipe-field-grid { min-width: 0; }
+.recipe-plan, .recipe-run { border-top: 1px solid var(--border); padding-top: 1.2rem; }
+.recipe-run-status { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem 1rem; }
+.recipe-history { display: grid; gap: .75rem; }
+.recipe-history button { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.recipe-step-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.recipe-selection { padding: .8rem; border-left: 2px solid var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 12rem; overflow: auto; }
+@media (max-width: 600px) { .recipe-request { padding: .75rem; } .recipe-stages { padding-left: 1.1rem; } .recipe-literal { max-height: 20rem; } }

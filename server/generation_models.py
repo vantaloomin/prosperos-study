@@ -2,6 +2,7 @@ from pydantic import Field
 
 from server.cleanup.models import CleanupChoices
 from server.models import Input
+from server.writing.models import WritingChoices
 
 
 class ContextPreviewRequest(Input):
@@ -13,6 +14,7 @@ class ContextPreviewRequest(Input):
     use_prepared_beat: bool = True
     assess_beat: bool = True
     assessment_profile_ids: list[str] = Field(default_factory=list, max_length=4)
+    writing: WritingChoices | None = None
 
 
 class GenerateRequest(ContextPreviewRequest):
@@ -25,6 +27,7 @@ class AcceptCandidate(Input):
     operation_id: str = Field(min_length=8, max_length=100)
     as_new_branch: bool = False
     branch_name: str = Field(default="Another telling", min_length=1, max_length=120)
+    expected_wording_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', exclude_if=lambda value: value is None)
 
 
 class AlternateRequest(Input):

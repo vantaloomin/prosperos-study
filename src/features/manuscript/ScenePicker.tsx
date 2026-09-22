@@ -18,7 +18,7 @@ export function ScenePicker({ story, branchId, scene, onChoose, onClose }: { sto
   const [branch, setBranch] = useState(scene?.branch_id ?? branchId)
   const query = useQuery({ queryKey: ['manuscript-sources', story.id, branch], queryFn: () => api<Source>(`/stories/${story.id}/manuscript/sources?branch_id=${branch}`) })
   return <Modal open onClose={onClose} title={scene ? 'Choose this scene’s telling' : 'Add a scene'} description="Select accepted passages from a telling. This selection stays fixed until you change it.">
-    <div className="dialog-body form-stack"><label className="field"><span>Telling</span><select aria-label="Telling" value={branch} onChange={event => setBranch(event.target.value)}>{story.branches.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+    <div className="dialog-body form-stack"><label className="field"><span>Telling</span><select aria-label="Telling" value={branch} onChange={event => setBranch(event.target.value)}>{story.branches.map(item => <option value={item.id} key={item.id}>{item.name}{item.curation?.archived ? ' · archived' : ''}</option>)}</select></label>
       <ErrorNotice message={query.error?.message} />{query.isPending && <Loading />}
       {query.data && <PassageChoice key={branch + ':' + query.data.head_id} source={query.data} scene={scene} onChoose={onChoose} />}
     </div>

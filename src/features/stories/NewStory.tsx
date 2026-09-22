@@ -26,9 +26,9 @@ export function NewStory({ onClose, onCreated }: Props) {
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles })
   const action = useAction()
   const finish = (selection: Selection) => { reset(); onCreated(selection); onClose() }
-  const submit = () => action.run(async () => {
-    const payload = draft.pending ?? storyStart(draft, profiles.data ?? noProfiles, library.data ?? [], operationId())
-    patch({ pending: payload, step: 5 })
+  const submit = (skip = false) => action.run(async () => {
+    const payload = draft.pending ?? storyStart(draft, profiles.data ?? noProfiles, library.data ?? [], operationId(), skip)
+    patch({ pending: payload, title: payload.title, step: 5 })
     try {
       const result = await api<{ story_id: string; branch_id: string }>('/stories', payload)
       finish({ storyId: result.story_id, branchId: result.branch_id })
@@ -52,7 +52,7 @@ export function NewStory({ onClose, onCreated }: Props) {
       {!loaded && <Loading label="Loading saved choices…" />}
     </div>
     {action.error && <div className="setup-save-error"><ErrorNotice message={action.error} /></div>}
-    <SetupFooter draft={draft} busy={action.busy} loaded={loaded} onStep={changeStep} onSubmit={submit} />
+    <SetupFooter draft={draft} busy={action.busy} loaded={loaded} onStep={changeStep} onSubmit={() => void submit()} onSkip={() => void submit(true)} />
   </Modal>
 }
 
@@ -89,10 +89,17 @@ function SetupExperience({ draft, patch, onImported }: Pick<StepProps, 'draft' |
   return <div className="form-stack"><ExperienceChoice value={draft.experience} onChange={(experience) => patch(experienceChange(experience))} /><p className="subtle">This guides your writing partner; all writing and review tools remain available.</p><button className="text-button" onClick={() => setImporting(true)}>Start from a private Story archive</button>{importing && <Modal open title="Bring a Story back" description="Review a saved archive before restoring it as a new Story." onClose={() => setImporting(false)}><div className="dialog-body"><Suspense fallback={<Loading label="Opening import…" />}><ArchiveImport onOpen={onImported} /></Suspense></div></Modal>}</div>
 }
 
-function SetupFooter({ draft, busy, loaded, onStep, onSubmit }: { draft: SetupDraft; busy: boolean; loaded: boolean; onStep: (step: number) => void; onSubmit: () => void }) {
+function SetupFooter({ draft, busy, loaded, onStep, onSubmit, onSkip }: { draft: SetupDraft; busy: boolean; loaded: boolean; onStep: (step: number) => void; onSubmit: () => void; onSkip: () => void }) {
   const final = draft.step === setupSteps.length - 1
   const blocked = nextBlocked(draft, loaded)
-  return <footer className="dialog-footer setup-footer"><button className="text-button" disabled={draft.step === 0 || busy || !!draft.pending} onClick={() => onStep(draft.step - 1)}><ArrowLeft size={16} />Back</button><button className="button primary" disabled={blocked} aria-disabled={busy || blocked} onClick={final ? onSubmit : () => onStep(draft.step + 1)}>{nextLabel(draft, busy)}{final ? <Feather size={16} /> : <ArrowRight size={16} />}</button></footer>
+  const canSkip = !final && !draft.pending
+  return <footer className="dialog-footer setup-footer">
+    {canSkip && <p className="subtle setup-skip-hint" id="skip-setup-description">Start now. You can change these settings later.</p>}
+    <button className="text-button" disabled={draft.step === 0 || busy || !!draft.pending} onClick={() => onStep(draft.step - 1)}><ArrowLeft size={16} />Back</button>
+    <div className="setup-footer-actions">{canSkip && <button className="button" disabled={busy || !loaded} aria-describedby="skip-setup-description" onClick={onSkip}>Skip setup</button>}
+      <button className="button primary" disabled={busy || blocked} onClick={final ? onSubmit : () => onStep(draft.step + 1)}>{nextLabel(draft, busy)}{final ? <Feather size={16} /> : <ArrowRight size={16} />}</button>
+    </div>
+  </footer>
 }
 
 function nextBlocked(draft: SetupDraft, loaded: boolean) {

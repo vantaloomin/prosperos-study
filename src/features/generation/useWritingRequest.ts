@@ -6,8 +6,9 @@ import type { AssessmentChoice, WritingResult } from './assessmentTypes'
 import { recoverRequest, type SavedRequest } from './requestRecovery'
 import { useRecovery } from './useRecovery'
 import { cleanupChoices } from '../phrases/cleanupRequest'
+import type { WritingChoices } from '../writing/types'
 
-interface Continuation { receipt: MessageReceipt; profile: string; usePrepared: boolean; choice: AssessmentChoice; knowledge: string; cleanup_choices?: ReturnType<typeof cleanupChoices> }
+interface Continuation { receipt: MessageReceipt; profile: string; usePrepared: boolean; choice: AssessmentChoice; knowledge: string; writing?: WritingChoices; cleanup_choices?: ReturnType<typeof cleanupChoices> }
 interface PendingWriting { request?: SavedRequest; continuation?: Continuation; anchor: string | null; rejected?: boolean }
 export interface WritingSelection { id: string; kind: 'generation' | 'assessment'; anchor: string | null }
 
@@ -59,7 +60,7 @@ async function prepareContinuation(saved: PendingWriting): Promise<PendingWritin
   const { receipt, profile, usePrepared, choice } = continuation
   const branch = await api<Branch>(`/branches/${receipt.branch_id}`)
   if (branch.head_id !== receipt.node_id) throw new ApiError('Your passage is saved, but this path moved on. Review the current story before starting a new request.', 409)
-  const body = { ...continuationRequest(branch, receipt, profile, usePrepared, choice), cleanup_choices: continuation.cleanup_choices ?? null }
+  const body = { ...continuationRequest(branch, receipt, profile, usePrepared, choice), ...(continuation.writing ? { writing: continuation.writing } : {}), cleanup_choices: continuation.cleanup_choices ?? null }
   return { ...saved, request: { kind: 'generate', path: `/branches/${receipt.branch_id}/generations`, body } }
 }
 

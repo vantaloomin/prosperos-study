@@ -1,0 +1,16 @@
+.text-target-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-wrap: anywhere; }
+.text-target-card h3 { margin-block: 8px; font-size: .9375rem; }
+.text-edit-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.text-edit-comparison section { border: 1px solid var(--border); border-radius: 8px; padding: 14px; min-width: 0; }
+.text-edit-comparison h4 { color: var(--muted); font-size: .75rem; margin-bottom: 12px; }
+.text-edit-comparison pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--reading-font, 'Source Serif 4'),serif; font-size: .875rem; line-height: 1.8; max-height: 360px; overflow-y: auto; }
+.text-edit-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.text-edit-actions .button { white-space: normal; }
+.edit-conflict, .edit-applied { border: 1px solid var(--accent-border); background: var(--accent-tint); padding: 16px; border-radius: 7px; font-size: .8125rem; line-height: 1.8; }
+.edit-boundary { padding: 12px; border-left: 2px solid var(--accent); }
+.document-tools { display: grid; gap: 8px; padding-block: 10px; min-width: 0; }
+.document-tools > .subtle { font-size: .75rem; }
+.document-tools textarea { width: 100%; }
+.draft-copy { border-top: 1px solid var(--border); padding-block: 12px; }
+.draft-copy pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+@media (max-width: 600px) { .text-edit-comparison { grid-template-columns: minmax(0,1fr); } }

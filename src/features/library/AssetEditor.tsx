@@ -21,6 +21,7 @@ import { ArtworkField } from './ArtworkField'
 import type { ImportPreview } from './importTypes'
 
 const LibraryImport = lazy(() => import('./LibraryImport').then((module) => ({ default: module.LibraryImport })))
+const VersionedTextEdit = lazy(() => import('../textEdits/VersionedTextEdit').then(module => ({ default: module.VersionedTextEdit })))
 
 export function AssetEditor({ asset, initialKind, onClose, onSaved }: { asset?: AssetVersion; initialKind?: AssetKind; onClose: () => void; onSaved?: (version: AssetVersion) => void }) {
   const draftKey = assetDraftKey(asset, initialKind)
@@ -33,6 +34,7 @@ export function AssetEditor({ asset, initialKind, onClose, onSaved }: { asset?: 
   const [push, setPush] = useState(false)
   const [card, setCard] = useState<ImportPreview | null>(null)
   const [artworkBusy, setArtworkBusy] = useState(false)
+  const [scopedEdit, setScopedEdit] = useState<AssetVersion | null>(null)
   const editorRoot = useRef<HTMLDivElement>(null)
   const action = useAction()
   const patch = (change: Partial<AssetDraft>) => setDraft({ ...draft, ...change })
@@ -49,6 +51,7 @@ export function AssetEditor({ asset, initialKind, onClose, onSaved }: { asset?: 
     else onClose()
   })
   if (published) return <AdoptionDialog version={published} onClose={onClose} focusOnClose={() => returnFocus} />
+  if (scopedEdit) return <Suspense fallback={<Loading />}><VersionedTextEdit source={{ kind: 'library-field', asset_id: scopedEdit.asset_id }} expectedEdition={scopedEdit.id} onClose={onClose} focusOnClose={() => returnFocus} /></Suspense>
   if (card) return <Suspense fallback={<Loading label="Opening card review…" />}><LibraryImport initialImportId={card.id} target={asset} onClose={() => setCard(null)} onPublishedClose={onClose} focusOnClose={() => editorRoot.current?.querySelector('input') ?? null} focusOnPublishedClose={() => returnFocus} /></Suspense>
   return <Modal open onClose={onClose} title={asset ? `Edit ${asset.name}` : 'A new addition'} description="Published versions stay in the library. Existing stories keep the versions they already use." wide>
     <div ref={editorRoot} className="dialog-body editor-columns"><div className="form-stack">
@@ -61,13 +64,18 @@ export function AssetEditor({ asset, initialKind, onClose, onSaved }: { asset?: 
       <Field label="Version note" value={draft.note} onChange={(e) => patch({ note: e.target.value })} placeholder="What changed? (optional)" />
       <ImportedSources asset={asset} />
       <ErrorNotice message={action.error} />
-    </div><aside className="editor-aside"><span className="eyebrow">A SHARED LIBRARY</span><h3>Let your worlds grow.</h3><p>Use this {assetLabel(draft.kind).toLowerCase()} in several stories. A new version gives future stories the latest details without changing the past.</p>{asset && <><AssetUsage asset={asset} /><AssetHistory asset={asset} onUse={(version) => patch({ ...versionDraft(version), note: `Restored from v${version.number}` })} /></>}</aside></div>
+    </div><aside className="editor-aside"><span className="eyebrow">A SHARED LIBRARY</span><h3>Let your worlds grow.</h3><p>Use this {assetLabel(draft.kind).toLowerCase()} in several stories. A new version gives future stories the latest details without changing the past.</p>{asset && <><ScopedTextButton draft={draft} asset={asset} busy={action.busy} artworkBusy={artworkBusy} onOpen={() => setScopedEdit(asset)} /><AssetUsage asset={asset} /><AssetHistory asset={asset} onUse={(version) => patch({ ...versionDraft(version), note: `Restored from v${version.number}` })} /></>}</aside></div>
     <AssetFooter push={push} onPush={setPush} name={draft.name} busy={action.busy} artworkBusy={artworkBusy} onSave={save} />
   </Modal>
 }
 
 function assetDraftKey(asset?: AssetVersion, initialKind?: AssetKind): string {
   return `roleplay:asset-draft:${asset?.id ?? (initialKind ? `new-${initialKind}` : 'new')}`
+}
+
+function ScopedTextButton({ draft, asset, busy, artworkBusy, onOpen }: { draft: AssetDraft; asset: AssetVersion; busy: boolean; artworkBusy: boolean; onOpen: () => void }) {
+  const dirty = draft.name !== asset.name || draft.note !== '' || JSON.stringify(draft.content) !== JSON.stringify(asset.content)
+  return <div className="form-stack"><button className="button" disabled={dirty || busy || artworkBusy} onClick={onOpen}>Review a scoped text change</button>{dirty && <p className="subtle">Publish the current draft before starting a separate text-change proposal.</p>}</div>
 }
 
 function EditorArtwork({ draft, onChange, onCard, onBusy }: { draft: AssetDraft; onChange: (change: Partial<AssetDraft['content']>) => void; onCard: (preview: ImportPreview) => void; onBusy: (busy: boolean) => void }) {

@@ -2,13 +2,14 @@ from server.database import decode, many, one
 from server.errors import require
 from server.lore.scene import planned_sources
 from server.memory.source_evidence import carry_evidence, cited_ids
+from server.scenes.author_text import selected_draft
 from server.scenes.chance import chance_sources
-from server.scenes.drafts import assemble_draft, coverage_passes
+from server.scenes.drafts import coverage_passes
 from server.scenes.state import reviewed_state, selected_result
 
 
 def revision_sources(connection, run, coverage=None):
-    draft = assemble_draft(selected_result(connection, run, 'scene-draft'), selected_result(connection, run, 'scene-dialogue'))
+    draft = selected_draft(connection, run)
     covered = coverage_passes(coverage or selected_result(connection, run, 'scene-coverage')) or 'scene-coverage' in run['snapshot'].get('disabled_steps', [])
     require(draft and draft['complete'] and covered,
             'Choose a complete draft and passing coverage before triage.', 409)

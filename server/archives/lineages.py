@@ -1,5 +1,5 @@
 """Join released v0.7 and development memory archives without conflating their versions."""
-from server.archives.format import TABLES, V31_TABLES, V32_TABLES, V33_TABLES, V36_TABLES
+from server.archives.format import V31_TABLES, V32_TABLES, V33_TABLES, V36_TABLES, V37_TABLES
 from server.errors import require
 from server.prompts import DEFAULT_PROMPTS, LEGACY_PROMPT_LABELS
 from server.role_prompts import ROLE_PROMPTS
@@ -29,7 +29,7 @@ def upgrade_lineages(document):
         return document
     actual = (set(document['data']), set(document['prompt_heads']))
     require(actual in lineage_shapes(version), f'Version {version} needs its original record groups and supported prompts.')
-    for table in TABLES:
+    for table in V37_TABLES:
         document['data'].setdefault(table, [])
     templates = {**DEFAULT_PROMPTS, **ROLE_PROMPTS, **SECTION_PROMPTS}
     for key in sorted(set(templates) - set(document['prompt_heads'])):

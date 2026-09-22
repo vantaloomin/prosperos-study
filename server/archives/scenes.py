@@ -1,5 +1,7 @@
 from server.archives.chance import validate_chance
 from server.archives.scene_actors import validate_actors
+from server.archives.scene_text import validate_scene_author_history
+from server.archives.scene_writing import validate_scene_writing
 from server.archives.source_memory import validate_scene_projection
 from server.archives.summary_context import validate_scene_bindings, validate_summary_context
 from server.database import decode, many, one
@@ -43,6 +45,7 @@ def validate_state(connection, run):
             require(state["option_id"] in {option["id"] for option in decode(job["result"])["options"]}, "A chosen option is missing.")
     require(not state["beat_edit"] or "scene-beats" in state["selections"], "An edited plan has no selected source.")
     validate_gate(run, state)
+    validate_scene_author_history(connection, run)
 
 
 def validate_gate(run, state):
@@ -60,7 +63,7 @@ def validate_decisions(connection, run):
     decisions = many(connection, "SELECT * FROM scene_decisions WHERE run_id=? ORDER BY revision", (run["id"],))
     require([row["revision"] for row in decisions] == list(range(1, run["revision"] + 1)), "A plan's decision journal is incomplete.")
     for row in decisions:
-        require(row["kind"] in {"request", "choose", "edit", "approve", 'resolve', 'approve-revision', 'repair-patch', 'accept'}, "A director decision is unsupported.")
+        require(row["kind"] in {"request", "choose", "edit", "approve", 'resolve', 'approve-revision', 'repair-patch', 'accept', 'text-edit'}, "A director decision is unsupported.")
         payload = decode(row["payload"])
         ids = payload.get("job_ids", []) + ([payload["job_id"]] if payload.get("job_id") else [])
         for job_id in ids:
@@ -88,6 +91,7 @@ def validate_scenes(connection, document):
     for row in document["data"]["scene_jobs"]:
         snapshot = decode(row["snapshot"])
         require(row["step"] in SCENE_KEYS and snapshot["step"] == row["step"], "A scene job has an unsupported stage.")
+        validate_scene_writing(snapshot)
         selected_jobs(connection, row["run_id"], snapshot["upstream"]["selections"])
         origin = decode(one(connection, 'SELECT snapshot FROM scene_runs WHERE id=?', (row['run_id'],))['snapshot'])
         require(decode(snapshot['content']).get('author_memory') == origin.get('author_memory'),

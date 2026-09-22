@@ -51,11 +51,12 @@ REFERENCE_GUIDANCE = GUIDANCE + (
 )
 
 
-def packet(subject, direction, entries, writing=None, character_id=None, references=False):
+def packet(subject, direction, entries, writing=None, character_id=None, references=False, guidance=None):
     view = {'subject': subject, 'rule': REFERENCE_GUIDANCE if references else GUIDANCE}
     if character_id:
         view['character_id'] = character_id
-    return {'story': {'settings': safe_preferences(writing or {})}, 'knowledge_view': view, 'knowledge': entries, 'direction': direction}
+    return {'story': {'settings': safe_preferences(writing or {})}, 'knowledge_view': view, 'knowledge': entries,
+            'direction': direction, **({'writing_guidance': guidance} if guidance else {})}
 
 
 def ranked_entries(entries, direction):
@@ -82,7 +83,7 @@ def select_entries(entries, subject, direction, prompt, target, writing, charact
     return [entry for entry in entries if entry['id'] in chosen]
 
 
-def prepare_knowledge(controls, subject, direction, prompt, profiles, writing=None, character_id=None):
+def prepare_knowledge(controls, subject, direction, prompt, profiles, writing=None, character_id=None, guidance=None):
     entries = permitted_entries(controls, subject, character_id)
     require(entries, 'This character has no enabled, permitted evidence. Add known, believed or uncertain '
             'excerpts in Story memory > Author decisions. A does-not-know decision overrides the same excerpt.', 409)
@@ -91,7 +92,12 @@ def prepare_knowledge(controls, subject, direction, prompt, profiles, writing=No
     allowance = min(input_capacity(profile['config']) for profile in profiles)
     margin = min(512, max(128, allowance // 50))
     selected = select_entries(entries, subject, direction, prompt, allowance - margin, writing, character_id, references)
-    content = encode(packet(subject, direction, selected, writing, character_id, references))
+    context = packet(subject, direction, selected, writing, character_id, references, guidance)
+    # Styling must not displace any evidence the ordinary character view kept.
+    require(token_estimate(prompt, context) <= allowance - margin,
+            'Writing guidance does not fit alongside the selected character evidence. '
+            'Choose less guidance or a larger model allowance. No evidence was dropped to fit the style.', 409)
+    content = encode(context)
     sources = {source['id']: source for entry in selected for source in entry['sources']}
     links = [source_link(source) for source in sources.values()]
     report = {'algorithm': 'prospero-character-evidence-v1', 'subject': subject,
@@ -101,6 +107,8 @@ def prepare_knowledge(controls, subject, direction, prompt, profiles, writing=No
               'content_sha256': hashlib.sha256(content.encode('utf-8')).hexdigest()}
     if references:
         report['algorithm'] = 'prospero-character-evidence-v2'
+    if guidance:
+        report.update(algorithm='prospero-character-evidence-v3', reference_grants=references)
     if character_id:
         report['character_id'] = character_id
     return content, report, links

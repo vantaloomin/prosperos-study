@@ -27,3 +27,9 @@ test('only a completed selected current cleanup supplies displayed draft wording
 test('comparison offsets preserve Unicode characters before the flagged wording', () => {
   assert.equal(originalWords('😀 Café: she let out a breath.', 8, 28), 'she let out a breath')
 })
+
+test('an explicit author revision remains selected even when a later cleanup finishes', () => {
+  const cleanup = { selected: 'cleaned', status: 'done', stale: false, cleaned: 'Later cleanup' }
+  assert.equal(draftWording('Original provider text', cleanup, { text: 'Author wording' }), 'Author wording')
+  assert.equal(draftWording('Original provider text', cleanup, { text: '' }), '')
+})

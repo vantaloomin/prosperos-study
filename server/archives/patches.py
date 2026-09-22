@@ -10,6 +10,7 @@ from server.scenes.patch_catalog import PATCH_KEYS
 from server.scenes.patch_context import patch_inputs, patch_keys
 from server.scenes.patch_validation import patch_check_passes
 from server.scenes.state import require_step, run_record, upstream
+from server.writing.scene_requests import writing_task
 
 
 def validate_patch_job(connection, job):
@@ -21,8 +22,10 @@ def validate_patch_job(connection, job):
     validate_repair(connection, frozen)
     require_step(frozen, job['step'])
     content = decode(snapshot['content'])
-    validate_scene_projection(connection, frozen['snapshot'],
-                              with_decisions(patch_inputs(connection, frozen, job['step'], content.get('context_version', 0)), frozen['snapshot']), snapshot)
+    expected = with_decisions(patch_inputs(connection, frozen, job['step'], content.get('context_version', 0)), frozen['snapshot'])
+    if snapshot.get('writing_guidance'):
+        expected.update(writing_guidance=snapshot['writing_guidance'], writing_task=writing_task(job['step']))
+    validate_scene_projection(connection, frozen['snapshot'], expected, snapshot)
     if job['status'] == 'done':
         require(parse_scene(job['output'], snapshot) == decode(job['result']), 'A patch result disagrees with its preserved output.')
 

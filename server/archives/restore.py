@@ -12,6 +12,8 @@ def insert_row(connection, table, row):
 
 def import_versions(connection, table, rows, document, mapping):
     owner = "key" if table == "prompt_versions" else "table_id"
+    if table == 'prompt_versions':
+        rows = sorted(rows, key=lambda row: (row['key'], row['number'], row['id']))
     for row in rows:
         local = remap_record(table, row, document, mapping)
         maximum = one(connection, f"SELECT COALESCE(MAX(number),0) AS n FROM {table} WHERE {owner}=?", (row[owner],))["n"]
@@ -50,4 +52,20 @@ def import_group(connection, table, document, mapping):
         import_versions(connection, table, rows, document, mapping)
         return
     for row in rows:
-        insert_row(connection, table, remap_record(table, row, document, mapping))
+        if table == 'recipe_runs':
+            from server.archives.recipes import remap_run
+            insert_row(connection, table, remap_run(connection, row, mapping))
+            continue
+        if table == 'companion_edit_origins':
+            from server.archives.side_edits import remap_origin
+            insert_row(connection, table, remap_origin(connection, row, mapping))
+            continue
+        if table == 'side_contexts':
+            from server.archives.side_targets import remap_context
+            insert_row(connection, table, remap_context(connection, row, mapping))
+            continue
+        local = remap_record(table, row, document, mapping)
+        if table in {'text_edit_proposals', 'text_edit_receipts'}:
+            from server.archives.text_edit_versions import bind_restored_editions
+            local = bind_restored_editions(connection, table, local)
+        insert_row(connection, table, local)

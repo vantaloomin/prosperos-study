@@ -7,6 +7,7 @@ from server.memory.budget import token_estimate
 from server.memory.side_archive import classify_archive, discussion_documents, permitted_sources
 from server.memory.side_search import SourceArchive
 from server.providers.capabilities import input_capacity
+from server.side_work import effective_prompt, work_context
 
 PROTOCOL = {
     'version': 1,
@@ -26,12 +27,13 @@ def packet_base(snapshot):
     return {'question': snapshot['question'], 'disclosure': snapshot['disclosure'],
             'conversation': snapshot['retrieval']['conversation'],
             'conversation_coverage': snapshot['retrieval']['conversation_coverage'],
-            'retrieval_protocol': snapshot['retrieval']['protocol'], 'archive_source_count': len(permitted_sources(snapshot))}
+            'retrieval_protocol': snapshot['retrieval']['protocol'], 'archive_source_count': len(permitted_sources(snapshot)),
+            **({'selected_context': snapshot['model_context']} if 'model_context' in snapshot else {}), **work_context(snapshot)}
 
 
 def fits(snapshot, content):
     limits = snapshot['retrieval']
-    return token_estimate(snapshot['prompt']['template'], content) <= limits['input_allowance'] - limits['overhead_margin']
+    return token_estimate(effective_prompt(snapshot), content) <= limits['input_allowance'] - limits['overhead_margin']
 
 
 def packet(snapshot, discovery, sources=()):
@@ -50,7 +52,8 @@ def packet(snapshot, discovery, sources=()):
 def prepare_archive(snapshot, history, profiles):
     documents, conversation = discussion_documents(history)
     allowance = min(input_capacity(profile['config']) for profile in profiles)
-    archive = {**snapshot, 'sources': [*classify_archive(snapshot['sources']), *documents],
+    sources = {item['id']: item for item in [*classify_archive(snapshot['sources']), *documents]}
+    archive = {**snapshot, 'sources': list(sources.values()),
                'retrieval': {'version': 1, 'protocol': PROTOCOL, 'input_allowance': allowance,
                              'overhead_margin': min(512, max(128, allowance // 50)),
                              'conversation': [], 'conversation_coverage': {}}}

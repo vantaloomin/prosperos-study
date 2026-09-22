@@ -21,7 +21,8 @@ def prepare(database, candidate_id, generation):
         passages, _, _, limited = select_passages(connection, generation['branch']['head_id'], 'recent')
     original = candidate['output']
     passages, trimmed = fit_history(passages, original)
-    snapshot = {'protocol': 1, 'branch': generation['branch'], 'story_revision': generation['story_revision'],
+    snapshot = {'protocol': 2 if generation.get('writing_guidance') else 1,
+                'branch': generation['branch'], 'story_revision': generation['story_revision'],
                 'memory_controls_version_id': generation.get('memory_controls_version_id'),
                 'continuity_version_id': generation.get('continuity_version_id'),
                 'attempt': candidate['attempt'], 'original': original, 'original_sha256': digest(original),
@@ -60,6 +61,7 @@ def writer_guidance(generation):
     return {'role_instructions': system_prompt(generation), 'direction': content.get('direction', ''),
             'story_preferences': content.get('story', {}),
             'author_notes': [item['text'] for item in content.get('history', []) if item['role'] == 'ooc'],
+            **({'writing_guidance': content['writing_guidance']} if content.get('writing_guidance') else {}),
             'author_decisions': content.get('author_memory', {})}
 
 

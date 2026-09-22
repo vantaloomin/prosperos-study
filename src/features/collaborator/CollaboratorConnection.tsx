@@ -10,8 +10,8 @@ import type { Routing } from '../workflow/types'
 const Models = lazy(() => import('../models/Models').then(module => ({ default: module.Models })))
 
 export function CollaboratorConnection({ storyId, overrides }: { storyId: string; overrides: string[] }) {
-  const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles })
-  const routing = useQuery({ queryKey: ['routing', storyId], queryFn: () => api<Routing>(`/stories/${storyId}/workflow`) })
+  const profiles = useQuery({ queryKey: ['profiles'], queryFn: () => api<ProfileList>('/profiles'), select: readyProfiles, refetchInterval: 2500 })
+  const routing = useQuery({ queryKey: ['routing', storyId], queryFn: () => api<Routing>(`/stories/${storyId}/workflow`), refetchInterval: 2500 })
   const [changing, setChanging] = useState(false)
   const [managing, setManaging] = useState(false)
   const action = useAction()

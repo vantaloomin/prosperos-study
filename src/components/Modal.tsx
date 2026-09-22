@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { dismissDialogsEvent } from './modalEvents'
 
 interface Props {
   open: boolean
@@ -14,6 +15,11 @@ interface Props {
 
 export function Modal({ open, onClose, title, description, children, wide = false, focusOnClose }: Props) {
   const [returnFocus] = useState(() => document.activeElement as HTMLElement | null)
+  useEffect(() => {
+    if (!open) return
+    window.addEventListener(dismissDialogsEvent, onClose)
+    return () => window.removeEventListener(dismissDialogsEvent, onClose)
+  }, [open, onClose])
   return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
     <Dialog.Portal>
       <Dialog.Overlay className="dialog-overlay" />

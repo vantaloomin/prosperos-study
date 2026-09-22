@@ -1,5 +1,5 @@
 from server.archives.chance import validate_tables
-from server.assessment.context import parse_assessment
+from server.assessment.context import assessment_writer_context, parse_assessment
 from server.assessment.decision import apply_opportunity
 from server.database import decode, one
 from server.errors import require
@@ -16,8 +16,8 @@ def validate_assessments(connection, data):
         snapshot = decode(job['snapshot'])
         frozen = decode(runs[job['run_id']]['snapshot'])
         require(job['step'] == snapshot['step'] == 'beat-assessment', 'Invalid assessment role.')
-        expected_context = decode(frozen['writer_snapshot']['content'])
-        expected_context.pop('private_background', None)
+        require(frozen.get('assessment_context_version') in {None, 2}, 'Invalid assessment context version.')
+        expected_context = assessment_writer_context(frozen['writer_snapshot'], frozen.get('assessment_context_version', 1))
         require(decode(snapshot['content'])['context'] == expected_context,
                 'An assessment must use its saved writer context.')
         validate_report(job, snapshot)

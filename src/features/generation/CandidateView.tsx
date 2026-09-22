@@ -1,4 +1,5 @@
 import { Check, GitBranch, RotateCcw, Square } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, operationId } from '../../api'
 import { ErrorNotice } from '../../components/Feedback'
 import { UsageSummary } from '../../components/UsageSummary'
@@ -14,12 +15,14 @@ import { draftWording } from '../phrases/cleanupTypes'
 import { TimingDetails } from './TimingDetails'
 import { RecallReceipt } from './RecallReceipt'
 import { ContinuityRevision } from './ContinuityRevision'
+import { CandidateDraftEdits } from '../textEdits/CandidateDraftEdits'
 
 export function CandidateView({ candidate, generation, onBranch, onClose, onAlternate }: { candidate: Candidate; generation: Generation; onBranch: (id: string) => void; onClose: () => void; onAlternate: (id: string) => void }) {
   const action = useAction()
+  const cache = useQueryClient()
   const recovery = useRecovery<SavedRequest>(`roleplay:alternate:${candidate.id}`)
   const accept = (asNewBranch: boolean) => action.run(async () => {
-    const result = await api<{ branch_id: string }>(`/candidates/${candidate.id}/accept`, { operation_id: operationId(), as_new_branch: asNewBranch, branch_name: `${candidate.profile.name} · another telling` })
+    const result = await api<{ branch_id: string }>(`/candidates/${candidate.id}/accept`, { operation_id: operationId(), as_new_branch: asNewBranch, branch_name: `${candidate.profile.name} · another telling`, expected_wording_version: candidate.wording_version })
     onBranch(result.branch_id)
     onClose()
   })
@@ -33,11 +36,13 @@ export function CandidateView({ candidate, generation, onBranch, onClose, onAlte
     recovery.store(null)
   })
   return <section className="candidate-view"><RequestStatus candidate={candidate} /><CandidateText candidate={candidate} />
+    <CandidateDraftEdits candidate={candidate} generation={generation} onBranch={onBranch} />
     <CleanupReview candidate={candidate} />
     <ContinuityRevision key={candidate.id} candidate={candidate} onAlternate={onAlternate} />
     <TimingDetails usage={candidate.usage} />
     <RecallReceipt receipt={candidate.usage.writer_recall} />
     <ErrorNotice message={recovery.problem || candidate.error || action.error} />
+    {action.error && <button className="button" onClick={() => { action.clearError(); void cache.invalidateQueries({ queryKey: ['generation', generation.id] }) }}>Refresh draft wording</button>}
     <UsageSummary usage={candidate.usage} />
     <CandidateActions candidate={candidate} stale={generation.stale} busy={action.busy} onAccept={accept} onControl={control} />
     {candidate.status === 'done' && <div className="alternate-action"><button className="text-button" onClick={alternate} disabled={action.busy}><RotateCcw size={14} />Try another</button><p className="subtle">{candidate.usage.continuity_revision ? 'Another continuity proposal with the same saved concern and evidence. Your original remains available.' : "A new draft with this profile's saved settings, prompt, context and rolls. Enabled cleanup may add one polishing call. Existing text and continuations remain available."}</p></div>}
@@ -47,7 +52,7 @@ export function CandidateView({ candidate, generation, onBranch, onClose, onAlte
 
 function CandidateText({ candidate }: { candidate: Candidate }) {
   const empty = isWorking(candidate) ? "Waiting for the model's response…" : 'No draft text was returned. Your story is unchanged.'
-  return <div className="prose candidate-prose">{draftWording(candidate.output, candidate.cleanup) || <span className="subtle">{empty}</span>}</div>
+  return <div className="prose candidate-prose">{draftWording(candidate.output, candidate.cleanup, candidate.text_edit) || <span className="subtle">{empty}</span>}</div>
 }
 
 function CandidateActions({ candidate, stale, busy, onAccept, onControl }: { candidate: Candidate; stale: boolean; busy: boolean; onAccept: (branch: boolean) => void; onControl: (kind: 'cancel' | 'retry') => void }) {

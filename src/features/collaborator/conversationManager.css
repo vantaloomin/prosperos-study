@@ -1,0 +1,10 @@
+.conversation-search { display: flex; align-items: flex-end; gap: 12px; }
+.conversation-search .field { flex: 1; min-width: 0; }
+.conversation-results { display: grid; gap: 20px; }
+.conversation-card { border: 1px solid var(--border); border-radius: 9px; padding: 18px; gap: 14px; }
+.conversation-actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+.conversation-match { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.8; }
+.conversation-match mark { color: var(--text); background: var(--accent-tint); }
+.side-manage-conversations { margin-inline: 20px; }
+.side-turn:focus { outline: 1px solid var(--accent); outline-offset: 5px; }
+@media (max-width: 600px) { .conversation-search { align-items: stretch; flex-direction: column; } .conversation-actions .button { white-space: normal; } }

@@ -1,0 +1,13 @@
+.app-shell.companion-app { display: block; width: 100%; height: 100dvh; min-width: 0; }
+.companion-popout { height: 100dvh; display: flex; flex-direction: column; background: var(--surface); min-width: 0; }
+.companion-popout > header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.companion-popout h1 { font-size: 1.35rem; overflow-wrap: anywhere; margin-top: 6px; }
+.companion-popout header .button { flex-shrink: 0; }
+.companion-popout .side-manage-conversations { align-self: flex-start; margin: 8px 15px; }
+.companion-popout-control { padding: 0 15px 8px; }
+.companion-popout-control > button { display: inline-flex; gap: 7px; align-items: center; }
+.popout-unavailable { padding: 24px; }
+.side-composer { max-height: 60dvh; overflow-y: auto; flex-shrink: 0; }
+.side-composer .document-tools { font-size: .6875rem; margin-top: 8px; }
+.side-composer .draft-copy pre, .side-composer .request-recovery pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .companion-popout > header { align-items: flex-start; flex-direction: column; gap: 12px; padding: 14px; } }

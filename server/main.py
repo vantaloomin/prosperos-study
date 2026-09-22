@@ -16,6 +16,7 @@ from server.authoring.runner import AuthoringRunner
 from server.background.interpretation_routes import router as interpretation_router
 from server.background.routes import router as background_router
 from server.background.runner import BackgroundRunner
+from server.branch_tools.routes import router as branch_tools_router
 from server.cleanup.routes import router as cleanup_router
 from server.database import Database
 from server.errors import DomainError
@@ -49,9 +50,15 @@ from server.scenes.routes import router as scene_router
 from server.scenes.runner import SceneRunner
 from server.side_routes import router as side_router
 from server.side_runner import SideRunner
+from server.text_edits.routes import router as text_edit_router
 from server.transcripts import router as transcript_router
 from server.workflow.routes import router as workflow_router
 from server.workflow.runner import ReviewRunner
+from server.writing.analysis_routes import router as style_analysis_router
+from server.writing.analysis_runner import StyleAnalysisRunner
+from server.writing.recipe_routes import router as recipe_router
+from server.writing.recipe_runner import RecipeRunner
+from server.writing.routes import router as writing_router
 
 
 async def guard_writes(request: Request, call_next):
@@ -77,6 +84,8 @@ async def lifespan(app):
     app.state.maintenance_runner.recover()
     app.state.relationship_runner.recover()
     app.state.authoring_runner.recover()
+    app.state.style_analysis_runner.recover()
+    app.state.recipe_runner.recover()
     app.state.background_runner.recover()
     app.state.assessment_runner.recover()
     app.state.runner.recover()
@@ -97,11 +106,13 @@ async def lifespan(app):
     await app.state.scene_runner.shutdown()
     await app.state.background_runner.shutdown()
     await app.state.authoring_runner.shutdown()
+    await app.state.style_analysis_runner.shutdown()
+    await app.state.recipe_runner.shutdown()
     await app.state.summary_runner.shutdown()
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    app = FastAPI(title="Roleplay workspace", version="0.7.5", lifespan=lifespan)
+    app = FastAPI(title="Roleplay workspace", version="0.8.0", lifespan=lifespan)
     app.state.database = Database(database_path)
     app.state.vault = SystemVault()
     app.state.runner = GenerationRunner(app.state.database, app.state.vault)
@@ -111,6 +122,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.state.scene_runner = SceneRunner(app.state.database, app.state.runner.provider)
     app.state.background_runner = BackgroundRunner(app.state.database, app.state.runner.provider)
     app.state.authoring_runner = AuthoringRunner(app.state.database, app.state.runner.provider)
+    app.state.style_analysis_runner = StyleAnalysisRunner(app.state.database, app.state.runner.provider)
+    app.state.recipe_runner = RecipeRunner(app.state.database, app.state.runner.provider)
     app.state.summary_runner = SummaryRunner(app.state.database, app.state.runner.provider)
     app.state.maintenance_runner = MaintenanceRunner(app.state.database, app.state.summary_runner)
     app.state.preparation_runner = PreparationRunner(app.state.database, app.state.runner.provider.scheduler)
@@ -122,6 +135,11 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
+    app.include_router(writing_router)
+    app.include_router(style_analysis_router)
+    app.include_router(recipe_router)
+    app.include_router(branch_tools_router)
+    app.include_router(text_edit_router)
     app.include_router(reading_time_router)
     app.include_router(agent_template_router)
     app.include_router(manuscript_router)

@@ -9,8 +9,11 @@ from server.database import decode, encode, many, now, one
 from server.errors import DomainError, require
 from server.memory.side_packet import next_packet, request_receipt
 from server.memory.side_search import SourceArchive, command
+from server.providers.completion import StreamCompletion
 from server.side_context import assemble_context
 from server.side_conversations import SideConversations
+from server.side_edits import finish_edit
+from server.side_work import effective_prompt, exact_receipt
 
 
 def requested_sources(output, allowed):
@@ -61,6 +64,7 @@ class SideRunner:
         try:
             await self.answer(reply_id, *claimed, state)
             state["status"] = "done"
+            self.finish(reply_id, claimed[1], state)
         except asyncio.CancelledError:
             state.update(status="cancelled", error="Stopped. Any partial reply is preserved.")
         except DomainError as error:
@@ -68,7 +72,8 @@ class SideRunner:
         except Exception:
             state.update(status="error", error="The collaborator could not complete this reply. The story is unchanged.")
         finally:
-            self.save(reply_id, state)
+            if state['status'] != 'done':
+                self.save(reply_id, state)
 
     async def answer(self, reply_id, profile, snapshot, state):
         if snapshot.get('retrieval'):
@@ -78,7 +83,7 @@ class SideRunner:
         for read in range(snapshot["max_reads"] + 1):
             content = assemble_context(snapshot, profile, source_ids)
             state["coverage"] = sorted(set(state["coverage"]) | set(source_ids))
-            output = await self.request(reply_id, profile, snapshot["prompt"]["template"], content, state)
+            output = await self.request(reply_id, profile, effective_prompt(snapshot), content, state)
             requested = requested_sources(output, allowed)
             if requested is None:
                 require(bool(output.strip()), "The collaborator returned no answer.", 502)
@@ -92,7 +97,7 @@ class SideRunner:
         archive = SourceArchive(snapshot)
         content = snapshot['retrieval']['initial_content']
         for read in range(snapshot['max_reads'] + 1):
-            output = await self.request(reply_id, profile, snapshot['prompt']['template'], content, state)
+            output = await self.request(reply_id, profile, effective_prompt(snapshot), content, state)
             requested = command(output)
             if requested is None:
                 require(bool(output.strip()), 'The collaborator returned no answer.', 502)
@@ -105,12 +110,14 @@ class SideRunner:
     async def request(self, reply_id, profile, prompt, content, state):
         output = ""
         context = decode(content)
-        usage = request_receipt(content) if context.get('retrieval_protocol') else {
+        usage = request_receipt(content) if context.get('retrieval_protocol') else exact_receipt(content) if context.get('companion_task') else {
             "source_ids": [source["id"] for source in context["sources"]], "reported": {}}
         state["coverage"] = sorted(set(state["coverage"]) | set(usage["source_ids"]))
         state["usage"].append(usage)
         saved = time.monotonic()
+        completion = StreamCompletion()
         async for event in self.provider.generate(profile, prompt, content):
+            completion.observe(event)
             output += event.text
             if 'content' in usage:
                 usage['output'] = output
@@ -121,11 +128,25 @@ class SideRunner:
             if time.monotonic() - saved > 0.15:
                 self.save(reply_id, state)
                 saved = time.monotonic()
+        if context.get('companion_task', {}).get('response_protocol'):
+            completion.validate(profile['config'])
+            require(usage['reported'].get('finish_reason') in {None, 'stop'},
+                    'The edit response did not finish normally. Partial output is preserved and cannot be applied.', 502)
+            usage['completed'] = True
         return output
 
     def save(self, reply_id, state):
         with self.database.connect(write=True) as connection:
-            connection.execute("UPDATE side_replies SET status=?,output=?,error=?,usage=?,coverage=?,updated_at=? WHERE id=?",
+            self.save_in(connection, reply_id, state)
+
+    def finish(self, reply_id, snapshot, state):
+        with self.database.connect(write=True) as connection:
+            finish_edit(connection, self.database, reply_id, snapshot, state['output'])
+            self.save_in(connection, reply_id, state)
+
+    @staticmethod
+    def save_in(connection, reply_id, state):
+        connection.execute("UPDATE side_replies SET status=?,output=?,error=?,usage=?,coverage=?,updated_at=? WHERE id=?",
                                (state["status"], state["output"], state["error"], encode(state["usage"]),
                                 encode(state["coverage"]), now(), reply_id))
 

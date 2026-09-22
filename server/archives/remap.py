@@ -13,6 +13,9 @@ from server.roles import ROLE_LABELS
 from server.section_prompts import SECTION_LABELS
 
 REFERENCES = {
+    'reply_id', 'edit_origin_id',
+    'context_id',
+    'left_branch_id', 'right_branch_id', 'left_head_id', 'right_head_id',
     'source_branch_id', 'source_node_id', 'replacement_node_id', 'original_node_id',
     "id", "story_id", "asset_id", "latest_version_id", "manifest_id", "head_id", "parent_id", "forked_from",
     "fork_node_id", "operation_id", "old_manifest_id", "new_manifest_id", "profile_id", "generation_id",
@@ -25,6 +28,9 @@ REFERENCES = {
     'background_state_id', 'previous_id',
     'selected_state_id',
     'continuity_version_id', 'import_id', 'source_version_id', 'batch_id', 'memory_controls_version_id', 'knowledge_character_id',
+    'style_version_id', 'recipe_version_id',
+    'document_id', 'edit_receipt_id', 'proposal_id', 'undo_of', 'state_boundary_node_id', 'source_head_id',
+    'draft_id', 'receipt_id', 'cleanup_id',
 }
 
 
@@ -71,6 +77,7 @@ def story_settings(value, document, mapping):
 
 def snapshot(value, mapping):
     updated = fields(value, mapping)
+    updated.update(remap_writing_references(value, mapping))
     updated.update({key: [fields(item, mapping) for item in value[key]] for key in ('prompt_sections',) if key in value})
     for key in ("branch", "prompt", "profile", 'cleanup'):
         if key in value:
@@ -95,6 +102,10 @@ def snapshot(value, mapping):
     return updated
 
 
+def remap_writing_references(value, mapping):
+    return {'writing_versions': [mapping[item] for item in value['writing_versions']]} if 'writing_versions' in value else {}
+
+
 def remap_source_link(item, mapping):
     # id and frozen_* are receipts of the original provider bytes, not live references.
     keys = ('node_id',) if 'node_id' in item else ('asset_id', 'version_id')
@@ -109,6 +120,8 @@ def remap_snapshot_lore(value, mapping):
 
 def scene_state(value, mapping):
     updated = {**value, "selections": pins(value["selections"], mapping)}
+    if value.get('draft_edits'):
+        updated['draft_edits'] = {key: fields(edit, mapping) for key, edit in value['draft_edits'].items()}
     if value.get("gate_a"):
         updated["gate_a"] = scene_state(value["gate_a"], mapping)
     if 'verifications' in value:
@@ -180,8 +193,18 @@ def remap_record(table, row, document, mapping):
         version = next(item for item in document['data']['asset_versions'] if item['id'] == row['version_id'])
         return source_record({**version, 'id': mapping[version['id']], 'content': remap_dependencies(decode(version['content']), mapping)})
     updated = fields(row, mapping)
+    if table == 'side_edit_results':
+        # Companion origins are live foreign keys. Continuity origin_id values
+        # instead name immutable facts cited by later changes and frozen inputs.
+        updated['origin_id'] = mapping[row['origin_id']]
+    if table in {'text_edit_proposals', 'text_edit_receipts'}:
+        from server.archives.text_edits import remap_text_edit
+        return remap_text_edit(table, updated, mapping)
+    if table == 'writing_versions':
+        from server.archives.writing import remap_writing
+        return remap_writing(updated, document, mapping)
     updated = remap_json(table, updated, document, mapping)
-    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs'} and row["status"] in {"running", "queued"}:
+    if table in {"candidates", "review_jobs", "side_replies", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs', 'style_analysis_jobs', 'recipe_jobs'} and row["status"] in {"running", "queued"}:
         updated["status"] = "interrupted"
         updated["error"] = "Restored from an archive. Partial output is preserved; retry is explicit."
     if table == 'summary_batches' and row['status'] in {'queued', 'running'}:

@@ -29,10 +29,10 @@ function RevisionForm({ candidate, onAlternate }: { candidate: Candidate; onAlte
   const submit = () => action.run(async () => {
     let saved = recovery.latest()
     if (!saved) {
-      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(candidate.output))
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(candidate.text_edit?.text ?? candidate.output))
       saved = { kind: 'continuity_revision', path: `/candidates/${candidate.id}/continuity-revision`, body: {
         operation_id: operationId(), expected_attempt: candidate.attempt,
-        original_sha256: Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join(''), concern,
+        original_sha256: Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join(''), concern, expected_wording_version: candidate.wording_version,
       } }
       recovery.store(saved)
     }
@@ -49,12 +49,17 @@ function RevisionForm({ candidate, onAlternate }: { candidate: Candidate; onAlte
   return <details className="request-details">
       <summary>Revise continuity</summary>
       <p className="subtle">Describe a suspected mismatch with the saved story evidence. One model request proposes another telling; the original stays available. Missing history may remain unresolved.</p>
-      {candidate.cleanup?.selected === 'cleaned' && <p className="subtle">Revision starts from the original draft, before wording cleanup.</p>}
+      <RevisionSource candidate={candidate} />
       <label className="field" htmlFor={fieldId}><span>Continuity concern</span>
       <textarea id={fieldId} value={recovery.pending ? String(recovery.pending.body.concern) : concern} onChange={event => setConcern(event.target.value)} rows={3} maxLength={1000} disabled={action.busy || !!recovery.pending} placeholder="For example: the recipient already signed for this parcel, but this draft has them still waiting." /></label>
       <div className="candidate-actions"><button className="button" disabled={action.busy || !!recovery.problem || (!recovery.pending && !concern.trim())} onClick={submit}>{buttonLabel(action.busy, !!recovery.pending)}</button></div>
       <ErrorNotice message={recovery.problem || action.error} />
     </details>
+}
+
+function RevisionSource({ candidate }: { candidate: Candidate }) {
+  if (candidate.text_edit) return <p className="subtle">Revision starts from author revision {candidate.text_edit.revision}, using the original saved Story evidence. Later draft edits do not change that request.</p>
+  return candidate.cleanup?.selected === 'cleaned' ? <p className="subtle">Revision starts from the original draft, before wording cleanup.</p> : null
 }
 
 function RevisionReceipt({ revision, onAlternate }: { revision?: ContinuityRevisionData; onAlternate: (id: string) => void }) {

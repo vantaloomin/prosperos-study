@@ -44,6 +44,7 @@ class MessageCreate(Input):
     text: str = Field(min_length=1, max_length=100000)
     role: Literal["user", "assistant", "narrator", "ooc"] = "user"
     opportunity_id: str | None = None
+    expected_document_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', exclude_if=lambda value: value is None)
 
 
 class ForkCreate(Input):

@@ -10,6 +10,8 @@ from server.memory.knowledge import prepare_knowledge
 from server.profiles import resolve_profile
 from server.prompt_sections import compose, sections_for, system_prompt
 from server.prompts import prompt_snapshot
+from server.writing.context import references
+from server.writing.scene_requests import writing_task
 
 ACTOR_RULE = (
     'Fill only your assigned dialogue slots. The author briefing is explicitly shared '
@@ -53,20 +55,23 @@ def check_assignments(context, actors):
     return slots
 
 
-def prepare_actor(connection, run, actor, slots, controls, prompt, profiles):
+def prepare_actor(connection, run, actor, slots, controls, prompt, profiles, guidance=None):
     choices = actor_choices(connection, run)
     key = 'character:' + actor.character_id if actor.character_id else 'name:' + actor.subject
     chosen = next((item for item in choices if item['key'] == key), None)
     require(chosen, 'This character view is not available in the scene’s frozen knowledge. Start a new scene to use newer decisions.', 409)
     ordered = [key for key in slots if key in actor.slot_ids]
     frame = actor_frame(chosen['subject'], ordered)
+    if guidance:
+        frame['writing_task'] = writing_task('scene-dialogue')
     writing = run['snapshot']['story_context']['constraints']
     base, receipt, links = prepare_knowledge(controls, chosen['subject'], actor.briefing,
-        prompt['template'] + encode(frame), profiles, writing, actor.character_id)
+        prompt['template'] + encode(frame), profiles, writing, actor.character_id, guidance)
     content = encode({**decode(base), **frame})
     cost = token_estimate(prompt['template'], decode(content))
     require(cost <= receipt['input_allowance'] - receipt['overhead_margin'], 'The character briefing and complete evidence exceed this context allowance.', 409)
     return {'branch': run['snapshot']['branch'], 'memory_controls_version_id': controls['version_id'],
+            **({'writing_guidance': guidance, 'writing_versions': references(guidance)} if guidance else {}),
             **({'knowledge_character_id': actor.character_id} if actor.character_id else {}),
             'knowledge_content': base, 'knowledge_lens': receipt, 'source_links': links,
             'slot_ids': ordered, 'content': content, 'estimated_input_tokens': cost,
@@ -82,7 +87,7 @@ def actor_jobs(connection, story, run, body, context):
     slots = check_assignments(context, body.dialogue_actors)
     controls = frozen_controls(connection, run)
     composed = {**prompt, 'template': compose(prompt, sections)}
-    actors = [prepare_actor(connection, run, actor, slots, controls, composed, profiles) for actor in body.dialogue_actors]
+    actors = [prepare_actor(connection, run, actor, slots, controls, composed, profiles, context.get('writing_guidance')) for actor in body.dialogue_actors]
     return [{'step': body.key, 'profile': profile, 'prompt': prompt, 'prompt_sections': sections, 'content': encode(context),
              'dialogue_actors': actors, 'estimated_input_tokens': sum(actor['estimated_input_tokens'] for actor in actors)} for profile in profiles]
 

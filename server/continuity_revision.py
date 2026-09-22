@@ -37,6 +37,7 @@ class RevisionRequest(Input):
     expected_attempt: int = Field(ge=1)
     original_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
     concern: str = Field(min_length=1, max_length=1000)
+    expected_wording_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', exclude_if=lambda value: value is None)
 
 
 def evidence_snapshot(snapshot, usage):
@@ -48,8 +49,9 @@ def evidence_snapshot(snapshot, usage):
     return snapshot
 
 
-def freeze(snapshot, profile, usage, candidate, concern, *, version=VERSION):
-    require(version in {1, 2}, 'This continuity revision protocol is unsupported.', 409)
+def freeze(snapshot, profile, usage, candidate, concern, *, version=VERSION, source_edit_receipt_id=None):
+    require(version in {1, 2, 3}, 'This continuity revision protocol is unsupported.', 409)
+    require((version == 3) == bool(source_edit_receipt_id), 'An author-draft revision needs its selected text receipt.', 409)
     require(concern.strip(), 'Describe the continuity concern.')
     original = candidate['output']
     require(bool(original.strip()) and len(original) <= 30000,
@@ -66,14 +68,15 @@ def freeze(snapshot, profile, usage, candidate, concern, *, version=VERSION):
             'No request was started. Start a new continuation with a larger context allowance to leave room for revision.', 409)
     return {'version': version, 'candidate_id': candidate['id'], 'attempt': candidate['attempt'],
             'original_sha256': digest(original), 'concern': concern, 'prompt': PROMPT, 'content': encode(payload),
-            'estimated_input_tokens': estimate, 'overhead_margin': margin, 'input_allowance': allowance}
+            'estimated_input_tokens': estimate, 'overhead_margin': margin, 'input_allowance': allowance,
+            **({'source_edit_receipt_id': source_edit_receipt_id} if version == 3 else {})}
 
 
 def prepare(candidate, snapshot, state):
     revision = decode(candidate['usage']).get('continuity_revision')
     if revision is None:
         return snapshot
-    require(revision.get('version') in {1, 2}, 'This continuity revision protocol is unsupported.', 409)
+    require(revision.get('version') in {1, 2, 3}, 'This continuity revision protocol is unsupported.', 409)
     state['usage']['continuity_revision'] = revision
     result = deepcopy(snapshot)
     result.update(content=revision['content'], prompt={**result['prompt'], 'template': revision['prompt']})

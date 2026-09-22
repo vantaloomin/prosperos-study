@@ -1,4 +1,5 @@
 from server.agent_templates import initial_agent_settings
+from server.branch_tools.curation import story_branches
 from server.character_content import opening_metadata
 from server.database import Database, decode, encode, identifier, many, now, one
 from server.errors import require
@@ -59,8 +60,7 @@ class Stories:
     def detail(self, story_id: str) -> dict:
         with self.database.connect() as connection:
             story = story_view(one(connection, "SELECT * FROM stories WHERE id=?", (story_id,)))
-            branches = many(connection, "SELECT * FROM branches WHERE story_id=? ORDER BY created_at",
-                            (story_id,))
+            branches = story_branches(connection, story_id)
             return {**story, "branches": branches,
                     "attachments": manifest_view(connection, story["manifest_id"])}
 

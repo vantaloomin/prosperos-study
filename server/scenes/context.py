@@ -15,10 +15,10 @@ from server.memory.source_evidence import carry_evidence, cited_ids
 from server.memory.summary_excerpt import aid_items, summary_links
 from server.memory.summary_recall import reviewed_aids
 from server.scenes.actor_context import actor_jobs, actor_preview
+from server.scenes.author_text import selected_draft
 from server.scenes.catalog import DRAFT_KEYS, SCENE_STEPS
 from server.scenes.chance import chance_sources, chance_stale, freeze_chance
 from server.scenes.continuity_context import continuity_inputs
-from server.scenes.drafts import assemble_draft
 from server.scenes.patch_catalog import PATCH_KEYS
 from server.scenes.patch_context import patch_inputs
 from server.scenes.prompts import stage_prompt
@@ -28,6 +28,8 @@ from server.scenes.state import require_step, selected_result, upstream
 from server.scenes.switches import scene_switches
 from server.stories import check_revision
 from server.workflow.context import job_snapshot, message_source, reference_sources, snapshot_hash
+from server.writing.context import references
+from server.writing.scene_requests import stage_writing, writing_task
 
 
 def story_context(story):
@@ -130,8 +132,7 @@ def drafting_inputs(connection, run, key):
 
 
 def draft_view(connection, run):
-    draft = selected_result(connection, run, "scene-draft")
-    return assemble_draft(draft, selected_result(connection, run, "scene-dialogue")) if draft else None
+    return selected_draft(connection, run)
 
 
 def stage_snapshot(connection, run, body):
@@ -141,7 +142,10 @@ def stage_snapshot(connection, run, body):
     require_step(run, body.key)
     require(not stale_plan(connection, run), "The Story changed since this plan began. Start a new plan from the current path.", 409)
     story = one(connection, "SELECT * FROM stories WHERE id=?", (run["snapshot"]["branch"]["story_id"],))
+    body, guidance = stage_writing(connection, story, body)
     context = revision_inputs(connection, run, body) if body.key in REVISION_KEYS else stage_inputs(connection, run, body.key)
+    if guidance:
+        context.update(writing_guidance=guidance, writing_task=writing_task(body.key))
     require(body.key in REVISION_KEYS or not (body.review_job_ids or body.item_id), 'Review targets only apply to revision stages.')
     if run['snapshot'].get('author_memory'):
         context['author_memory'] = run['snapshot']['author_memory']
@@ -150,6 +154,8 @@ def stage_snapshot(connection, run, body):
         manifest_id=run['snapshot']['branch']['manifest_id'], summary_bindings=run['snapshot'].get('summary_aid_links'),
         prompt=stage_prompt(connection, story, run, body.key))
     for job in jobs:
+        if guidance:
+            job.update(writing_guidance=guidance, writing_versions=references(guidance))
         job["upstream"] = upstream(run, body.key)
         if body.key in REVISION_KEYS:
             job.update(review_job_ids=body.review_job_ids, item_id=body.item_id)
@@ -157,10 +163,16 @@ def stage_snapshot(connection, run, body):
 
 
 def preview_view(snapshot):
+    from server.prompt_sections import system_prompt
+    from server.providers.capabilities import input_capacity
+    from server.side_work import writing_labels
     names = {step["key"]: step["name"] for step in SCENE_STEPS}
     return {"preview_hash": snapshot_hash(snapshot), "request_count": sum(len(job.get("dialogue_actors", [])) or 1 for job in snapshot["jobs"]), "jobs": [
         {"step": job["step"], "name": names[job["step"]], "profile_name": job["profile"]["name"],
          "model": job["profile"]["config"]["model"], "estimated_input_tokens": job["estimated_input_tokens"],
          "prompt_version": job["prompt"]["number"], "source_count": len(decode(job["content"])["sources"]),
+         'writing': writing_labels(job), 'instructions': system_prompt(job),
+         'content': None if job.get('dialogue_actors') else job['content'],
+         'input_allowance': input_capacity(job['profile']['config']), 'output_limit': job['profile']['config']['max_output_tokens'], 'cost': None,
          "source_memory": job.get("source_memory"), "dialogue_actors": actor_preview(job)}
         for job in snapshot["jobs"]]}

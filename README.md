@@ -8,7 +8,9 @@
 
 A local workspace for writing fiction with AI. Draft a scene, explore another ending, build a shared world, or step into a character's role. Keep the versions you love and decide what becomes part of the story.
 
-**v0.7.5** · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Agent & memory guides](#agents-and-long-memory-illustrated) · [Questions](#questions)
+**v0.8.0** · [Download release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.8.0) · [What's new](releases/v0.8.0.md) · [Windows setup](#get-started-on-windows) / [Mac setup](#get-started-on-macos) · [Choose your models](#bring-your-own-writing-partner) · [Questions](#questions)
+
+This release adds writing styles and reusable recipes, comparison and organization of alternate tellings, a Sidebar Companion that can pop out and help edit text, and **Skip setup** to start writing immediately.
 
 ## A writing room for stories that keep growing
 
@@ -16,18 +18,22 @@ The interesting part often comes after the first response: a better line, a diff
 
 | What you want to do | How the Study helps |
 | --- | --- |
-| Try the other ending | Branch from an earlier passage, explore alternate responses, and find your way back with a visual branch map. |
+| Try the other ending | Compare tellings, favorite a path, archive an alternative, and search across branches without merging their story context. |
 | Keep earlier events within reach | Long story memory recalls older passages locally; review plans and commitments without rewriting the manuscript. |
 | Keep control of the draft | Generated prose appears inline as an unaccepted draft. Keep it, keep it on a new branch, try another, or dismiss it. |
 | Assemble a book | Organize chapters and scenes, choose each scene's telling, bookmark passages, search the manuscript, and export DOCX or EPUB. |
 | Build a world across several stories | Reuse Characters and Canon collections. Each story keeps its chosen versions until you decide to update it. |
-| Talk through an idea | A docked, floating, or full-workspace Collaborator can discuss the story, critique a passage, or help with a prompt without advancing the narrative. |
+| Keep your preferred voice | Save versioned writing styles with your own examples and choose them for a Story, recipe, or individual request. |
+| Reuse a writing workflow | Share a recipe, fill in its inputs, inspect its steps, and explicitly run drafting, review, and revision. |
+| Work with a Companion | Discuss or revise selected text with the Collaborator, including a separate Pop Out window and reviewable Apply/Undo actions. |
 | Give different jobs to different models | Choose a Primary Writer, override individual steps, and deliberately compare several models on the same inputs. |
 | Make room for surprise | Optional narrative tables introduce atmosphere, encounters, complications, and other prompts. Turn individual systems on or off. |
 
 ### Write, direct, or roleplay
 
 Start with **Write a story** for prose and author direction, **Build a scene** for a guided planning and revision workflow, or **Roleplay** to participate as a character. Author notes stay distinct from story text, and roleplay preferences let you reserve your character's choices.
+
+Want to begin immediately? Choose **Skip setup** beside Continue on any setup step before the final review. Your entered choices stay intact; a blank title becomes **Untitled Story**, and the writing area opens ready for your first words. No model is required and skipping makes no AI request. Change preferences later in **Story setup**, or connect a writer in **Settings**.
 
 New Stories use an **Agent Template**. **Passive** enables the complete writing, scene, and review workflow. **Active** starts with the writer, Collaborator, background planning, and Scribe memory tasks; full-scene drafting and readers are optional. Customize in **Story workflow > Story agents** or **Story setup > Agents**. Workspace switches in Settings remain the upper limit. Changing an existing Story's experience preserves its switches; applying a template shows the changes first.
 
@@ -42,6 +48,8 @@ Generation shows the current stage, model, elapsed time, and Stop. **Keep** acce
 ### Explore without losing your favorite version
 
 Edit an earlier passage to create a new branch. Browse alternative responses, return to an accepted telling, and keep different continuations alive. The branch map makes those paths visible; changing your mind does not require replacing the story you already have.
+
+Use the branch tools to compare two tellings side by side, navigate changed passages, and open either source. Favorite paths you return to often. Archiving a telling hides it from ordinary browsing while retaining its prose, descendants, references, and Book selections. Cross-branch search groups shared passages and can include archived paths. A search result or comparison does not add sibling-branch prose to the active writer's context. **Send selection to Companion** can explicitly pin a comparison or selected source for discussion.
 
 **Remove passage from this path** creates a revised path with a removal marker and **Undo**. Later prose stays in order. The original path and private archives retain the original text. Future context and readable exports exclude the removed passage. Dependent memory, plans, and chance/background state from that point onward stay on the original path; acknowledge the reset to the state before the passage and review later prose before continuing. No model requests or rolls are replayed.
 
@@ -148,7 +156,23 @@ Intentional and dismissed phrase choices from this browser are captured when the
 
 The cleanup toggle is saved for this path in the local workspace; new branches and restored archives start with it off. Archives preserve both draft versions, captured request choices, and cleanup evidence. Interrupted cleanup is not automatically retried or resent. The detector scans at most 200,000 characters or 40,000 words across the draft and complete recent passages, and permits at most 12 short, nonoverlapping replacements. Semantic detectors and homeostatic retrieval remain future work.
 
-See the [v0.7.5 release notes](releases/v0.7.5.md) and [detailed changelog](CHANGELOG.md#v075---2026-09-19). The [published v0.7 features](CHANGELOG.md#v07---2026-09-18) are included.
+See the [published v0.7.5 release](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.7.5) for the original memory update and the [changelog](CHANGELOG.md) for later changes. The [published v0.7 features](CHANGELOG.md#v07---2026-09-18) are included.
+
+### Write in your own style
+
+Open **Library > Styles & recipes** to create a writing style. Add any useful combination of prose, viewpoint, tense, dialogue, rhythm, description, unwanted habits, and your own examples. **Analyze selected samples** can propose editable guidance using a model; review the suggestions and publish a version separately. Examples remain style references, not accepted Story events or Canon.
+
+A Story keeps its chosen style edition until you explicitly adopt another. Individual requests can override it, including **No style profile**. The order is request choice, recipe choice, then Story default. An explicit choice of none stops inheritance. Styles guide prose and requested wording revisions; they do not alter factual memory tasks, character agency, or source permissions. Saved requests and retries retain their original style and examples.
+
+### Reuse a writing recipe
+
+Recipes combine instructions, typed inputs, task choices, model assignments, optional style, reader lenses, and chance settings. Start with **Quiet character scene**, **Revise for tension**, or **Dialogue pass**, then customize and publish your own edition. **Export** produces a portable file; including examples is a separate choice. Import previews identify missing local models or Library references for explicit mapping. Importing changes no active Story settings and starts no work.
+
+Select text in the composer or a supported text editor and choose **Run recipe**. Fill in its inputs, review the effective choices, then **Preview complete recipe**. Workspace disables remain a ceiling; explicit run choices override the recipe and Story defaults. Disabled optional readers are shown as skipped. Saving freezes the run and, if requested, prepares one draft-local chance result. It starts no model calls and changes no accepted mechanics.
+
+Each step has **Preview next recipe step** and **Start this recipe step**. Inspect exact instructions, model, source scope, input allowance, and output limit before sending. Later inputs are prepared from earlier results; their size stays unknown until then, and provider cost stays unknown unless reported. Finished prose becomes an editable proposal with Apply/Undo. A review-only recipe presents reports without changing text. Return through **Story workflow > Recipes** to continue or inspect a saved run. Stop, retry, reload, and restart retain original inputs; later steps never start automatically.
+
+Single-step writing and Companion controls accept only recipes applicable to that task. Use **Run recipe** for a complete multi-step or chance-based workflow. Publishing or archiving a recipe does not change its saved runs or silently update Story pins.
 
 ### Give your world a home
 
@@ -164,7 +188,13 @@ Publishing an edit creates a new version. Existing stories keep their selected v
 
 ### Keep a collaborator in the wings
 
-Open Collaborator to brainstorm, ask about a character's motivation, improve your next prompt, or review what you have written. The collaborator can consult story context and retrieve exact passages when needed. It cannot advance the story or apply its suggestions on its own. Its connection is shown above the conversation. **Change connection** saves the existing Collaborator assignment for this story; **Manage connections** opens model setup and returns to the same chat. Choose Docked, Floating, or Full workspace; window controls also support keyboard movement and resizing. Small windows or enlarged interfaces use Full workspace when needed.
+The Sidebar Companion is labeled **Collaborator** in the app. Use it to brainstorm, ask about motivations, improve a prompt, or work on selected text. **Send selection to Companion** shows the exact source and range before pinning it to a conversation. Follow the current telling or keep a saved passage, scene, earlier context, or branch comparison pinned. Renaming, searching, archiving, and reopening conversations preserves their drafts, sources, and edit history.
+
+Choose **Rewrite**, **Expand**, **Shorten**, **Change tone**, **Apply style**, or **Write new text** for a supported text target. The normal result is an editable proposal with before/after comparison and Apply/Dismiss. **Apply this requested change** explicitly authorizes that one result at the displayed destination; it needs no second confirmation. A changed destination produces a conflict requiring review and rebasing. Applied changes retain a receipt and **Undo / restore previous text**. Accepted-passage edits create a revised telling with later prose preserved; they leave Book selections on their original sources. Library and prompt edits follow their versioning and adoption controls.
+
+The Companion can add, insert, replace, or update scoped text; it cannot turn discussion into unrequested story progression, accept plans, change non-text settings, roll, or merge branches. Model output cannot expand the selected target or its application permission. Generated wording remains subject to the selected source and character-agency rules. Inspect **Preview Companion request** to review effective guidance and the exact initial inputs without sending.
+
+Its connection is shown above the conversation. **Change connection** saves the Collaborator assignment for this Story; **Manage connections** opens model setup and returns to the chat. Choose Docked, Floating, Full workspace, or **Pop Out** for a separate browser window. Return to the workspace explicitly. Both views share saved conversations, pins, model choices, requests, and edit proposals; conflicting unsent wording stays available for review. Closing or reopening a view never resends a request. A blocked popup, closed parent, or lost server connection offers recovery controls. Window placement depends on the browser and operating system.
 
 For a structured session, the scene planner proposes options and beats for your approval. Drafting and optional dialogue lead to two readers: an independent reader with eight selectable lenses, and an informed reader checking rules, continuity, and approved beat coverage. Triage resolves findings against supplied evidence; unresolved claims need your decision. One revision patch can change both prose and dialogue, then the Scribe proposes continuity to keep. You approve the plan, revision package, and final scene.
 
@@ -214,10 +244,10 @@ Provider usage, pricing, and access depend on your chosen service. Models and AP
 
 ## Get started on Windows
 
-1. **Download and extract the project.** Use GitHub's **Code > Download ZIP**, or clone this repository. Open the extracted folder before running the scripts.
+1. **Download and extract [the v0.8.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.8.0/prosperos-study-v0.8.0-source.zip).** Open the extracted folder before running the scripts. The [release page](https://github.com/vantaloomin/prosperos-study/releases/tag/v0.8.0) also provides a file manifest and SHA-256 checksums. Git users can check out the `v0.8.0` tag.
 2. **Run [install.bat](install.bat).** It sets up the dependencies and builds the interface. It looks for Python 3.12+ and Node.js 22.12+, and can install missing runtimes through WinGet. An internet connection is needed for downloads.
 3. **Run [launch.bat](launch.bat).** Your browser opens the Study at `http://127.0.0.1:8765`. Keep the launcher terminal open while writing; press **Ctrl+C** there to stop the app.
-4. **Start a new story.** The guided setup helps you choose how to write, connect a model, describe the story, and attach Library material. You can skip the model and write manually.
+4. **Start a new story.** Follow the guided setup, or choose **Skip setup** to start writing immediately. Any choices already entered are retained. You can write manually without a model and change settings later.
 
 A second launch reuses the existing app. To update, stop the app, update the source files while keeping your `data/` folder, rerun `install.bat`, and launch again. Save a workspace backup before updating.
 
@@ -225,7 +255,7 @@ If WinGet is unavailable, install Python and Node.js yourself and rerun the inst
 
 ## Get started on macOS
 
-Download and extract the project, or clone this repository. In Terminal, change to the project folder and run:
+Download and extract [the v0.8.0 source ZIP](https://github.com/vantaloomin/prosperos-study/releases/download/v0.8.0/prosperos-study-v0.8.0-source.zip), or clone this repository and check out the `v0.8.0` tag. In Terminal, change to the project folder and run:
 
 ```bash
 cd "/path/to/prosperos-study"
@@ -252,7 +282,9 @@ Stories and Library material are stored locally in the project's `data/` folder.
 
 Readable exports and restorable archives serve different purposes. Private archives contain story material and are not encrypted. Keep downloaded backups somewhere safe; automatic scheduled backups are not included.
 
-**Archive format 37** preserves manuscript organization, bookmarks, mode-guidance versions, cleanup originals and proposals, tentative links, and continuity-revision receipts. It accepts the published v0.7.0 format-33 manuscript layout and the earlier memory-branch layouts, checking their record groups before migration. Restoring creates independent stories, preserves historical request bytes, disables automation, and requires explicit retry for interrupted work. It does not resend model requests. Prepared DOCX/EPUB downloads can be regenerated from the restored manuscript. Keep a pre-update backup if you may return to an older app version.
+**Archive format 51** adds writing styles, portable-import records, sample analyses, saved recipe runs, branch curation/comparisons, scoped text edits, and Companion pins and drafts to the existing manuscripts, memory, mode guidance, cleanup, and revision records. It accepts earlier supported archives, including the published v0.7.0 format-33 manuscript layout and the distinct memory-development layouts, by validating their complete record groups before migration. Restoring creates independent stories, remaps live identities, preserves historical provider-input bytes, disables automation, and leaves interrupted work for explicit retry. It never resends a model request or reapplies an edit. Prepared DOCX/EPUB downloads can be regenerated from the restored manuscript.
+
+Private Companion conversations are an explicit archive inclusion choice. Excluding them still retains the edit provenance needed to validate included text changes, without copying private questions or discussion history. Portable writing bundles contain only selected style/recipe material and reference slots; they omit credentials, endpoint configuration, private conversations, and unrelated Story data. New archives are not backward-compatible with older app versions. Keep a pre-update backup if you may return to an older version. See [v0.8.0 compatibility and validation notes](releases/v0.8.0.md).
 
 ## Questions
 
@@ -278,9 +310,9 @@ No. Randomness starts off, individual systems are optional, and prompts/agents c
 
 Yes. Stories select versions independently, and publishing an edit does not silently change existing stories.
 
-**Is v0.7.5 a finished product?**
+**Is v0.8.0 a finished product?**
 
-It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. Companion Mode, social feeds, built-in image generation, and automated backups are future ideas, not features of this release.
+It is an early preview with the core writing workflows implemented. Expect further polish, compatibility work, and testing. The writing Sidebar Companion described above is separate from the future simulated-character Companion / Date Mode. Social feeds, built-in image generation, and automated backups also remain future ideas. Styles and supplied evidence guide models but do not guarantee voice adherence or continuity accuracy.
 
 Found a problem or have a suggestion? [Open an issue](https://github.com/vantaloomin/prosperos-study/issues). Include what you tried, your provider/model, and any error message; leave out API keys and private story content.
 

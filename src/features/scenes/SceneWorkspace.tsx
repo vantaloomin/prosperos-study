@@ -48,7 +48,7 @@ function SceneRunView({ run, profiles, branch, routing, onBranch }: WorkspacePro
     <div className="scene-stage-nav" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }} aria-label="Scene stages">{steps.map((item, index) => <button key={item.key} aria-pressed={step === item.key} onClick={() => setStage(item.key)}><small>{index + 1} · {run.state.selections[item.key] ? 'Chosen' : 'To do'}</small><strong>{item.name}</strong></button>)}</div>
     {step && <SceneStage key={step} step={step} run={run} profiles={profiles} onChosen={() => setStage('')} onEdit={() => setEditing(true)} />}
     {!run.state.gate_a && !run.next_step && <PlanApproval run={run} />}
-    {run.draft && <SelectedDraft run={run} onRedraft={() => setStage('scene-draft')} />}
+    {run.draft && <SelectedDraft run={run} onRedraft={() => setStage('scene-draft')} onBranch={onBranch} />}
     <SceneReviewWork run={run} profiles={profiles} branch={branch} routing={routing} />
     <PatchWorkspace run={run} profiles={profiles} />
     <ContinuityWorkspace run={run} profiles={profiles} onBranch={onBranch} />
@@ -124,10 +124,16 @@ export function SceneProposal({ job, run, onChosen }: { job: SceneJob; run: Scen
     {!job.current_inputs && <p className="subtle">This proposal uses earlier choices. It remains available for reference.</p>}
     <ActorJobInputs job={job} />
     <SceneArtifact job={job} run={run} disabled={locked} onChoose={choose} />
+    <AuthorWordingReset run={run} job={job} chosen={chosen} />
     {job.result && job.step !== 'scene-options' && <button className="button" aria-disabled={locked || chosen} onClick={() => choose()}>{chosen ? 'Result selected' : 'Use this stage result'}</button>}
     <JobControls job={job} busy={action.busy} onControl={control} />
     <details className="input-inspector"><summary>Reveal exact inputs and raw output (may include private background)</summary><PromptInstructions snapshot={job.snapshot} /><h4>Sources and proposed inputs</h4><pre>{JSON.stringify(JSON.parse(job.snapshot.content), null, 2)}</pre><SourceMemoryDetails memory={job.snapshot.source_memory} /><h4>Raw output</h4><pre>{job.output || 'No text returned yet.'}</pre><UsageSummary usage={job.usage} /></details><SceneAttempts job={job} />
   </section>
+}
+
+function AuthorWordingReset({ run, job, chosen }: { run: SceneRun; job: SceneJob; chosen: boolean }) {
+  if (!run.state.draft_edits || !['scene-draft', 'scene-dialogue'].includes(job.step) || chosen) return null
+  return <p className="scene-notice">Choosing this specialist result resets the current author wording to the selected model draft and dialogue. Earlier text changes remain in their receipts.</p>
 }
 
 function proposalChosen(run: SceneRun, job: SceneJob) {

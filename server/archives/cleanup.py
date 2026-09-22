@@ -2,6 +2,7 @@
 from server.archives.links import snapshot_links
 from server.cleanup.models import CleanupChoices
 from server.cleanup.protocol import PROMPT, apply_output, content_for
+from server.cleanup.runner import writer_guidance
 from server.database import decode, encode, one
 from server.errors import require
 from server.phrases.detection import digest
@@ -19,7 +20,12 @@ def validate_cleanup(connection, row):
     branch = one(connection, 'SELECT * FROM branches WHERE id=?', (row['branch_id'],))
     require(row['branch_id'] == generation['branch_id'] == snapshot['branch']['id'], 'Cleanup belongs to a different path.')
     snapshot_links(connection, snapshot, branch['story_id'])
-    require(snapshot['protocol'] == 1 and snapshot['attempt'] == row['attempt'], 'Unsupported cleanup receipt.')
+    require(snapshot['protocol'] in {1, 2} and snapshot['attempt'] == row['attempt'], 'Unsupported cleanup receipt.')
+    styled = bool((snapshot.get('guidance') or {}).get('writing_guidance'))
+    require(styled == (snapshot['protocol'] == 2), 'Cleanup writing guidance changed its protocol.')
+    if styled:
+        require(snapshot['guidance'] == writer_guidance(decode(generation['snapshot'])),
+                'Cleanup writing guidance differs from its original writer request.')
     require(snapshot['original_sha256'] == digest(snapshot['original']), 'Cleanup original text was changed.')
     validate_original(connection, candidate, snapshot)
     if snapshot['settings']['choices'] is not None:

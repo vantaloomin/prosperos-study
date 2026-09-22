@@ -27,6 +27,7 @@ from server.scenes.state import (
     upstream,
 )
 from server.stories import check_revision
+from server.text_edits.scenes import scene_text_targets
 from server.workflow.context import snapshot_hash
 from server.workflow.reviews import job_view
 
@@ -42,6 +43,8 @@ class Scenes:
             if cached is not None:
                 return cached
             snapshot = create_snapshot(connection, branch_id, body)
+            from server.text_edits.documents import consume_document
+            snapshot['direction'] = consume_document(connection, snapshot['branch'], 'scene-goal', body.expected_document_version, body.direction)
             run_id = identifier()
             connection.execute("INSERT INTO scene_runs (id,branch_id,title,snapshot,state,created_at) VALUES (?,?,?,?,?,?)",
                                (run_id, branch_id, body.title, encode(snapshot), encode(SceneState().model_dump()), now()))
@@ -59,7 +62,9 @@ class Scenes:
             decisions = many(connection, "SELECT * FROM scene_decisions WHERE run_id=? ORDER BY revision", (run_id,))
             views = [{**job_view(job), "current_inputs": decode(job["snapshot"])["upstream"] == upstream(run, job["step"])} for job in jobs]
             coverage = selected_result(connection, run, "scene-coverage")
-            return {**run, "jobs": views, "next_step": next_step(run), "draft": draft_view(connection, run),
+            draft = draft_view(connection, run)
+            return {**run, "jobs": views, "next_step": next_step(run), "draft": draft,
+                    'text_targets': scene_text_targets(connection, run, draft),
                     'revision_plan': revision_view(connection, run),
                     'patch': patch_view(connection, run),
                     'continuity_proposal': selected_result(connection, run, 'scene-continuity'),

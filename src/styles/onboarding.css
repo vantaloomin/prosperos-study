@@ -34,7 +34,9 @@
 .setup-summary dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 150px; overflow: auto; }
 .setup-summary button { grid-column: 2; justify-self: start; font-size: 0.6875rem; }
 .setup-opening { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; margin-top: 14px; padding: 16px; border-radius: 8px; background: var(--canvas); }
-.setup-footer { flex-shrink: 0; flex-wrap: nowrap; }
+.setup-footer { flex-shrink: 0; flex-wrap: wrap; }
+.dialog-footer.setup-footer > .setup-skip-hint { display: block; flex-basis: 100%; margin: 0; }
+.setup-footer-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-left: auto; }
 .setup-save-error { padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .setup-save-error .error-notice { margin: 0; }
 @media (max-width: 560px) { .setup-progress { padding: 12px 12px 8px; gap: 2px; } .setup-progress small { font-size: 0.5625rem; } .setup-choice { padding: 13px; } .setup-field-pair { grid-template-columns: 1fr; } .setup-summary > div { grid-template-columns: 80px 1fr; } }

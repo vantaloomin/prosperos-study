@@ -4,6 +4,7 @@ import zipfile
 from uuid import uuid4
 from xml.etree import ElementTree as ET
 
+from server.archives.format import ARCHIVE_VERSION
 from server.manuscript.models import ManuscriptDocument
 from tests.test_archives import backup, restore
 
@@ -102,7 +103,7 @@ def test_contributions_optional_and_empty_book_export_rejected(client, story):
 def test_archive_restores_manuscript_links_bookmarks_and_order(client, story):
     document, head = book_fixture(client, story)
     file, archive = backup(client, story)
-    assert archive['version'] == 37
+    assert archive['version'] == ARCHIVE_VERSION
     _, mapping = restore(client, file)
     restored = client.get(f"/api/stories/{mapping[story['story_id']]}/manuscript").json()
     assert restored['revision'] == 1

@@ -8,6 +8,7 @@ from server.errors import require
 from server.section_prompts import SECTION_LABELS
 
 LABELS = {
+    'writing_guidance': 'Writing style and recipe',
     'story': 'Story and writing preferences', 'history': 'Selected story path',
     'knowledge_view': 'Character evidence boundary', 'knowledge': 'Permitted character evidence',
     'author_memory': 'Author decisions and supporting evidence',

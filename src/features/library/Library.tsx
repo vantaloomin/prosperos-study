@@ -9,6 +9,7 @@ import { assetLabel, libraryKind } from './kinds'
 import { artworkUrl } from './artworkUrl'
 
 const LibraryImport = lazy(() => import('./LibraryImport').then((module) => ({ default: module.LibraryImport })))
+const WritingLibrary = lazy(() => import('../writing/WritingLibrary').then(module => ({ default: module.WritingLibrary })))
 
 export function Library() {
   const { data: assets = [], isPending, error } = useQuery({ queryKey: ['library'], queryFn: () => api<AssetVersion[]>('/library') })
@@ -16,15 +17,20 @@ export function Library() {
   const [filter, setFilter] = useState<AssetKind | 'all'>('all')
   const [editor, setEditor] = useState<AssetVersion | 'new' | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [writing, setWriting] = useState(false)
   const visible = assets.filter((asset) => (filter === 'all' || libraryKind(asset.kind) === filter) && asset.name.toLowerCase().includes(search.toLowerCase()))
   return <main className="page library-page">
-    <header className="page-heading"><div><span className="eyebrow">PEOPLE & PLACES</span><h1>Your library</h1><p>The worlds you build. The people who make them matter.</p></div><div className="library-actions"><button className="button" onClick={() => setImportOpen(true)}>Import file</button><button className="button primary" onClick={() => setEditor('new')}><Plus size={16} />Create new</button></div></header>
-    <div className="library-toolbar"><div className="tabs" aria-label="Library filter">{(['all', 'character', 'lorebook'] as const).map((kind) => <button key={kind} aria-pressed={filter === kind} onClick={() => setFilter(kind)}>{({ all: 'Everything', character: 'Characters', lorebook: 'Canon' })[kind]}</button>)}</div><label className="search"><Search size={15} /><input aria-label="Search library" placeholder="Search your library" value={search} onChange={(e) => setSearch(e.target.value)} /></label></div>
+    <LibraryHeading writing={writing} onImport={() => setImportOpen(true)} onCreate={() => setEditor('new')} />
+    <div className="library-toolbar"><div className="tabs" aria-label="Library filter">{(['all', 'character', 'lorebook'] as const).map((kind) => <button key={kind} aria-pressed={!writing && filter === kind} onClick={() => { setFilter(kind); setWriting(false) }}>{({ all: 'Everything', character: 'Characters', lorebook: 'Canon' })[kind]}</button>)}<button aria-pressed={writing} onClick={() => setWriting(true)}>Styles & recipes</button></div>{!writing && <label className="search"><Search size={15} /><input aria-label="Search library" placeholder="Search your library" value={search} onChange={(e) => setSearch(e.target.value)} /></label>}</div>
     <ErrorNotice message={error?.message} />
-    <LibraryItems pending={isPending} assets={visible} onSelect={setEditor} />
+    {writing ? <Suspense fallback={<Loading label="Opening styles & recipes…" />}><WritingLibrary /></Suspense> : <LibraryItems pending={isPending} assets={visible} onSelect={setEditor} />}
     {editor && <AssetEditor asset={editor === 'new' ? undefined : editor} initialKind={filter === 'all' ? undefined : filter} onClose={() => setEditor(null)} />}
     {importOpen && <Suspense fallback={<Loading label="Opening the importer…" />}><LibraryImport onClose={() => setImportOpen(false)} /></Suspense>}
   </main>
+}
+
+function LibraryHeading({ writing, onImport, onCreate }: { writing: boolean; onImport: () => void; onCreate: () => void }) {
+  return <header className="page-heading"><div><span className="eyebrow">YOUR CREATIVE LIBRARY</span><h1>Your library</h1><p>People, places, and the way you tell their stories.</p></div>{!writing && <div className="library-actions"><button className="button" onClick={onImport}>Import file</button><button className="button primary" onClick={onCreate}><Plus size={16} />Create new</button></div>}</header>
 }
 
 function LibraryItems({ pending, assets, onSelect }: { pending: boolean; assets: AssetVersion[]; onSelect: (asset: AssetVersion) => void }) {

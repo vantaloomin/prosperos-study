@@ -7,10 +7,10 @@ import type { Story } from '../../types'
 import { PromptCard, PromptEditor, type Prompt } from './Prompts'
 import { agentMode, templateSettings, type AgentSettings, type AgentTemplate } from './agentSettings'
 
-export function ModeGuidance({ storyId, disabled = false }: { storyId?: string; disabled?: boolean }) {
+export function ModeGuidance({ storyId, disabled = false, onEdit }: { storyId?: string; disabled?: boolean; onEdit?: (prompt: Prompt) => void }) {
   const query = useQuery({ queryKey: ['mode-guidance', storyId ?? 'workspace'], queryFn: () => api<Prompt[]>(`/mode-guidance${storyId ? `?story_id=${storyId}` : ''}`) })
   const [editing, setEditing] = useState<Prompt | null>(null)
-  return <section className="prompt-group"><h3>Mode guidance</h3><p className="subtle">Mode identity goes before the role prompt; character agency goes last. Each request records the exact versions and character name it used.</p><ErrorNotice message={query.error?.message} />{query.data?.map(item => <div className="routing-row" key={item.key}><div><strong>{item.label}</strong><small>Version {item.number}</small></div><button className="button quiet" disabled={disabled} onClick={() => setEditing(item)}>Edit guidance</button></div>)}{editing && <PromptEditor prompt={editing} storyId={storyId} onClose={() => setEditing(null)} />}</section>
+  return <section className="prompt-group"><h3>Mode guidance</h3><p className="subtle">Mode identity goes before the role prompt; character agency goes last. Each request records the exact versions and character name it used.</p><ErrorNotice message={query.error?.message} />{query.data?.map(item => <div className="routing-row" key={item.key}><div><strong>{item.label}</strong><small>Version {item.number}</small></div><button className="button quiet" disabled={disabled} aria-label={`Edit ${item.label} guidance`} onClick={() => (onEdit ?? setEditing)(item)}>Edit guidance</button></div>)}{editing && <PromptEditor prompt={editing} storyId={storyId} onClose={() => setEditing(null)} />}</section>
 }
 
 export function TemplateChoice({ experience, value, onChange }: { experience: unknown; value?: AgentSettings; onChange?: (value: AgentSettings) => void }) {
@@ -43,20 +43,21 @@ export function TemplateOffer({ value, onChange }: { value: Record<string, unkno
 }
 
 export function StoryAgents({ storyId }: { storyId: string }) {
+  const [editing, setEditing] = useState<Prompt | null>(null)
   const story = useQuery({ queryKey: ['story', storyId], queryFn: () => api<Story>(`/stories/${storyId}`) })
   const prompts = useQuery({ queryKey: ['prompts', storyId], queryFn: () => api<Prompt[]>(`/prompts?story_id=${storyId}`) })
   if (!story.data || !prompts.data) return <><ErrorNotice message={story.error?.message || prompts.error?.message} /><Loading /></>
-  return <StoryAgentEditor key={story.data.revision} story={story.data} prompts={prompts.data} />
+  return <><StoryAgentEditor key={story.data.revision} story={story.data} prompts={prompts.data} onEdit={setEditing} />{editing && <PromptEditor prompt={editing} storyId={storyId} onClose={() => setEditing(null)} />}</>
 }
 
-function StoryAgentEditor({ story, prompts }: { story: Story; prompts: Prompt[] }) {
-  const [settings, setSettings] = useState(story.settings), [editing, setEditing] = useState<Prompt | null>(null)
+function StoryAgentEditor({ story, prompts, onEdit }: { story: Story; prompts: Prompt[]; onEdit: (prompt: Prompt) => void }) {
+  const [settings, setSettings] = useState(story.settings)
   const action = useAction()
   const dirty = JSON.stringify(settings) !== JSON.stringify(story.settings)
   const disabled = (settings.disabled_prompts ?? []) as string[]
   const toggle = (key: string) => setSettings({ ...settings, disabled_prompts: disabled.includes(key) ? disabled.filter(item => item !== key) : [...disabled, key] })
   const save = () => action.run(async () => { await api(`/stories/${story.id}/agents`, { expected_revision: story.revision, disabled, template: (settings.agent_template as AgentSettings['agent_template'])?.mode ?? null, prompt_sections: settings.prompt_sections !== false }, 'PUT') })
-  return <div className="form-stack"><h3>Agents in this Story</h3>{dirty && <p className="subtle" role="status">Save your agent choices before editing prompts or mode guidance.</p>}<TemplateOffer value={settings} onChange={setSettings} />{prompts.map(prompt => <div key={prompt.key}><PromptCard prompt={{ ...prompt, enabled: prompt.enabled_source !== 'workspace' && !disabled.includes(prompt.key) }} onEdit={() => setEditing(prompt)} editDisabled={dirty} disabled={action.busy || prompt.enabled_source === 'workspace'} onToggle={() => toggle(prompt.key)} storyId={story.id} />{prompt.enabled_source === 'workspace' && <p className="subtle">Off in Settings &gt; Prompts</p>}{prompt.tasks?.filter(task => !task.historical).map(task => <label className="check-row task-setting" key={task.key}><input type="checkbox" checked={!disabled.includes(task.key)} disabled={action.busy || disabled.includes(prompt.key) || prompt.enabled_source === 'workspace' || task.enabled_source === 'workspace'} onChange={() => toggle(task.key)} />{task.label}{task.enabled_source === 'workspace' && ' · Off in Settings > Prompts'}</label>)}</div>)}
-    <label className="check-row"><input type="checkbox" checked={settings.prompt_sections !== false} onChange={event => setSettings({ ...settings, prompt_sections: event.target.checked })} />Compose mode and agency guidance with role prompts</label><p className="subtle">Turning this off sends only role instructions. Saved requests retain their original instructions.</p><ErrorNotice message={action.error} /><button className="button primary" disabled={action.busy} onClick={save}>Save Story agents</button><ModeGuidance storyId={story.id} disabled={dirty} />{editing && <PromptEditor prompt={editing} storyId={story.id} onClose={() => setEditing(null)} />}
+  return <div className="form-stack"><h3>Agents in this Story</h3>{dirty && <p className="subtle" role="status">Save your agent choices before editing prompts or mode guidance.</p>}<TemplateOffer value={settings} onChange={setSettings} />{prompts.map(prompt => <div key={prompt.key}><PromptCard prompt={{ ...prompt, enabled: prompt.enabled_source !== 'workspace' && !disabled.includes(prompt.key) }} onEdit={() => onEdit(prompt)} editDisabled={dirty} disabled={action.busy || prompt.enabled_source === 'workspace'} onToggle={() => toggle(prompt.key)} storyId={story.id} />{prompt.enabled_source === 'workspace' && <p className="subtle">Off in Settings &gt; Prompts</p>}{prompt.tasks?.filter(task => !task.historical).map(task => <label className="check-row task-setting" key={task.key}><input type="checkbox" checked={!disabled.includes(task.key)} disabled={action.busy || disabled.includes(prompt.key) || prompt.enabled_source === 'workspace' || task.enabled_source === 'workspace'} onChange={() => toggle(task.key)} />{task.label}{task.enabled_source === 'workspace' && ' · Off in Settings > Prompts'}</label>)}</div>)}
+    <label className="check-row"><input type="checkbox" checked={settings.prompt_sections !== false} onChange={event => setSettings({ ...settings, prompt_sections: event.target.checked })} />Compose mode and agency guidance with role prompts</label><p className="subtle">Turning this off sends only role instructions. Saved requests retain their original instructions.</p><ErrorNotice message={action.error} /><button className="button primary" disabled={action.busy} onClick={save}>Save Story agents</button><ModeGuidance storyId={story.id} disabled={dirty} onEdit={onEdit} />
   </div>
 }

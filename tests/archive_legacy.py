@@ -2,10 +2,15 @@ from server.archives.format import (
     ASSESSMENT_TABLES,
     AUTHORING_TABLES,
     BACKGROUND_TABLES,
+    BRANCH_TOOL_TABLES,
     CONTROL_TABLES,
     INTERPRETATION_TABLES,
     MAINTENANCE_TABLES,
+    SIDE_ORGANIZATION_TABLES,
     SUMMARY_TABLES,
+    TEXT_EDIT_TABLES,
+    WRITING_EXTRA_TABLES,
+    WRITING_TABLES,
 )
 
 
@@ -91,6 +96,10 @@ def remove_v062_prompts(document, *, keep_memory=False):
 
 
 def remove_v07_records(document, *, keep_memory=False):
+    for table in ('style_analysis_jobs', 'style_analysis_attempts', 'recipe_runs', 'recipe_jobs', 'recipe_attempts', 'recipe_results'):
+        assert document['data'].pop(table) == []
+    for table in WRITING_TABLES + WRITING_EXTRA_TABLES + BRANCH_TOOL_TABLES + SIDE_ORGANIZATION_TABLES + TEXT_EDIT_TABLES + ('candidate_text_heads', 'side_drafts', 'side_contexts', 'side_context_heads', 'companion_edit_origins', 'side_edit_results'):
+        assert document['data'].pop(table) == []
     if not keep_memory:
         remove_v070_records(document)
     from server.database import decode, encode

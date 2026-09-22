@@ -22,6 +22,7 @@ export interface Cleanup {
 // Detector offsets are Unicode code points; JavaScript strings use UTF-16.
 export const originalWords = (text: string, start: number, end: number) => Array.from(text).slice(start, end).join('')
 
-export function draftWording(original: string, cleanup?: Cleanup | null) {
+export function draftWording(original: string, cleanup?: Cleanup | null, edited?: { text: string } | null) {
+  if (edited) return edited.text
   return cleanup?.selected === 'cleaned' && cleanup.status === 'done' && !cleanup.stale ? cleanup.cleaned : original
 }

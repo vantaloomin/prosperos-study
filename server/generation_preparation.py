@@ -15,6 +15,7 @@ from server.memory.summary_recall import summary_dependencies
 from server.prompt_sections import sections_for
 from server.prompts import prompt_snapshot
 from server.request_timing import RECEIVED
+from server.writing.context import request_guidance, writer_profiles
 
 
 def preparation_identity(connection, writer, body):
@@ -29,9 +30,11 @@ def preparation_identity(connection, writer, body):
                          "AND (COALESCE(json_extract(a.snapshot,'$.purpose'),'') != 'post-acceptance' OR o.id=?)",
                          (branch['id'], branch['head_id'] or '', writer.get('opportunity_id')))
     selected = pending_opportunity(connection, branch, story) if writer.get('opportunity_id') else None
+    guidance = request_guidance(connection, story, body)
     return {'branch': branch, 'story': story, 'memory_controls': control_head(connection, branch['id']), 'summary_versions': summary_dependencies(connection, story),
             'cleanup': cleanup_settings(connection, branch['id']),
-            'profiles': [profile['id'] for profile in selected_profiles(connection, story, body.profile_ids)],
+            'profiles': [profile['id'] for profile in selected_profiles(connection, story, writer_profiles(body.profile_ids, guidance))],
+            **({'writing_guidance': guidance} if guidance else {}),
             'prompt': prompt_snapshot(connection, 'writer', story)['id'],
             'prompt_sections': sections_for(connection, 'writer', story, branch['manifest_id']),
             'background': state_id(connection, branch['id']), 'opportunities': opportunities,

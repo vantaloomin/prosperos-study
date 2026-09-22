@@ -1,0 +1,41 @@
+.branch-map-tabs { padding-inline: 20px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.branch-map-browse { min-height: 0; overflow-y: auto; }
+.branch-map-browse .branch-tree-scroll { height: min(38dvh, 420px); }
+.branch-map-filters, .branch-manage { padding: 14px 28px; border-bottom: 1px solid var(--border); }
+.branch-map-filters { display: flex; align-items: center; gap: 14px; }
+.branch-map-filters select { padding: 9px; }
+.branch-manage > .branch-tool-actions { margin-bottom: 12px; justify-content: space-between; }
+.branch-manage h3 { font-size: .9rem; overflow-wrap: anywhere; }
+.branch-tree-organize { flex: 0 0 auto; margin-left: 8px; }
+.branch-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; }
+.branch-curation > p { margin-top: 10px; }
+.branch-tool-content { padding: 24px 28px; overflow-y: auto; min-height: 0; }
+.branch-comparison-choices, .comparison-headings, .comparison-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.branch-picker { min-width: 0; }
+.branch-picker select { min-width: 0; text-overflow: ellipsis; }
+.comparison-reader { padding-top: 24px; border-top: 1px solid var(--border); }
+.comparison-headings h4 { margin-top: 8px; overflow-wrap: anywhere; }
+.comparison-counts { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .75rem; }
+.comparison-row { margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.comparison-row > h4 { padding: 10px 14px; background: var(--raised); font-size: .75rem; }
+.comparison-row > .subtle { padding: 10px 14px; }
+.comparison-columns { gap: 0; }
+.compared-passage { padding: 14px 16px; min-width: 0; }
+.compared-passage + .compared-passage { border-left: 1px solid var(--border); }
+.comparison-prose { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; font-family: var(--reading-font, 'Source Serif 4'), serif; font-size: .875rem; margin-block: 12px; }
+.comparison-prose ins, .comparison-prose mark { background: #82a78630; color: var(--text); text-decoration-thickness: 1px; }
+.comparison-prose del { background: #d89a8530; text-decoration-color: #d89a85; }
+.comparison-source-label { overflow-wrap: anywhere; }
+.branch-filter-list { display: grid; gap: 14px; padding-top: 14px; }
+.branch-search-results { display: grid; gap: 20px; }
+.branch-search-card { border: 1px solid var(--border); border-radius: 9px; padding: 18px; }
+.search-occurrences { display: flex; flex-wrap: wrap; gap: 8px; }
+.search-occurrences .button { white-space: normal; text-align: left; overflow-wrap: anywhere; font-size: .75rem; }
+.archived-branch-notice { padding: 8px 24px; background: var(--accent-tint); color: var(--muted); font-size: .75rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .branch-tool-content, .branch-manage, .branch-map-filters { padding: 16px; }
+  .branch-comparison-choices, .comparison-headings, .comparison-columns { grid-template-columns: minmax(0, 1fr); }
+  .compared-passage + .compared-passage { border-left: 0; border-top: 1px solid var(--border); }
+  .branch-tool-actions .button { white-space: normal; }
+  .branch-tree-organize { margin-left: 3px; }
+}

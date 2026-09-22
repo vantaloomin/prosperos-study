@@ -16,12 +16,12 @@ export function CleanupReview({ candidate }: { candidate: Candidate }) {
     })
   })
   return <section className="cleanup-review" aria-label="Draft wording cleanup">
-    <p role="status">{cleanupMessage(cleanup)}</p>
+    <p role="status">{cleanupMessage(cleanup, !!candidate.text_edit)}</p>
     <CleanupStop candidate={candidate} busy={action.busy} stop={() => void action.run(async () => { await api(`/candidates/${candidate.id}/cancel`, {}) })} />
     {cleanup.status === 'done' && <>
       <p className="subtle">{changeLabel(cleanup.edits.length)} Check that the meaning and voice still fit before keeping this draft.</p>
       <CleanupComparison cleanup={cleanup} />
-      {!candidate.accepted_node_id && <div className="candidate-actions">
+      {canChooseCleanup(candidate) && <div className="candidate-actions">
         <button className="button" aria-pressed={cleanup.selected === 'original'} disabled={action.busy || candidate.status !== 'done'} onClick={() => void choose('original')}>Use original wording</button>
         <button className="button" aria-pressed={cleanup.selected === 'cleaned' && !cleanup.stale} disabled={action.busy || cleanup.stale || candidate.status !== 'done'} onClick={() => void choose('cleaned')}>Use cleaned wording</button>
       </div>}
@@ -33,12 +33,14 @@ export function CleanupReview({ candidate }: { candidate: Candidate }) {
 }
 
 function changeLabel(count: number) { return `${count} wording ${count === 1 ? 'change' : 'changes'}.` }
+function canChooseCleanup(candidate: Candidate) { return !candidate.accepted_node_id && !candidate.text_edit }
 
 function CleanupStop({ candidate, busy, stop }: { candidate: Candidate; busy: boolean; stop: () => void }) {
   return candidate.cleanup?.status === 'running' && candidate.status === 'done' ? <button className="button" disabled={busy} onClick={stop}>Stop cleanup</button> : null
 }
 
-function cleanupMessage(cleanup: Cleanup) {
+function cleanupMessage(cleanup: Cleanup, edited: boolean) {
+  if (edited) return 'An author revision is selected. This cleanup compares the preserved model draft.'
   if (cleanup.stale) return 'The path or draft changed. Cleanup cannot be applied; the original is shown.'
   if (cleanup.status === 'running') return 'Polishing flagged wording. Your original draft is saved.'
   if (cleanup.status === 'done') return cleanup.selected === 'cleaned' ? 'Showing cleaned wording.' : cleanup.edits.length ? 'Cleaned wording is available. Your original is still shown.' : 'Showing original wording.'

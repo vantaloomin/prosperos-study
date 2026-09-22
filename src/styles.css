@@ -170,7 +170,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .composer-wrap { max-height: 48%; overflow-y: auto; flex-shrink: 0; }
 .composer-bottom, .composer-modes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .composer-bottom .button { margin-left: auto; font-size: .75rem; }
-.composer-modes { margin-top: .6rem; }
+.composer-modes { margin: .6rem 0 0; padding: 0; border: 0; min-width: 0; }
+.composer-modes > .subtle { flex-basis: 100%; font-size: .7rem; }
 .composer-modes select { max-width: 100%; }
 .composer-modes > button { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .6rem; border: 1px solid var(--border); border-radius: .4rem; font-size: .75rem; }
 [aria-pressed='true'].button, .composer-modes > button[aria-pressed='true'] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }

@@ -9,9 +9,10 @@ from server.memory.knowledge import prepare_knowledge
 from server.memory.plan_state import plan_head
 from server.prompt_sections import compose, sections_for
 from server.prompts import prompt_snapshot
+from server.writing.context import references
 
 
-def knowledge_snapshot(connection, branch, story, body, profiles):
+def knowledge_snapshot(connection, branch, story, body, profiles, guidance=None):
     require(not body.use_prepared_beat and not body.assess_beat,
             'Character evidence view cannot include prepared chance or beat assessment. '
             'Turn those off for this request, or return to Author view.', 409)
@@ -24,8 +25,9 @@ def knowledge_snapshot(connection, branch, story, body, profiles):
     prompt = prompt_snapshot(connection, 'writer', story)
     sections = sections_for(connection, 'writer', story, branch['manifest_id'])
     instructions = compose(prompt, sections)
-    content, report, links = prepare_knowledge(controls, subject, body.direction, instructions, profiles, decode(story['settings']), body.knowledge_character_id)
+    content, report, links = prepare_knowledge(controls, subject, body.direction, instructions, profiles, decode(story['settings']), body.knowledge_character_id, guidance)
     return {'branch': branch, 'story_revision': story['revision'], 'prompt': prompt, 'prompt_sections': sections,
+            **({'writing_versions': references(guidance), 'writing_guidance': guidance} if guidance else {}),
             'continuity_version_id': plan_head(connection, branch['id']),
             'memory_controls_version_id': controls['version_id'], 'knowledge_lens': report, 'source_links': links,
             'background_state_id': state_id(connection, branch['id']), 'opportunity_id': None,

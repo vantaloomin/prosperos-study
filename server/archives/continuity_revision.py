@@ -7,6 +7,7 @@ from server.errors import require
 def validate_continuity_revisions(data):
     candidates = {row['id']: row for row in data['candidates']}
     snapshots = {row['id']: decode(row['snapshot']) for row in data['generations']}
+    edits = {row['id']: row for row in data['text_edit_receipts']}
     parents = {}
     for row in [*data['candidates'], *data['generation_attempts']]:
         candidate = candidates[row['candidate_id']] if 'candidate_id' in row else row
@@ -23,7 +24,9 @@ def validate_continuity_revisions(data):
         original_usage = decode(source['usage'])
         require(usage.get('writer_recall') == original_usage.get('writer_recall'),
                 'A continuity revision changed its source draft’s recall evidence.')
-        expected = freeze(snapshots[source['generation_id']], decode(source['profile']), original_usage, source, revision['concern'], version=revision.get('version'))
+        original = revision_source(source, revision, edits)
+        expected = freeze(snapshots[source['generation_id']], decode(source['profile']), original_usage, original, revision['concern'],
+                          version=revision.get('version'), source_edit_receipt_id=revision.get('source_edit_receipt_id'))
         require(revision == expected, 'A continuity revision differs from its original draft, evidence or bounded request.')
         parents[candidate['id']] = source['id']
     for start in parents:
@@ -34,8 +37,22 @@ def validate_continuity_revisions(data):
             current = parents[current]
 
 
+def revision_source(source, revision, edits):
+    if revision.get('version') != 3:
+        return source
+    edit = edits.get(revision.get('source_edit_receipt_id'))
+    require(edit is not None, 'A continuity revision lost its selected author text receipt.')
+    target = decode(edit['after_target'])
+    require(target['ref']['kind'] == 'candidate' and target['ref']['candidate_id'] == source['id'] and target['basis']['attempt'] == revision['attempt'],
+            'A continuity revision points outside its selected author draft.')
+    return {**source, 'output': target['text']}
+
+
 def remap_revision_usage(usage, mapping):
     if 'continuity_revision' not in usage:
         return usage
     revision = usage['continuity_revision']
-    return {**usage, 'continuity_revision': {**revision, 'candidate_id': mapping[revision['candidate_id']]}}
+    updated = {**revision, 'candidate_id': mapping[revision['candidate_id']]}
+    if revision.get('source_edit_receipt_id'):
+        updated['source_edit_receipt_id'] = mapping[revision['source_edit_receipt_id']]
+    return {**usage, 'continuity_revision': updated}

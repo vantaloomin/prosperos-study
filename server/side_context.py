@@ -1,4 +1,4 @@
-"""Frozen read-only source archive. No story mutation operations are exposed to the collaborator."""
+"""Frozen discussion sources; scoped text application is handled separately."""
 import math
 
 from server.background.sources import interpretation_sources
@@ -20,6 +20,8 @@ from server.memory.summary_recall import reviewed_aids
 from server.profiles import resolve_profile
 from server.prompts import PROMPT_LABELS, prompt_snapshot
 from server.providers.capabilities import input_capacity
+from server.side_targets import question_context
+from server.side_work import effective_prompt, prepare_work, work_context
 from server.stories import check_revision
 from server.workflow.reviews import job_view
 
@@ -126,32 +128,44 @@ def mechanic_sources(connection, branch, nodes):
 
 
 def side_snapshot(connection, thread, body):
-    branch = one(connection, "SELECT * FROM branches WHERE id=?", (body.branch_id,))
+    pinned = question_context(connection, thread['id'], body)
+    branch = pinned['branch'] if pinned else one(connection, "SELECT * FROM branches WHERE id=?", (body.branch_id,))
     require(branch["story_id"] == thread["story_id"], "Choose a branch from this story.")
-    check_revision(branch, body.expected_revision)
+    if not pinned:
+        check_revision(branch, body.expected_revision)
     story = one(connection, "SELECT * FROM stories WHERE id=?", (thread["story_id"],))
     policy = memory_settings(decode(story['settings']).get('memory'))
-    sources = document_parts(f"story:{story['id']}", "Story settings and premise", encode(story))
-    for branch_id in dict.fromkeys([body.branch_id, *body.compare_branch_ids]):
-        selected = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
-        require(selected["story_id"] == thread["story_id"], "Comparison paths must belong to this story.")
-        aids = reviewed_aids(connection, selected, policy) if policy.summary_recall else {}
-        sources.extend(branch_sources(connection, selected, aids))
-    sources.extend(workspace_sources(connection, body.branch_id, story))
+    sources = pinned['sources'] if pinned else following_sources(connection, story, body, policy)
     history = many(connection, "SELECT t.id,t.question,t.snapshot,r.output,r.coverage FROM side_turns t JOIN side_replies r "
                    "ON t.selected_reply_id=r.id WHERE t.thread_id=? AND r.status='done' ORDER BY t.created_at", (thread["id"],))
     conversation = [{"question": row["question"], "answer": row["output"],
                      "branch": decode(row["snapshot"])["branch"]["name"]} for row in history]
-    profiles = [resolve_profile(connection, story, "collaborator", item) for item in (body.profile_ids or [None])]
+    work, selected_profiles = prepare_work(connection, story, body, pinned)
+    profiles = [resolve_profile(connection, story, "collaborator", item) for item in (selected_profiles or [None])]
     require(len(body.profile_ids) == len(set(body.profile_ids)), "Choose each profile once.")
-    snapshot = {"branch": branch, "story_revision": story["revision"], "question": body.question,
+    snapshot = {"branch": branch, "story_revision": pinned['story_revision'] if pinned else story["revision"], "question": body.question,
             "prompt": prompt_snapshot(connection, "collaborator", story), "conversation": conversation,
             "sources": list({doc["id"]: doc for doc in sources}.values()), "disclosure": body.disclosure,
-            "max_reads": body.max_reads}
+            "max_reads": body.max_reads, **work}
+    if pinned:
+        snapshot.update(context_id=body.context_id, model_context=pinned['model_context'])
+    if work:
+        snapshot['work_prompt'] = effective_prompt(snapshot)
     if policy.mode == 'long':
         with connection_index(connection):
             snapshot = prepare_archive(snapshot, history, profiles)
     return snapshot, profiles
+
+
+def following_sources(connection, story, body, policy):
+    sources = document_parts(f"story:{story['id']}", "Story settings and premise", encode(story))
+    for branch_id in dict.fromkeys([body.branch_id, *body.compare_branch_ids]):
+        selected = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
+        require(selected["story_id"] == story['id'], "Comparison paths must belong to this story.")
+        aids = reviewed_aids(connection, selected, policy) if policy.summary_recall else {}
+        sources.extend(branch_sources(connection, selected, aids))
+    sources.extend(workspace_sources(connection, body.branch_id, story))
+    return sources
 
 
 def workspace_sources(connection, branch_id, story):
@@ -175,10 +189,11 @@ def assemble_context(snapshot, profile, source_ids):
     content = encode({"question": snapshot["question"], "disclosure": snapshot["disclosure"],
                       "conversation": snapshot["conversation"],
                       "source_index": [{"id": item["id"], "title": item["title"]} for item in documents],
-                      "sources": [item for item in documents if item["id"] in source_ids]})
+                      "sources": [item for item in documents if item["id"] in source_ids],
+                      **({'selected_context': snapshot['model_context']} if 'model_context' in snapshot else {}), **work_context(snapshot)})
     config = profile["config"]
     capacity = input_capacity(config)
-    require(estimated_tokens(snapshot["prompt"]["template"], content) <= capacity,
+    require(estimated_tokens(effective_prompt(snapshot), content) <= capacity,
             "This source selection exceeds the model's context allowance. Use a larger-context profile or a new side conversation. No source was silently truncated.", 409)
     return content
 

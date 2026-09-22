@@ -6,7 +6,7 @@ from pydantic import Field, StringConstraints
 
 from server.models import Input
 
-ARCHIVE_VERSION = 37
+ARCHIVE_VERSION = 51
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 V1_TABLES = (
     "stories", "assets", "asset_versions", "manifests", "branches", "nodes", "adoptions",
@@ -43,8 +43,40 @@ V32_TABLES = V31_TABLES + CLEANUP_TABLES
 V33_TABLES = V32_TABLES + ('branch_cleanup_timing',)
 RELATIONSHIP_TABLES = ('relationship_jobs', 'relationship_attempts')
 V36_TABLES = V33_TABLES + RELATIONSHIP_TABLES
-TABLES = V36_TABLES + ('manuscripts',)
+V37_TABLES = V36_TABLES + ('manuscripts',)
+WRITING_TABLES = ('writing_assets', 'writing_versions', 'writing_pins')
+V38_TABLES = V37_TABLES + WRITING_TABLES
+WRITING_EXTRA_TABLES = ('writing_extras',)
+V39_TABLES = V38_TABLES + WRITING_EXTRA_TABLES
+BRANCH_TOOL_TABLES = ('branch_curation', 'branch_comparisons')
+V40_TABLES = V39_TABLES + BRANCH_TOOL_TABLES
+SIDE_ORGANIZATION_TABLES = ('side_thread_curation',)
+V41_TABLES = V40_TABLES + SIDE_ORGANIZATION_TABLES
+TEXT_EDIT_TABLES = ('text_documents', 'text_edit_proposals', 'text_edit_receipts')
+V42_TABLES = V41_TABLES + TEXT_EDIT_TABLES
+V43_TABLES = V42_TABLES
+V44_TABLES = V43_TABLES + ('candidate_text_heads',)
+V45_TABLES = V44_TABLES
+V46_TABLES = V45_TABLES + ('side_drafts',)
+SIDE_CONTEXT_TABLES = ('side_contexts', 'side_context_heads')
+V47_TABLES = V46_TABLES + SIDE_CONTEXT_TABLES
+SIDE_EDIT_TABLES = ('companion_edit_origins', 'side_edit_results')
+V49_TABLES = V47_TABLES + SIDE_EDIT_TABLES
+STYLE_ANALYSIS_TABLES = ('style_analysis_jobs', 'style_analysis_attempts')
+V50_TABLES = V49_TABLES + STYLE_ANALYSIS_TABLES
+RECIPE_TABLES = ('recipe_runs', 'recipe_jobs', 'recipe_attempts', 'recipe_results')
+TABLES = V50_TABLES + RECIPE_TABLES
 JSON_FIELDS = {
+    'recipe_runs': ('snapshot', 'bindings', 'target', 'chance'),
+    'recipe_jobs': ('snapshot', 'result', 'usage'), 'recipe_attempts': ('result', 'usage'),
+    'style_analysis_jobs': ('snapshot', 'result', 'usage'), 'style_analysis_attempts': ('result', 'usage'),
+    'companion_edit_origins': ('detail',),
+    'side_contexts': ('snapshot',),
+    'text_edit_proposals': ('target', 'selection', 'origin'),
+    'text_edit_receipts': ('before_target', 'after_target', 'selection', 'origin', 'result'),
+    'branch_comparisons': ('labels',),
+    'writing_extras': ('content',),
+    'writing_versions': ('content',),
     'relationship_jobs': ('snapshot', 'result', 'usage'), 'relationship_attempts': ('result', 'usage'),
     'candidate_cleanups': ('snapshot', 'usage', 'edits'),
     'manuscripts': ('document',),
@@ -76,7 +108,7 @@ JSON_FIELDS = {
 
 class ArchiveDocument(Input):
     format: Literal["roleplay-archive"] = "roleplay-archive"
-    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] = ARCHIVE_VERSION
+    version: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51] = ARCHIVE_VERSION
     scope: Literal["story", "workspace"]
     title: str = Field(min_length=1, max_length=200)
     created_at: str
@@ -121,4 +153,4 @@ def summary(document):
                         for story in data["stories"]],
             "counts": {key: len(rows) for key, rows in data.items()}, "selection": document["selection"],
             "running_jobs": sum(row["status"] in {"running", "queued", "cleaning"}
-                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs') for row in data[key])}
+                                for key in ("candidates", "review_jobs", "side_replies", "scene_jobs", "assessment_jobs", 'background_jobs', 'authoring_jobs', 'summary_jobs', 'relationship_jobs', 'style_analysis_jobs', 'recipe_jobs') for row in data[key])}

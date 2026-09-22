@@ -1,4 +1,5 @@
 export interface ContextRequest {
+  writing?: import('../writing/types').WritingChoices
   knowledge_subject?: string
   knowledge_character_id?: string
   expected_revision: number

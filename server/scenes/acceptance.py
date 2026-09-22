@@ -26,6 +26,7 @@ def accept_scene(connection, run, body):
     if body.manual_review:
         return accept_manually(connection, run, body)
     text, changes, summary = acceptance_material(connection, run, body)
+    require(bool(text.strip()), 'An empty scene cannot be kept.', 409)
     target = Generations._accept_branch(connection, run['snapshot']['branch'], run['snapshot'], body)
     commit_id = identifier()
     node_id = insert_node(connection, target, text, 'assistant', {'source': 'accepted_scene', 'scene_id': run['id'], 'commit_id': commit_id}, scene_mechanics_state(run))

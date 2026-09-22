@@ -15,6 +15,14 @@ def records(data):
     # their frozen identities; retaining every workspace head bloats restores.
     referenced = {value for row in data['nodes'] for value in decode(row.get('metadata', '{}')).values()
                   if isinstance(value, str)}
+    # Recipe source versions retain original model/table identities inside frozen
+    # requests after restore, even when no accepted prose names those records.
+    from server.archives.writing import referenced_profiles, referenced_tables
+    referenced.update(referenced_profiles(data))
+    referenced.update(referenced_tables(data))
+    from server.archives.text_edit_versions import version_references
+    referenced.update(version_references(data, 'prompt'))
+    referenced.update(value for row in data.get('recipe_runs', []) for value in decode(row['bindings']).values())
     result = {row['id']: (kind, row.get('story_id', GLOBAL) if kind == 'nodes' else GLOBAL)
               for kind, rows in data.items() if kind not in {TABLE, 'roll_tables'}
               for row in rows if 'id' in row and (kind not in CONFIGURATION or row['id'] in referenced)}

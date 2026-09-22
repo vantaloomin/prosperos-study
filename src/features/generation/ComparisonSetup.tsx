@@ -11,13 +11,14 @@ import { ContextPreviewButton } from './ContextPreviewButton'
 import { useReviewedContext } from './useReviewedContext'
 import { characterRequest } from './knowledgeRequest'
 import { cleanupChoices } from '../phrases/cleanupRequest'
+import type { WritingChoices } from '../writing/types'
 
-export default function ComparisonSetup({ branch, profiles, usePrepared, assessmentChoice, onClose, onCreated, knowledge = '' }: { knowledge?: string; branch: Branch; profiles: ModelProfile[]; usePrepared: boolean; assessmentChoice: AssessmentChoice; onClose: () => void; onCreated: (result: WritingResult) => void }) {
+export default function ComparisonSetup({ branch, profiles, usePrepared, assessmentChoice, onClose, onCreated, knowledge = '', writing }: { knowledge?: string; writing?: WritingChoices; branch: Branch; profiles: ModelProfile[]; usePrepared: boolean; assessmentChoice: AssessmentChoice; onClose: () => void; onCreated: (result: WritingResult) => void }) {
   const [selected, setSelected] = useState<string[]>([])
   const [direction, setDirection] = useState('')
   const action = useAction()
   const toggle = (id: string) => setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id])
-  const contextRequest = characterRequest({ expected_revision: branch.revision, profile_ids: selected, direction, use_prepared_beat: usePrepared, ...assessmentChoice }, knowledge)
+  const contextRequest = characterRequest({ expected_revision: branch.revision, profile_ids: selected, direction, use_prepared_beat: usePrepared, ...assessmentChoice, ...(writing ? { writing } : {}) }, knowledge)
   const preview = useReviewedContext(branch.id, contextRequest)
   const start = () => action.run(async () => {
     const result = await api<WritingResult>(`/branches/${branch.id}/generations`, { operation_id: operationId(), ...contextRequest, ...preview.input, cleanup_choices: cleanupChoices(branch.id) })

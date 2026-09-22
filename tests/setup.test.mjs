@@ -73,3 +73,44 @@ test('greeting provenance resumes with pinned versions and requires review after
   assert.equal('opening_source' in custom, false)
   assert.equal(restoreSetup({ schema: 2, opening: 'Old unfinished opening' }).opening_source, null)
 })
+
+test('skip setup permits an untitled manual Story and reuses an available primary writer', () => {
+  for (const title of ['', '  \t\n']) {
+    const draft = { ...freshSetup(), title }
+    const manual = storyStart(draft, { profiles: [], primary_profile_id: null }, [], 'skip-manual', true)
+    assert.equal(manual.title, 'Untitled Story')
+    assert.equal(manual.settings.primary_profile_id, null)
+    assert.equal(manual.settings.experience, 'directed')
+    assert.equal(manual.settings.randomness.enabled, false)
+    assert.equal(manual.premise, '')
+    assert.equal(manual.opening_text, '')
+    assert.deepEqual(manual.attachments, [])
+    assert.equal(storyStart(draft, profiles, [], 'skip-writer', true).settings.primary_profile_id, writer.profile_id)
+    assert.equal(storyStart(draft, profiles, [], 'guided-title').title, '')
+    assert.equal(draft.title, title)
+  }
+})
+
+test('skipping the remaining steps preserves all entered choices and pinned versions', () => {
+  const draft = { ...freshSetup(), title: '  夜の庭  ', premise: 'A quiet reunion.', opening: '  An exact opening.\n',
+    ...experienceChange('roleplay'), genre: 'Mystery', tone: 'Quiet', persona: 'Wren', pov: 'first person', tense: 'present',
+    randomness: 'quiet', primary_profile_id: writer.profile_id, assets: [pinAsset(book)] }
+  const newer = { ...book, id: 'city-v2', number: 2 }
+  const skipped = storyStart(draft, profiles, [newer], 'same-operation', true)
+  assert.deepEqual(skipped, storyStart(draft, profiles, [newer], 'same-operation'))
+  assert.equal(skipped.title, '夜の庭')
+  assert.equal(skipped.opening_text, draft.opening)
+  assert.equal(skipped.attachments[0].version_id, 'city-v1')
+  const untitled = storyStart({ ...draft, title: '' }, profiles, [newer], 'saved-skip', true)
+  const restored = restoreSetup(JSON.parse(JSON.stringify({ ...draft, title: untitled.title, pending: untitled })))
+  assert.equal(restored.step, 5)
+  assert.equal(restored.title, 'Untitled Story')
+  assert.deepEqual(restored.pending, untitled)
+})
+
+test('skip setup cannot silently discard invalid writer, legacy Library or greeting choices', () => {
+  const manual = { profiles: [], primary_profile_id: null }
+  assert.throws(() => storyStart({ ...freshSetup(), primary_profile_id: 'missing' }, manual, [], 'skip-stale-model', true), /profile is unavailable/)
+  assert.throws(() => storyStart({ ...freshSetup(), legacyAssets: ['missing'] }, manual, [], 'skip-stale-library', true), /Library choice.*unavailable/)
+  assert.throws(() => storyStart({ ...freshSetup(), opening: 'Keep my greeting.', opening_source: { asset_id: 'missing', version_id: 'missing-v1', greeting_id: 'start' } }, manual, [], 'skip-stale-opening', true), /greeting source/)
+})

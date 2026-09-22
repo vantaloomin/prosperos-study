@@ -1,0 +1,15 @@
+.writing-library { padding-top: 1.5rem; }
+.writing-resource-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; }
+.writing-resource-card { border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; min-width: 0; background: var(--surface); }
+.writing-resource-card h3, .writing-resource-card h4 { overflow-wrap: anywhere; margin: .35rem 0; }
+.writing-resource-card p { overflow-wrap: anywhere; }
+.writing-resource-actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.writing-version { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.writing-version small { display: block; color: var(--muted); }
+.writing-sample { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; }
+.writing-sample legend { color: var(--muted); padding: 0 .4rem; }
+.writing-json { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; font-size: .8rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.writing-unsupported { margin-top: .8rem; }
+.recipe-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .75rem; }
+.recipe-field-grid > * { min-width: 0; }
+@media (max-width: 600px) { .writing-library .section-heading { flex-wrap: wrap; gap: .75rem; } }

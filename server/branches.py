@@ -1,5 +1,6 @@
 from server.background.storage import bind, state_id
 from server.branch_timing import BranchTimings
+from server.branch_tools.curation import curation
 from server.database import Database, decode, encode, identifier, many, now, one
 from server.errors import require
 from server.manifests import manifest_view
@@ -59,6 +60,7 @@ class Branches:
         timing = timing or BranchTimings()
         with self.database.connect() as connection:
             branch = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
+            branch['curation'] = curation(connection, branch_id)
             timing.mark("lookup")
             messages = path_nodes(connection, branch["head_id"], include_removed=True)
             timing.mark("path")
@@ -80,7 +82,9 @@ class Branches:
             require(not body.opportunity_id or body.role in {"narrator", "assistant"},
                     "Only completed narration can accept a prepared beat. Dialogue and OOC notes cannot advance it.")
             state = accepted_state(connection, branch, body.opportunity_id)
-            node_id = insert_node(connection, branch, body.text, body.role,
+            from server.text_edits.documents import consume_document
+            text = consume_document(connection, branch, 'author-note' if body.role == 'ooc' else 'composer', body.expected_document_version, body.text)
+            node_id = insert_node(connection, branch, text, body.role,
                                   {"source": "manual", "opportunity_id": body.opportunity_id}, state)
             touch_branch(connection, branch_id, node_id)
             return remember(connection, body.operation_id, "message", payload,

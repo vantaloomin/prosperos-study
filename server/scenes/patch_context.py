@@ -2,9 +2,9 @@ from server.database import decode, one
 from server.errors import require
 from server.lore.scene import planned_sources
 from server.memory.source_evidence import carry_evidence, cited_ids
+from server.scenes.author_text import selected_draft
 from server.scenes.chance import chance_sources
 from server.scenes.continuity_catalog import CONTINUITY_KEYS
-from server.scenes.drafts import assemble_draft
 from server.scenes.patch_apply import apply_edits, compose, passage_changes
 from server.scenes.patch_catalog import PATCH_KEYS
 from server.scenes.patch_validation import patch_check_passes
@@ -26,7 +26,7 @@ def patch_view(connection, run):
     gate = run['state'].get('gate_b')
     if not gate:
         return None
-    draft = assemble_draft(selected_result(connection, run, 'scene-draft'), selected_result(connection, run, 'scene-dialogue'))
+    draft = selected_draft(connection, run)
     blocks, changes, resolutions = draft['blocks'], [], []
     for key in patch_writers(run):
         result = selected_result(connection, run, key)
@@ -46,7 +46,7 @@ def patch_view(connection, run):
 
 
 def original_blocks(connection, run):
-    return assemble_draft(selected_result(connection, run, 'scene-draft'), selected_result(connection, run, 'scene-dialogue'))['blocks']
+    return selected_draft(connection, run)['blocks']
 
 
 def patch_inputs(connection, run, key, version=1):

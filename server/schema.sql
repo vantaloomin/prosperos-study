@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS adoptions (
     new_manifest_id TEXT NOT NULL REFERENCES manifests(id), created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+INSERT OR IGNORE INTO preferences VALUES ('text_edit_workspace_id', lower(hex(randomblob(16))));
 CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY, latest_version_id TEXT, created_at TEXT NOT NULL
 );
@@ -123,6 +124,10 @@ CREATE TRIGGER IF NOT EXISTS immutable_manifests BEFORE UPDATE ON manifests
 BEGIN SELECT RAISE(ABORT,'Attachment snapshots are immutable'); END;
 CREATE TABLE IF NOT EXISTS side_threads (
     id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id), name TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS side_thread_curation (
+    thread_id TEXT PRIMARY KEY REFERENCES side_threads(id), archived INTEGER NOT NULL CHECK(archived IN (0,1)),
+    revision INTEGER NOT NULL CHECK(revision >= 1), updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS side_turns (
     id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES side_threads(id), question TEXT NOT NULL,
@@ -456,3 +461,150 @@ CREATE TABLE IF NOT EXISTS relationship_attempts (
     status TEXT NOT NULL, output TEXT NOT NULL, result TEXT NOT NULL, usage TEXT NOT NULL,
     error TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(job_id,attempt)
 );
+CREATE TABLE IF NOT EXISTS side_drafts (
+    thread_id TEXT PRIMARY KEY REFERENCES side_threads(id),
+    text TEXT NOT NULL CHECK(length(text)<=30000), revision INTEGER NOT NULL CHECK(revision>=1), updated_at TEXT NOT NULL
+);
+
+-- Writing preferences have immutable versions but never enter narrative manifests.
+CREATE TABLE IF NOT EXISTS writing_assets (
+    id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('style','recipe')),
+    latest_version_id TEXT REFERENCES writing_versions(id),
+    archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)),
+    revision INTEGER NOT NULL DEFAULT 0 CHECK(revision >= 0), created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS writing_versions (
+    id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES writing_assets(id),
+    number INTEGER NOT NULL CHECK(number > 0), name TEXT NOT NULL, description TEXT NOT NULL,
+    content TEXT NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL,
+    UNIQUE(asset_id,number)
+);
+CREATE TRIGGER IF NOT EXISTS immutable_writing_versions BEFORE UPDATE ON writing_versions
+BEGIN SELECT RAISE(ABORT,'Writing resource versions are immutable'); END;
+CREATE TABLE IF NOT EXISTS writing_pins (
+    story_id TEXT PRIMARY KEY REFERENCES stories(id),
+    style_version_id TEXT REFERENCES writing_versions(id),
+    recipe_version_id TEXT REFERENCES writing_versions(id), updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS writing_extras (
+    version_id TEXT PRIMARY KEY REFERENCES writing_versions(id), content TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_writing_extras BEFORE UPDATE ON writing_extras
+BEGIN SELECT RAISE(ABORT,'Unsupported writing settings are immutable version metadata'); END;
+CREATE TABLE IF NOT EXISTS branch_curation (
+    branch_id TEXT PRIMARY KEY REFERENCES branches(id),
+    favorite INTEGER NOT NULL CHECK(favorite IN (0,1)), archived INTEGER NOT NULL CHECK(archived IN (0,1)),
+    revision INTEGER NOT NULL CHECK(revision >= 0), updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS text_documents (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id), branch_id TEXT NOT NULL REFERENCES branches(id),
+    purpose TEXT NOT NULL CHECK(purpose IN ('composer','author-note','scene-goal')), text TEXT NOT NULL,
+    revision INTEGER NOT NULL CHECK(revision>=1), updated_at TEXT NOT NULL, UNIQUE(branch_id,purpose)
+);
+CREATE TABLE IF NOT EXISTS text_edit_proposals (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id), target TEXT NOT NULL, selection TEXT NOT NULL,
+    action TEXT NOT NULL CHECK(action IN ('add','insert-before','insert-after','replace','update')),
+    replacement TEXT NOT NULL, explanation TEXT NOT NULL, origin TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending','conflict','applied','dismissed')), revision INTEGER NOT NULL CHECK(revision>=0),
+    undo_of TEXT REFERENCES text_edit_receipts(id), created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS text_edit_receipts (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id), proposal_id TEXT NOT NULL UNIQUE REFERENCES text_edit_proposals(id),
+    before_target TEXT NOT NULL, after_target TEXT NOT NULL, selection TEXT NOT NULL, action TEXT NOT NULL,
+    replacement TEXT NOT NULL, explanation TEXT NOT NULL, origin TEXT NOT NULL, result TEXT NOT NULL,
+    undo_of TEXT UNIQUE REFERENCES text_edit_receipts(id), created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS text_edits_story ON text_edit_proposals(story_id,created_at);
+CREATE TRIGGER IF NOT EXISTS immutable_text_edit_target BEFORE UPDATE OF story_id,target,selection,action,origin,undo_of ON text_edit_proposals
+BEGIN SELECT RAISE(ABORT,'An edit target and its source remain fixed; rebasing creates another proposal'); END;
+CREATE TRIGGER IF NOT EXISTS decided_text_edit BEFORE UPDATE ON text_edit_proposals WHEN OLD.status IN ('applied','dismissed')
+BEGIN SELECT RAISE(ABORT,'A decided proposal is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_text_edit_receipt BEFORE UPDATE ON text_edit_receipts
+BEGIN SELECT RAISE(ABORT,'Applied text changes have immutable receipts'); END;
+CREATE TABLE IF NOT EXISTS candidate_text_heads (
+    id TEXT PRIMARY KEY, candidate_id TEXT NOT NULL REFERENCES candidates(id), attempt INTEGER NOT NULL CHECK(attempt>=1),
+    revision INTEGER NOT NULL CHECK(revision>=1), text TEXT NOT NULL CHECK(length(text)<=100000),
+    receipt_id TEXT NOT NULL REFERENCES text_edit_receipts(id) DEFERRABLE INITIALLY DEFERRED,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(candidate_id,attempt)
+);
+CREATE TRIGGER IF NOT EXISTS immutable_candidate_text_source BEFORE UPDATE OF candidate_id,attempt ON candidate_text_heads
+BEGIN SELECT RAISE(ABORT,'An author revision remains bound to its original candidate attempt'); END;
+CREATE TABLE IF NOT EXISTS branch_comparisons (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id),
+    left_branch_id TEXT NOT NULL REFERENCES branches(id), right_branch_id TEXT NOT NULL REFERENCES branches(id),
+    left_head_id TEXT REFERENCES nodes(id), right_head_id TEXT REFERENCES nodes(id),
+    left_revision INTEGER NOT NULL CHECK(left_revision >= 0), right_revision INTEGER NOT NULL CHECK(right_revision >= 0),
+    labels TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS branch_comparisons_story ON branch_comparisons(story_id);
+CREATE TRIGGER IF NOT EXISTS immutable_branch_comparisons BEFORE UPDATE ON branch_comparisons
+BEGIN SELECT RAISE(ABORT,'Comparison sources are immutable'); END;
+CREATE TABLE IF NOT EXISTS side_contexts (
+    id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES side_threads(id),
+    story_id TEXT NOT NULL REFERENCES stories(id), snapshot TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_side_contexts BEFORE UPDATE ON side_contexts
+BEGIN SELECT RAISE(ABORT,'Companion source selections are immutable'); END;
+CREATE TABLE IF NOT EXISTS side_context_heads (
+    thread_id TEXT PRIMARY KEY REFERENCES side_threads(id), context_id TEXT REFERENCES side_contexts(id),
+    revision INTEGER NOT NULL CHECK(revision>=1)
+);
+
+CREATE TABLE IF NOT EXISTS companion_edit_origins (
+    id TEXT PRIMARY KEY,
+    story_id TEXT NOT NULL REFERENCES stories(id),
+    detail TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS immutable_companion_edit_origins BEFORE UPDATE ON companion_edit_origins
+BEGIN SELECT RAISE(ABORT, 'Companion edit origins are immutable'); END;
+CREATE TABLE IF NOT EXISTS side_edit_results (
+    reply_id TEXT PRIMARY KEY REFERENCES side_replies(id),
+    origin_id TEXT NOT NULL UNIQUE REFERENCES companion_edit_origins(id),
+    proposal_id TEXT NOT NULL UNIQUE REFERENCES text_edit_proposals(id),
+    error TEXT NOT NULL DEFAULT ''
+);
+CREATE TRIGGER IF NOT EXISTS immutable_side_edit_results BEFORE UPDATE ON side_edit_results
+BEGIN SELECT RAISE(ABORT, 'Companion edit results are immutable'); END;
+CREATE TABLE IF NOT EXISTS style_analysis_jobs (
+    id TEXT PRIMARY KEY, source_version_id TEXT REFERENCES writing_versions(id), draft_id TEXT NOT NULL, step TEXT NOT NULL,
+    snapshot TEXT NOT NULL, status TEXT NOT NULL, output TEXT NOT NULL DEFAULT '',
+    result TEXT NOT NULL DEFAULT 'null', usage TEXT NOT NULL DEFAULT '{}', error TEXT NOT NULL DEFAULT '',
+    attempt INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS style_analysis_attempts (
+    id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES style_analysis_jobs(id), attempt INTEGER NOT NULL,
+    status TEXT NOT NULL, output TEXT NOT NULL, result TEXT NOT NULL, usage TEXT NOT NULL,
+    error TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(job_id,attempt)
+);
+CREATE INDEX IF NOT EXISTS style_analysis_source ON style_analysis_jobs(source_version_id,draft_id);
+CREATE TRIGGER IF NOT EXISTS immutable_style_analysis BEFORE UPDATE OF source_version_id,draft_id,step,snapshot ON style_analysis_jobs
+BEGIN SELECT RAISE(ABORT,'Style analysis inputs are immutable'); END;
+CREATE TABLE IF NOT EXISTS recipe_runs (
+    id TEXT PRIMARY KEY, story_id TEXT NOT NULL REFERENCES stories(id), branch_id TEXT NOT NULL REFERENCES branches(id),
+    snapshot TEXT NOT NULL, bindings TEXT NOT NULL, target TEXT NOT NULL, chance TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 0 CHECK(revision>=0), created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS recipe_jobs (
+    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES recipe_runs(id), stage INTEGER NOT NULL CHECK(stage>=0 AND stage<3),
+    step TEXT NOT NULL, snapshot TEXT NOT NULL, status TEXT NOT NULL, output TEXT NOT NULL DEFAULT '',
+    result TEXT NOT NULL DEFAULT 'null', usage TEXT NOT NULL DEFAULT '{}', error TEXT NOT NULL DEFAULT '',
+    attempt INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL, UNIQUE(run_id,stage,step)
+);
+CREATE TABLE IF NOT EXISTS recipe_attempts (
+    id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES recipe_jobs(id), attempt INTEGER NOT NULL,
+    status TEXT NOT NULL, output TEXT NOT NULL, result TEXT NOT NULL, usage TEXT NOT NULL,
+    error TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(job_id,attempt)
+);
+CREATE TABLE IF NOT EXISTS recipe_results (
+    run_id TEXT PRIMARY KEY REFERENCES recipe_runs(id), job_id TEXT NOT NULL REFERENCES recipe_jobs(id),
+    proposal_id TEXT NOT NULL UNIQUE REFERENCES text_edit_proposals(id)
+);
+CREATE INDEX IF NOT EXISTS recipe_runs_branch ON recipe_runs(branch_id,created_at);
+CREATE TRIGGER IF NOT EXISTS immutable_recipe_run BEFORE UPDATE OF story_id,branch_id,snapshot,bindings,target,chance ON recipe_runs
+BEGIN SELECT RAISE(ABORT,'Recipe inputs and chance results are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_recipe_job BEFORE UPDATE OF run_id,stage,step,snapshot ON recipe_jobs
+BEGIN SELECT RAISE(ABORT,'Recipe step inputs are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_recipe_result BEFORE UPDATE ON recipe_results
+BEGIN SELECT RAISE(ABORT,'Recipe results retain their original proposal'); END;

@@ -6,12 +6,16 @@ from server.prompt_sections import sections_for
 from server.scenes.context import stale_plan
 from server.scenes.prompts import stage_prompt
 from server.scenes.state import run_record
+from server.writing.scene_requests import stage_writing
 
 
 def guard_stage(connection, run, body, prepared):
     current = run_record(connection, run['id'])
     require(current == run and not stale_plan(connection, current), 'The scene or Story changed. Preview the stage again.', 409)
     story = one(connection, 'SELECT * FROM stories WHERE id=?', (run['snapshot']['branch']['story_id'],))
+    body, guidance = stage_writing(connection, story, body)
+    require(all(job.get('writing_guidance') == guidance for job in prepared['jobs']),
+            'Writing preferences changed. Preview the stage again.', 409)
     profiles = [resolve_profile(connection, story, body.key, value) for value in (body.profile_ids or [None])]
     prompt = stage_prompt(connection, story, run, body.key)
     sections = sections_for(connection, body.key, story, run['snapshot']['branch']['manifest_id'])

@@ -48,6 +48,10 @@ def cleanup_rows(connection, generation_id):
 
 
 def selected_text(connection, candidate):
+    from server.text_edits.candidates import draft_head
+    edited = draft_head(connection, candidate)
+    if edited:
+        return edited['text']
     cleanup = current_cleanup(connection, candidate)
     if not cleanup or cleanup['selected'] == 'original':
         return candidate['output']
@@ -65,6 +69,8 @@ def select(database, candidate_id, body):
         if cached is not None:
             return cached
         candidate = one(connection, 'SELECT * FROM candidates WHERE id=?', (candidate_id,))
+        from server.text_edits.candidates import draft_head
+        require(not draft_head(connection, candidate), 'An author revision is selected. Review original or cleaned wording through the draft text editor.', 409)
         require(not candidate['accepted_node_id'], 'This draft has already been kept in the story.', 409)
         row = current_cleanup(connection, candidate)
         require(row and candidate['status'] == 'done' and candidate['attempt'] == body.expected_attempt,

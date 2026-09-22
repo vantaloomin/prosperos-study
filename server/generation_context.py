@@ -26,18 +26,22 @@ from server.prompt_sections import compose, sections_for
 from server.prompts import prompt_snapshot
 from server.providers.capabilities import input_capacity
 from server.stories import check_revision
+from server.writing.context import references, request_guidance, writer_profiles
 
 
 def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
     branch = one(connection, "SELECT * FROM branches WHERE id=?", (branch_id,))
     story = one(connection, "SELECT * FROM stories WHERE id=?", (branch["story_id"],))
     check_revision(branch, body.expected_revision)
-    profiles = selected_profiles(connection, story, body.profile_ids)
+    guidance = request_guidance(connection, story, body)
+    profiles = selected_profiles(connection, story, writer_profiles(body.profile_ids, guidance))
     if body.knowledge_subject or body.knowledge_character_id:
-        return knowledge_snapshot(connection, branch, story, body, profiles)
+        return knowledge_snapshot(connection, branch, story, body, profiles, guidance)
     context = {"story": {"title": story["title"], "premise": story["premise"], "settings": decode(story["settings"])},
                "history": path_nodes(connection, branch["head_id"]),
                "library": manifest_view(connection, branch["manifest_id"]), "direction": body.direction}
+    if guidance:
+        context['writing_guidance'] = guidance
     context['continuity'] = continuity_view(connection, branch['head_id'], plan_head(connection, branch['id']))
     controls = control_view(connection, branch)
     decisions = decision_packet(controls)
@@ -66,6 +70,7 @@ def generation_snapshot(connection, branch_id, body, *, validate_budget=True):
     if validate_budget:
         validate_writer_budget(profiles, estimated, memory)
     return {"branch": branch, "story_revision": story["revision"], "prompt": prompt, 'prompt_sections': sections,
+            **({'writing_versions': references(guidance), 'writing_guidance': guidance} if guidance else {}),
             "continuity_version_id": plan_head(connection, branch_id),
             "memory_controls_version_id": controls["version_id"],
             'lore_context': lore_context, 'lore': lore,

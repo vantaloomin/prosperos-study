@@ -25,7 +25,10 @@ def validate_fragment(fragment, documents):
 
 
 def validate_packet(content, snapshot, documents):
+    from server.side_work import work_context
     context = decode(content)
+    require(all(context.get(key) == value for key, value in work_context(snapshot).items()), 'A sidebar packet changed its author-selected task or style.')
+    require(context.get('selected_context') == snapshot.get('model_context'), 'A sidebar request changed its selected context.')
     policy = snapshot['retrieval']
     require(context['question'] == snapshot['question'] and context['disclosure'] == snapshot['disclosure'],
             'A sidebar request differs from its frozen question or disclosure.')

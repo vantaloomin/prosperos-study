@@ -17,7 +17,7 @@ def validate_v07(connection, data):
         require(row['revision'] >= 0, 'A manuscript has an invalid revision.')
         validate_document(connection, row['story_id'], ManuscriptDocument.model_validate(decode(row['document'])))
     for table, columns in JSON_FIELDS.items():
-        if 'snapshot' in columns:
+        if 'snapshot' in columns and table != 'recipe_jobs':
             for row in data[table]:
                 validate_sections(connection, decode(row['snapshot']))
 

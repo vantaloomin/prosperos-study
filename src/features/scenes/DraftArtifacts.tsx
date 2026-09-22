@@ -1,8 +1,9 @@
 import type { BeatCoverage, DraftBlock, SceneJob, SceneResult, SceneRun } from './types'
+import { SceneDraftEdits } from '../textEdits/SceneDraftEdits'
 
 export function DraftBlocks({ blocks }: { blocks: DraftBlock[] }) {
   return <div className="scene-prose">{blocks.map((block) => <div key={block.id}>
-    {block.text ? block.text.split('\n\n').map((paragraph, index) => <p className="prose" key={index}>{paragraph}</p>) : block.kind === 'dialogue' && <aside className="scene-dialogue-slot"><strong>Spoken line · {block.speaker}</strong><p>{block.instruction}</p><small>Waiting for the dialogue writer</small></aside>}
+    {block.text != null ? block.text.split('\n\n').map((paragraph, index) => <p className="prose" key={index}>{paragraph || '(empty block)'}</p>) : block.kind === 'dialogue' && <aside className="scene-dialogue-slot"><strong>Spoken line · {block.speaker}</strong><p>{block.instruction}</p><small>Waiting for the dialogue writer</small></aside>}
   </div>)}</div>
 }
 
@@ -31,10 +32,11 @@ function CoverageArtifact({ result, run }: { result: SceneResult; run: SceneRun 
   return <div className="form-stack"><div className="scene-notice"><strong>{passed ? 'Every beat is accounted for' : 'This draft needs another pass'}</strong><p>{result.summary}</p><small>This is a coverage assessment, not approval to add Story text.</small></div>{beats.map((beat) => <article className="review-finding" key={beat.beat_id}><h4>{run.plan?.beats.find((item) => item.id === beat.beat_id)?.title ?? beat.beat_id} · {beat.status}</h4>{beat.quotes.map((quote, index) => <blockquote key={index}>{quote}</blockquote>)}<p>{beat.explanation}</p></article>)}{issues.map((issue, index) => <article className="review-finding" key={index}><h4>{issue.category}</h4><blockquote>{issue.quote}</blockquote><p>{issue.explanation}</p></article>)}</div>
 }
 
-export function SelectedDraft({ run, onRedraft }: { run: SceneRun; onRedraft: () => void }) {
+export function SelectedDraft({ run, onRedraft, onBranch }: { run: SceneRun; onRedraft: () => void; onBranch: (id: string) => void }) {
   const draft = run.draft!
   const reviewed = !!run.state.selections['scene-coverage'] && !run.state.accepted
   return <section className="scene-selected-draft form-stack"><details><summary>{draft.complete ? 'Read the selected scene draft' : 'Read the selected skeleton · dialogue pending'}</summary><DraftBlocks blocks={draft.blocks} /><ProposedFacts facts={draft.proposed_facts} /></details>
+    <SceneDraftEdits run={run} onBranch={onBranch} />
     {reviewed && <div className="scene-notice"><p>{run.coverage_passes ? 'Coverage is complete. This saved draft still needs independent review, revision decisions and explicit Story acceptance.' : 'The selected assessment found incomplete beats or other issues. A new draft request includes this assessment; choosing a replacement clears dependent selections.'}</p>{!run.coverage_passes && <button className="button" disabled={run.stale} onClick={onRedraft}>Return to drafting</button>}</div>}
   </section>
 }

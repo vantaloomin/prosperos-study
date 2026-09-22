@@ -18,8 +18,12 @@ def frozen_entry(entry, links, character_id):
 
 def validate_snapshot(connection, snapshot):
     report = snapshot['knowledge_lens']
-    require(report['algorithm'] in {'prospero-character-evidence-v1', 'prospero-character-evidence-v2'}, 'Unsupported character evidence format.')
-    references = report['algorithm'] == 'prospero-character-evidence-v2'
+    require(report['algorithm'] in {'prospero-character-evidence-v1', 'prospero-character-evidence-v2', 'prospero-character-evidence-v3'}, 'Unsupported character evidence format.')
+    styled = report['algorithm'] == 'prospero-character-evidence-v3'
+    if styled:
+        require(type(report.get('reference_grants')) is bool and snapshot.get('writing_guidance'),
+                'Styled character input lacks its frozen writing guidance or evidence boundary.')
+    references = report['reference_grants'] if styled else report['algorithm'] == 'prospero-character-evidence-v2'
     character_id = snapshot.get('knowledge_character_id')
     require(bool(character_id) == bool(report.get('character_id')), 'Character identity receipt is incomplete.')
     validate_character(connection, snapshot, report)
@@ -37,7 +41,8 @@ def validate_snapshot(connection, snapshot):
     links = {evidence_key(item): item for item in snapshot['source_links']}
     frozen = [frozen_entry(entry, links, report.get('character_id')) for entry in selected]
     context = decode(snapshot['content'])
-    require(context == packet(report['subject'], context['direction'], frozen, context['story']['settings'], report.get('character_id'), references), 'Character input contains changed or unpermitted material.')
+    guidance = snapshot['writing_guidance'] if styled else None
+    require(context == packet(report['subject'], context['direction'], frozen, context['story']['settings'], report.get('character_id'), references, guidance), 'Character input contains changed or unpermitted material.')
     validate_receipt(snapshot, report, entries, selected, links)
 
 

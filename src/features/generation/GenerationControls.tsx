@@ -27,6 +27,9 @@ import { useReviewedContext } from './useReviewedContext'
 import { MemoryReadiness } from './MemoryReadiness'
 const KnowledgeChoice = lazy(() => import('./KnowledgeChoice').then(module => ({ default: module.KnowledgeChoice })))
 import { characterRequest } from './knowledgeRequest'
+import { inheritedWriting } from '../writing/types'
+import type { WritingChoices } from '../writing/types'
+const RequestWritingChoices = lazy(() => import('../writing/RequestWritingChoices').then(module => ({ default: module.RequestWritingChoices })))
 const AssessmentPanel = lazy(() => import('./AssessmentPanel'))
 const ComparisonSetup = lazy(() => import('./ComparisonSetup'))
 
@@ -37,6 +40,7 @@ export function GenerationControls({ branch, onBranch, onReadMessage, open, onCl
   const history = useQuery({ queryKey: ['generations', branch.id], queryFn: () => api<GenerationSummary[]>(`/branches/${branch.id}/generations`), refetchInterval: query => hasActiveDrafts(query.state.data) ? 1500 : 10000 })
   const [override, setOverride] = useState('')
   const [knowledge, setKnowledge] = useState('')
+  const [writing, setWriting] = usePersistent<WritingChoices>(`prospero:writing-choices:v1:${branch.id}`, inheritedWriting, true)
   const [selection, setSelection] = usePersistent<WritingSelection | null>(`roleplay:writing-selection:${branch.id}`, null, true)
   const [dismissed, setDismissed] = usePersistent<string[]>(`roleplay:dismissed-drafts:${branch.id}`, [], true)
   useRecoverSelection(history.data, selection, dismissed, setSelection)
@@ -52,10 +56,10 @@ export function GenerationControls({ branch, onBranch, onReadMessage, open, onCl
   const action = useWritingRequest(branch, setSelection)
   const changeKnowledge = (subject: string) => { setKnowledge(subject); action.clearError() }
   const availableProfiles = profiles.data?.profiles ?? []
-  const contextRequest = characterRequest(writerRequest(branch, override, usePrepared, assessmentChoice), knowledge)
+  const contextRequest = characterRequest({ ...writerRequest(branch, override, usePrepared, assessmentChoice), writing }, knowledge)
   const preview = useReviewedContext(branch.id, contextRequest)
   const generate = () => action.generate({ ...contextRequest, ...preview.input })
-  const onSubmitted = (receipt: MessageReceipt) => action.onSubmitted({ receipt, profile: override, usePrepared, choice: assessmentChoice, knowledge })
+  const onSubmitted = (receipt: MessageReceipt) => action.onSubmitted({ receipt, profile: override, usePrepared, choice: assessmentChoice, knowledge, writing })
   const busy = requestBusy(action, history.data, selection)
   const surface = <DraftPresentation selection={selection} onBranch={onBranch} onDismiss={dismiss} onCurrentSettings={onOpen} onWriter={openWriter} />
   const recovery = <><RequestRecovery action={action} onSettings={onOpen} /><SelectionActivity selection={selection} onDraft={setRunId} onAssessment={id => setAssessment({ id, follow: true })} /></>
@@ -64,6 +68,7 @@ export function GenerationControls({ branch, onBranch, onReadMessage, open, onCl
     <ContinueButton busy={busy} available={availableProfiles.length} assessments={assessmentChoice.assessment_profile_ids.length} onClick={generate} />
   </div><div hidden={Boolean(knowledge)}><PreparedChoice prepared={prepared} selected={usePrepared} onSkip={setSkippedBeat} /></div><ErrorNotice message={action.error || profiles.error?.message} />
     <Suspense fallback={<p role="status">Opening knowledge views...</p>}><KnowledgeChoice branchId={branch.id} value={knowledge} onChange={changeKnowledge} /></Suspense>
+    <Suspense fallback={<p role="status">Opening writing choices…</p>}><RequestWritingChoices storyId={branch.story_id} value={writing} onChange={setWriting} /></Suspense>
     <ContextPreviewButton key={branch.id} branchId={branch.id} request={contextRequest} onReviewed={preview.onReviewed} />{preview.notice}
     <MemoryReadiness branch={branch} profileId={override} characterLens={Boolean(knowledge)} />
     <div hidden={Boolean(knowledge)}><AssessmentLinks branch={branch} onSaved={(id) => setAssessment({ id, follow: false })} /></div>
@@ -72,7 +77,7 @@ export function GenerationControls({ branch, onBranch, onReadMessage, open, onCl
     <DraftHistory history={history.data ?? []} onSelect={setRunId} />
     <AssessmentHistory branchId={branch.id} onSelect={(id) => setAssessment({ id, follow: false })} />
     </div></aside>}
-    {comparing && <Suspense fallback={<p role="status">Opening comparison...</p>}><ComparisonSetup branch={branch} profiles={availableProfiles} knowledge={knowledge} usePrepared={usePrepared} onClose={() => setComparing(false)} assessmentChoice={assessmentChoice} onCreated={receive} /></Suspense>}
+    {comparing && <Suspense fallback={<p role="status">Opening comparison...</p>}><ComparisonSetup branch={branch} profiles={availableProfiles} knowledge={knowledge} writing={writing} usePrepared={usePrepared} onClose={() => setComparing(false)} assessmentChoice={assessmentChoice} onCreated={receive} /></Suspense>}
     {assessment.id && <Suspense fallback={<p role="status">Opening assessment...</p>}><AssessmentPanel id={assessment.id} followWriter={assessment.follow} onClose={() => setAssessment({ id: '', follow: false })} onWriter={openWriter} /></Suspense>}
     {runId && <Suspense fallback={<p role="status">Opening drafts…</p>}><GenerationReview id={runId} onClose={() => setRunId('')} onBranch={onBranch} /></Suspense>}
   </WritingContext.Provider>

@@ -36,6 +36,7 @@ def assessment_plan(connection, story, writer, profiles, body):
     selection = ReviewStep(key='beat-assessment', profile_ids=body.assessment_profile_ids)
     return {'branch': writer['branch'], 'story_revision': story['revision'], 'settings': settings.model_dump(),
             'tables': tables, 'before': before, 'writer_snapshot': writer, 'writer_profiles': profiles,
+            **({'assessment_context_version': 2} if 'writing_guidance' in decode(writer['content']) else {}),
             'request': semantic_request(body),
             'jobs': job_snapshot(connection, story, selection, context)}
 
@@ -48,11 +49,18 @@ def seed_assessment(plan):
     return {**plan, 'seed': secrets.token_hex(16)}
 
 
+def assessment_writer_context(writer, version=2):
+    context = decode(writer['content'])
+    context.pop('private_background', None)
+    if version >= 2:
+        context.pop('writing_guidance', None)
+    return context
+
+
 def assessment_input(writer, before, settings):
-    context = {'eligible_head_id': eligible_head(writer), 'context': decode(writer['content']),
+    context = {'eligible_head_id': eligible_head(writer), 'context': assessment_writer_context(writer),
                'accepted_mechanics': before, 'enabled_optional_tables': settings.enabled_extras,
                'sources': []}
-    context['context'].pop('private_background', None)
     return context
 
 

@@ -7,6 +7,7 @@ from server.archives.artwork import validate_artwork
 from server.archives.assessments import validate_assessments
 from server.archives.authoring import validate_authoring
 from server.archives.background import validate_background
+from server.archives.branch_tools import validate_branch_tools
 from server.archives.characters import validate_openings
 from server.archives.cleanup import validate_cleanups
 from server.archives.configuration import validate_configuration_links
@@ -27,17 +28,23 @@ from server.archives.migrations import upgrade
 from server.archives.passage_revisions import validate_passage_revisions
 from server.archives.patches import validate_patches
 from server.archives.plans import validate_plan_edits
+from server.archives.recipes import validate_recipes
 from server.archives.relationships import validate_relationships
 from server.archives.reviews import validate_draft_reviews
 from server.archives.revisions import validate_revisions
 from server.archives.roles import validate_role_snapshot
 from server.archives.scenes import validate_scenes
+from server.archives.side_edits import validate_side_edits
 from server.archives.side_memory import validate_side_memory
+from server.archives.side_targets import validate_side_targets
+from server.archives.style_analysis import validate_analyses
 from server.archives.summaries import validate_summaries
 from server.archives.summary_context import validate_writer_summaries
+from server.archives.text_edits import validate_text_edits
 from server.archives.v07 import validate_v07
 from server.archives.writer_memory import validate_writer_memory
 from server.archives.writer_recall import validate_writer_recall
+from server.archives.writing import validate_writing
 from server.character_content import validate_character
 from server.database import SCHEMA, decode, one
 from server.errors import DomainError, require
@@ -86,6 +93,11 @@ def validate_archive(document):
         validate_content(connection, document)
         validate_relationships(connection, document['data'])
         validate_v07(connection, document['data'])
+        validate_writing(connection, document['data'])
+        validate_recipes(connection, document['data'])
+        validate_branch_tools(connection, document['data'])
+        validate_text_edits(connection, document['data'])
+        acyclic(document['data']['text_edit_receipts'], 'undo_of')
         validate_openings(connection, document['data'])
         validate_imports(connection, document['data'])
         validate_ownership(connection, document)
@@ -98,11 +110,14 @@ def validate_archive(document):
         validate_continuity(connection, document)
         validate_draft_reviews(connection, document)
         validate_side_memory(document['data'])
+        validate_side_targets(connection, document['data'])
+        validate_side_edits(connection, document['data'])
         validate_assessments(connection, document['data'])
         validate_lore(connection, document['data'])
         validate_background(connection, document['data'])
         validate_interpretations(connection, document['data'])
         validate_authoring(connection, document)
+        validate_analyses(connection, document['data'])
         acyclic(document['data']['summary_versions'], 'parent_id')
         validate_summaries(connection, document['data'])
         validate_writer_summaries(connection, document['data'])
@@ -231,7 +246,7 @@ def validate_models_and_tables(data):
     for table in ("candidates", "side_replies"):
         for row in data[table]:
             validate_profile(decode(row["profile"]))
-    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs'):
+    for table in ("review_jobs", "scene_jobs", 'assessment_jobs', 'background_jobs', 'authoring_jobs', 'summary_jobs', 'style_analysis_jobs'):
         for row in data[table]:
             snapshot = decode(row['snapshot'])
             validate_profile(snapshot['profile'])

@@ -88,14 +88,18 @@ export function writingPreferences(value: Record<string, unknown>): WritingPrefe
   return Object.fromEntries(Object.entries(legacyPreferences).map(([key, fallback]) => [key, typeof value[key] === 'string' ? value[key] : fallback])) as unknown as WritingPreferences
 }
 
-export function storyStart(draft: SetupDraft, profiles: ProfileList, library: AssetVersion[], operation: string): StoryStart {
+function startingTitle(title: string, allowUntitled: boolean) {
+  return title.trim() || (allowUntitled ? 'Untitled Story' : '')
+}
+
+export function storyStart(draft: SetupDraft, profiles: ProfileList, library: AssetVersion[], operation: string, allowUntitled = false): StoryStart {
   if (draft.legacyAssets.some((id) => !library.some((asset) => asset.asset_id === id))) throw new Error('A Library choice from your previous setup is unavailable. Review People before starting.')
   if (draft.primary_profile_id && !profiles.profiles.some((profile) => profile.profile_id === draft.primary_profile_id)) throw new Error('Your selected writing profile is unavailable. Choose a profile again in Writer.')
   if (!openingSourceAttached(draft.opening_source, selectedAssets(draft, library))) throw new Error('Your greeting source no longer matches the selected character version. Review the opening in People.')
   const presets: Record<string, { enabled: boolean; chance: number; cooldown: number }> = {
     off: { enabled: false, chance: 15, cooldown: 3 }, quiet: { enabled: true, chance: 10, cooldown: 4 }, balanced: { enabled: true, chance: 15, cooldown: 3 },
   }
-  return { operation_id: operation, title: draft.title.trim(), premise: draft.premise, opening_text: draft.opening,
+  return { operation_id: operation, title: startingTitle(draft.title, allowUntitled), premise: draft.premise, opening_text: draft.opening,
     ...(draft.opening_source ? { opening_source: draft.opening_source } : {}),
     settings: { ...writingPreferences(draft as unknown as Record<string, unknown>), primary_profile_id: draft.primary_profile_id || profiles.primary_profile_id,
       randomness: presets[draft.randomness] ?? presets.off,

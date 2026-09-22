@@ -11,6 +11,7 @@ import { ReviewSetup } from './ReviewSetup'
 import { ReviewResults } from './ReviewResults'
 import { RoutingEditor } from './RoutingEditor'
 import { StoryAgents } from '../prompts/AgentTemplates'
+import { RecipeHistory } from '../writing/RecipeHistory'
 import type { ReviewHistoryItem, Routing } from './types'
 
 type ReviewHistory = ReviewHistoryItem[]
@@ -28,6 +29,7 @@ function WorkflowContent({ tab, branch, routing, profiles, history, reviewId, on
   if (tab === 'review') return <ReviewSetup key={branch.head_id} branch={branch} routing={routing} profiles={profiles} onStarted={onStarted} />
   if (tab === 'routing') return <RoutingEditor storyId={branch.story_id} data={routing} profiles={profiles} onPrompt={onPrompt} />
   if (tab === 'agents') return <StoryAgents storyId={branch.story_id} />
+  if (tab === 'recipes') return <RecipeHistory branchId={branch.id} onBranch={onBranch} />
   return <SavedReviews history={history} reviewId={reviewId} onSelect={onSelect} branch={branch} routing={routing} />
 }
 
@@ -49,7 +51,7 @@ export function Workflow({ branch, onBranch }: { branch: Branch; onBranch: (id: 
   const start = (id: string) => { setReviewId(id); setTab('history') }
   const editPrompt = (key: string) => setPrompt(prompts.data?.find((item) => item.key === key) ?? null)
   const error = [routing, profiles, prompts, history].map((query) => query.error?.message).find(Boolean)
-  return <><div className="dialog-body workflow-panel"><div ref={tabs} className="tabs workflow-tabs" aria-label="Story workflow views">{[['scenes', 'Plan a scene'], ['review', 'Review a passage'], ['routing', 'Models by step'], ['agents', 'Story agents'], ['history', 'Saved reviews']].map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</div>
+  return <><div className="dialog-body workflow-panel"><div ref={tabs} className="tabs workflow-tabs" aria-label="Story workflow views">{[['scenes', 'Plan a scene'], ['review', 'Review a passage'], ['recipes', 'Recipes'], ['routing', 'Models by step'], ['agents', 'Story agents'], ['history', 'Saved reviews']].map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</div>
     <ErrorNotice message={error} />
     {!routing.data || !profiles.data || !prompts.data ? <Loading label="Opening the workflow…" /> : <div className="workflow-content">
       <WorkflowContent tab={tab} branch={branch} routing={routing.data} profiles={profiles.data.profiles} history={history.data ?? []} reviewId={reviewId} onStarted={start} onSelect={setReviewId} onPrompt={editPrompt} onBranch={onBranch} />

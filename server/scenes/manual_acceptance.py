@@ -24,6 +24,7 @@ def manual_material(connection, run):
 def accept_manually(connection, run, body):
     material = manual_material(connection, run)
     require(material, 'Complete the selected draft before manually accepting a scene with disabled agents.', 409)
+    require(bool(material['text'].strip()), 'An empty scene cannot be kept.', 409)
     require(not body.selected_ids and not body.include_summary, 'Manual acceptance cannot commit generated continuity.')
     target = Generations._accept_branch(connection, run['snapshot']['branch'], run['snapshot'], body)
     metadata = {'source': 'manual_scene', 'scene_id': run['id'], 'disabled_steps': material['disabled_steps']}

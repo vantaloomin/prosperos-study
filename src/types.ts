@@ -52,6 +52,7 @@ export interface StorySummary {
   manifest_id: string
   updated_at: string
 }
+export interface BranchCuration { favorite: boolean; archived: boolean; revision: number }
 export interface BranchSummary {
   id: string
   story_id: string
@@ -60,6 +61,7 @@ export interface BranchSummary {
   manifest_id: string
   forked_from: string | null
   fork_node_id: string | null
+  curation?: BranchCuration
   revision: number
   created_at: string
 }

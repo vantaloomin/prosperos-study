@@ -67,8 +67,9 @@ class Generations:
             _, stale = stale_target(connection, snapshot)
             activity = activity_rows(connection, generation_id)
             cleanups = cleanup_rows(connection, generation_id)
+            from server.text_edits.candidates import wording_view
             return {**generation, "snapshot": snapshot, "stale": stale,
-                    "candidates": [{**candidate_view(row), 'activity': activity.get(row['id']),
+                    "candidates": [{**candidate_view(row), **wording_view(connection, row, generation['branch_id'], snapshot['branch']['story_id']), 'activity': activity.get(row['id']),
                                     'cleanup': cleanup_view(connection, row, cleanups[row['id']]) if row['id'] in cleanups else None}
                                    for row in candidates]}
 
@@ -105,11 +106,17 @@ class Generations:
             source = one(connection, 'SELECT * FROM candidates WHERE id=?', (candidate_id,))
             require(source['status'] == 'done' and not source['accepted_node_id'],
                     'Choose a completed, unaccepted draft for continuity revision.', 409)
-            require(source['attempt'] == body.expected_attempt and digest(source['output']) == body.original_sha256,
-                    'This draft changed. Refresh before requesting a revision.', 409)
             generation = one(connection, 'SELECT snapshot FROM generations WHERE id=?', (source['generation_id'],))
+            from server.text_edits.candidates import acceptance_edit, draft_head
+            snapshot = decode(generation['snapshot'])
+            acceptance_edit(connection, source, snapshot, body.expected_wording_version)
+            edited = draft_head(connection, source)
+            original = {**source, 'output': edited['text']} if edited else source
+            require(source['attempt'] == body.expected_attempt and digest(original['output']) == body.original_sha256,
+                    'This draft changed. Refresh before requesting a revision.', 409)
             usage, profile = decode(source['usage']), decode(source['profile'])
-            revision = freeze(decode(generation['snapshot']), profile, usage, source, body.concern)
+            revision = freeze(snapshot, profile, usage, original, body.concern, version=3 if edited else 2,
+                              source_edit_receipt_id=edited['receipt_id'] if edited else None)
             candidate = self._candidate(connection, source['generation_id'], profile)
             connection.execute('UPDATE candidates SET usage=? WHERE id=?',
                                (encode({**reusable(usage), 'continuity_revision': revision}), candidate))
@@ -135,16 +142,20 @@ class Generations:
             require(candidate["status"] == "done", "Only a completed draft can be accepted.", 409)
             generation = one(connection, "SELECT * FROM generations WHERE id=?", (candidate["generation_id"],))
             snapshot = decode(generation["snapshot"])
+            from server.text_edits.candidates import acceptance_edit
+            edit_metadata = acceptance_edit(connection, candidate, snapshot, body.expected_wording_version)
+            text = selected_text(connection, candidate)
+            require(text.strip(), 'This draft has no text to keep. Review its wording first.', 409)
             branch, stale = stale_target(connection, snapshot)
             require(not stale or body.as_new_branch,
                     "The story changed after this draft started. Keep it as a new branch or generate again.", 409)
             target = self._accept_branch(connection, branch, snapshot, body)
             opportunity_id = snapshot.get("opportunity_id")
             state = accepted_state(connection, target, opportunity_id, allow_fork=True)
-            node_id = insert_node(connection, target, selected_text(connection, candidate), "assistant",
+            node_id = insert_node(connection, target, text, "assistant",
                                   {"source": "generated", "candidate_id": candidate_id,
                                    "generation_id": generation["id"], "prompt_version_id": snapshot["prompt"]["id"],
-                                   "opportunity_id": opportunity_id}, state)
+                                   "opportunity_id": opportunity_id, **edit_metadata}, state)
             touch_branch(connection, target["id"], node_id)
             connection.execute("UPDATE candidate_cleanups SET status='cancelled',selected='original',error='The draft was kept before cleanup finished.' "
                                "WHERE candidate_id=? AND status='running'", (candidate_id,))

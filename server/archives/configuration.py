@@ -1,13 +1,20 @@
 """Keep live configuration links; opaque provider inputs remain frozen evidence."""
 from server.archives.format import JSON_FIELDS
 from server.archives.records import related_rows
+from server.archives.text_edit_versions import version_references
 from server.database import decode, many
 from server.errors import require
 from server.mechanics.config import parse_settings
 
 
 def configuration_references(data):
+    from server.archives.recipes import recipe_references
+    from server.archives.writing import referenced_tables
     prompts, tables = set(), set()
+    recipes = recipe_references(data)
+    prompts.update(recipes['prompt_versions'])
+    tables.update(recipes['roll_table_versions'])
+    prompts.update(version_references(data, 'prompt'))
     for row in data["stories"]:
         settings = decode(row["settings"])
         prompts.update(settings.get("prompt_versions", {}).values())
@@ -18,7 +25,7 @@ def configuration_references(data):
         if "snapshot" in fields:
             for row in data[table]:
                 snapshot_references(decode(row["snapshot"]), prompts, tables)
-    return {"prompt_versions": prompts - {None}, "roll_table_versions": tables}
+    return {"prompt_versions": prompts - {None}, "roll_table_versions": tables | referenced_tables(data)}
 
 
 def snapshot_references(snapshot, prompts, tables):

@@ -7,6 +7,8 @@ export interface Candidate {
   profile: ModelProfile
   status: 'queued' | 'running' | 'cleaning' | 'done' | 'error' | 'cancelled' | 'interrupted'
   cleanup?: import('../phrases/cleanupTypes').Cleanup | null
+  text_edit?: { id: string; revision: number; text: string; receipt_id: string; attempt: number } | null
+  wording_version?: string | null
   output: string
   error: string
   usage: Record<string, unknown> & { writer_recall?: import('./RecallReceipt').RecallReceiptData; continuity_revision?: import('./ContinuityRevision').ContinuityRevisionData }
@@ -21,6 +23,7 @@ export interface Generation {
   stale: boolean
   candidates: Candidate[]
   snapshot: {
+    branch: { id: string; story_id: string }
     writer_recall?: { version: number }
     knowledge_lens?: import('./KnowledgeChoice').KnowledgeReceipt
     lore?: LoreReceipt

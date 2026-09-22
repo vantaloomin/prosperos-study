@@ -61,7 +61,8 @@ def dependency_keys(run, key):
 
 def reviewed_state(state):
     return {'selections': {key: value for key, value in state['selections'].items() if key in PLAN_KEYS + DRAFT_KEYS},
-            'option_id': state.get('option_id'), 'beat_edit': state.get('beat_edit'), 'gate_a': state.get('gate_a')}
+            'option_id': state.get('option_id'), 'beat_edit': state.get('beat_edit'), 'gate_a': state.get('gate_a'),
+            **({'draft_edits': state['draft_edits']} if state.get('draft_edits') else {})}
 
 
 def planning_selections(run):
@@ -78,6 +79,8 @@ def upstream(run, key):
         result["gate_a"] = state["gate_a"]
     if key in PATCH_KEYS + CONTINUITY_KEYS:
         result.update({name: state[name] for name in ('gate_b', 'triage_edits', 'verifications', 'patch_round', 'repair_selections')})
+    if key not in PLAN_KEYS + ['scene-draft', 'scene-dialogue'] and state.get('draft_edits'):
+        result['draft_edits'] = state['draft_edits']
     return result
 
 
@@ -114,6 +117,8 @@ def choose_state(run, job, option_id):
     keep = SCENE_KEYS[:SCENE_KEYS.index(job["step"]) + 1]
     state["selections"] = {key: value for key, value in state["selections"].items() if key in keep}
     state["selections"][job["step"]] = job["id"]
+    if job['step'] in PLAN_KEYS + ['scene-draft', 'scene-dialogue']:
+        state.pop('draft_edits', None)
     if job['step'] not in PATCH_KEYS + CONTINUITY_KEYS:
         state.update(triage_edits={}, verifications={}, gate_b=None)
         clear_patches(state)

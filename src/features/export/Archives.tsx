@@ -25,7 +25,7 @@ export function Archives({ story, selection, onOpen }: Props) {
   const query = useQuery({ queryKey: ['archives'], queryFn: () => api<ArchiveFile[]>('/archives') })
   const [selected, setSelected] = useState<ArchiveFile | null>(null)
   const files = (query.data ?? []).filter((file) => !story || file.summary.stories.some((item) => item.id === story.id))
-  return <section className="archives-panel form-stack"><div><h2>{story ? 'Keep every path' : 'Backups & recovery'}</h2><p className="subtle">A private archive keeps saved history, hidden state, old Library versions, model settings, prompts, tables and recorded results. Credentials are excluded. Browser drafts and appearance settings are not included.</p></div>
+  return <section className="archives-panel form-stack"><div><h2>{story ? 'Keep every path' : 'Backups & recovery'}</h2><p className="subtle">A private archive keeps saved history, working text, old Library versions, styles, recipes, model settings, prompts, tables and recorded results. Credentials, appearance settings and unsaved browser-only recovery copies are excluded.</p></div>
     <ArchiveCreate story={story} selection={selection} onReady={setSelected} />
     {!story && <ArchiveUpload onReady={setSelected} />}
     <ErrorNotice message={query.error?.message} />
@@ -40,7 +40,7 @@ function ArchiveCreate({ story, selection, onReady }: { story?: Story; selection
   const create = () => action.run(async () => {
     onReady(await api<ArchiveFile>('/archives', { scope: story ? 'story' : 'workspace', story_id: selection.storyId || null, branch_id: selection.branchId || null, include_sidebar: sidebar }))
   })
-  return <div className="archive-create form-stack"><p>{story ? 'Archive this Story, its connected Library items, effective settings and configuration versions used by its saved history.' : 'Back up all Stories, including archived Stories, reusable Library material and the full configuration history.'} Shared Canon collections remain shared when several Stories are restored together.</p><label className="check-row"><input type="checkbox" checked={sidebar} onChange={(event) => setSidebar(event.target.checked)} />Include private sidebar conversations and their saved source archives</label><ErrorNotice message={action.error} /><button className="button primary" aria-disabled={action.busy} onClick={create}><Archive size={16} />{action.busy ? 'Preparing your copy…' : 'Create private archive'}</button><small>Saved locally beside this workspace's database. Download a copy to keep it elsewhere.</small></div>
+  return <div className="archive-create form-stack"><p>{story ? 'Archive this Story, its connected Library items, effective settings and configuration versions used by its saved history.' : 'Back up all Stories, including archived Stories, reusable Library material and the full configuration history.'} Shared Canon collections remain shared when several Stories are restored together.</p><label className="check-row"><input type="checkbox" checked={sidebar} onChange={(event) => setSidebar(event.target.checked)} />Include private sidebar conversations, unsent questions, and their saved source archives</label><ErrorNotice message={action.error} /><button className="button primary" aria-disabled={action.busy} onClick={create}><Archive size={16} />{action.busy ? 'Preparing your copy…' : 'Create private archive'}</button><small>Saved locally beside this workspace's database. Download a copy to keep it elsewhere.</small></div>
 }
 
 function ArchiveUpload({ onReady }: { onReady: (file: ArchiveFile) => void }) {
@@ -67,7 +67,7 @@ function ArchivePreview({ file, onOpen }: { file: ArchiveFile; onOpen: (selectio
   const { verification, reviewing, error } = useArchiveSourceCheck(file)
   useEffect(() => { heading.current?.focus({ preventScroll: true }); heading.current?.scrollIntoView({ block: 'start' }) }, [])
   const restore = () => action.run(async () => { if (reviewing) return; setRestored(await api<RestoreResult>(`/archives/${file.id}/restore`, { operation_id: operation.current, sha256: file.sha256 })) })
-  return <section className="archive-preview form-stack"><h3 ref={heading} tabIndex={-1}>{file.kind === 'import' ? 'Review this import' : 'Your archive is ready'}</h3><p>{file.summary.title}</p><ArchiveCounts counts={file.summary.counts} /><p className="subtle">{sizeLabel(file.byte_count)} · Format version {file.summary.version ?? 1} · {file.summary.include_sidebar ? 'Includes private sidebar conversations' : 'Sidebar conversations excluded'}</p>
+  return <section className="archive-preview form-stack"><h3 ref={heading} tabIndex={-1}>{file.kind === 'import' ? 'Review this import' : 'Your archive is ready'}</h3><p>{file.summary.title}</p><ArchiveCounts counts={file.summary.counts} /><p className="subtle">{sizeLabel(file.byte_count)} · Format version {file.summary.version ?? 1} · {file.summary.include_sidebar ? 'Includes private sidebar conversations and saved unsent questions' : 'Sidebar conversations and unsent questions excluded'}</p>
     <ul className="archive-story-list">{file.summary.stories.map((item) => <li key={item.id}>{item.title}{item.archived && ' · archived'}</li>)}</ul>
     <p className="subtle">Restore creates new copies of Stories and Library items, preserving their shared links. Prompts and tables are pinned for the restored Stories; your workspace defaults stay in place. Imported model profiles need their connection credentials configured again.</p>
     <p className="subtle">Saved prose and results return without model calls. {file.summary.running_jobs} unfinished requests will be marked interrupted and require explicit retry. Original prompts, cited passages and recorded results stay available.</p>
@@ -79,7 +79,7 @@ function ArchivePreview({ file, onOpen }: { file: ArchiveFile; onOpen: (selectio
 }
 
 function ArchiveCounts({ counts }: { counts: Record<string, number> }) {
-  return <dl className="archive-counts">{[['stories', 'Stories'], ['branches', 'Branches'], ['nodes', 'Contributions'], ['assets', 'Library items'], ['asset_versions', 'Library versions'], ['candidates', 'Writer drafts'], ['review_jobs', 'Reviews'], ['scene_runs', 'Scene plans'], ['side_turns', 'Side turns']].map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{(counts[key] ?? 0).toLocaleString()}</dd></div>)}</dl>
+  return <dl className="archive-counts">{[['stories', 'Stories'], ['branches', 'Branches'], ['nodes', 'Contributions'], ['assets', 'Library items'], ['asset_versions', 'Library versions'], ['writing_assets', 'Styles & recipes'], ['style_analysis_jobs', 'Sample analyses'], ['recipe_runs', 'Recipe runs'], ['text_edit_receipts', 'Applied text changes'], ['candidates', 'Writer drafts'], ['review_jobs', 'Reviews'], ['scene_runs', 'Scene plans'], ['side_turns', 'Side turns']].map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{(counts[key] ?? 0).toLocaleString()}</dd></div>)}</dl>
 }
 
 function RestoreComplete({ result, onOpen }: { result: RestoreResult; onOpen: (selection: Selection) => void }) {

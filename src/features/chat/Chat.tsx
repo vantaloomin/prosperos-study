@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { lazy, Suspense, useRef, useState, useLayoutEffect } from 'react'
+import { lazy, Suspense, useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { api } from '../../api'
 import { Empty, ErrorNotice, Loading } from '../../components/Feedback'
 import type { Branch, Selection, Story } from '../../types'
-import { BranchMap } from './BranchMap'
+import type { OpenPassage } from '../branchTools/types'
 import { Composer } from './Composer'
 import { MessageCard } from './MessageCard'
 import { ContextDock } from './ContextDock'
@@ -21,28 +21,32 @@ import { useImperativeHandle, type Ref } from 'react'
 import { Modal } from '../../components/Modal'
 import { ChatHeading } from './ChatHeading'
 import { PendingBranch } from './PendingBranch'
+import { resolveBranch } from './branchSelection'
 import { messageLabels, storyMode, type StoryMode } from '../stories/storyMode'
 const WindowedTranscript = lazy(() => import('./WindowedTranscript').then((module) => ({ default: module.WindowedTranscript })))
+const BranchMap = lazy(() => import('./BranchMap').then(module => ({ default: module.BranchMap })))
 
 const Randomness = lazy(() => import('../mechanics/Randomness').then((module) => ({ default: module.Randomness })))
 const Workflow = lazy(() => import('../workflow/Workflow').then((module) => ({ default: module.Workflow })))
 const ManuscriptWorkspace = lazy(() => import('../manuscript/ManuscriptWorkspace').then(module => ({ default: module.ManuscriptWorkspace })))
 
-interface Props { storyId: string; branchId: string; onBranch: (id: string) => void; onOpen: (selection: Selection) => void }
+interface Props { storyId: string; branchId: string; onBranch: (id: string) => void; onOpen: (selection: Selection) => void; companionReturn: number }
 
-export function Chat({ storyId, branchId, onBranch, onOpen }: Props) {
+export function Chat({ storyId, branchId, onBranch, onOpen, companionReturn }: Props) {
+  const [reading] = useState(() => new PassageNavigation())
   const storyQuery = useQuery({ queryKey: ['story', storyId], queryFn: () => api<Story>(`/stories/${storyId}`) })
-  const resolved = branchId || storyQuery.data?.branches[0]?.id || ''
+  const resolved = resolveBranch(branchId, storyQuery.data)
   const branchQuery = useQuery({ queryKey: ['branch', resolved], queryFn: () => loadBranch(resolved), enabled: !!resolved })
-  if (storyQuery.error) return <main className="page"><ErrorNotice message={storyQuery.error.message} /><button className="button" onClick={() => void storyQuery.refetch()}>Try again</button></main>
+  const openPassage: OpenPassage = (id, nodeId) => { reading.request(id, nodeId); if (id !== resolved) onBranch(id) }
+  if (storyQuery.error && !storyQuery.data) return <main className="page"><ErrorNotice message={storyQuery.error.message} /><button className="button" onClick={() => void storyQuery.refetch()}>Try again</button></main>
   if (!storyQuery.data) return <Loading />
-  if (branchQuery.error || !branchQuery.data) return <PendingBranch story={storyQuery.data} branchId={resolved} error={branchQuery.error?.message} onRetry={() => void branchQuery.refetch()} onBranch={onBranch} />
-  return <ChatWorkspace key={storyId} story={storyQuery.data} branch={branchQuery.data} onBranch={onBranch} onOpen={onOpen} />
+  if (!branchQuery.data) return <PendingBranch story={storyQuery.data} branchId={resolved} error={branchQuery.error?.message} onRetry={() => void branchQuery.refetch()} onBranch={onBranch} onOpen={openPassage} />
+  const connectionError = storyQuery.error ?? branchQuery.error
+  return <ChatWorkspace key={storyId} companionReturn={companionReturn} connectionError={connectionError?.message} story={storyQuery.data} branch={branchQuery.data} reading={reading} onBranch={onBranch} onOpen={onOpen} onOpenPassage={openPassage} />
 }
 
-function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; branch: Branch; onBranch: (id: string) => void; onOpen: (selection: Selection) => void }) {
+function ChatWorkspace({ story, branch, reading, onBranch, onOpen, onOpenPassage, companionReturn, connectionError }: { story: Story; branch: Branch; reading: PassageNavigation; onBranch: (id: string) => void; onOpen: (selection: Selection) => void; onOpenPassage: OpenPassage; companionReturn: number; connectionError?: string }) {
   const mode = storyMode(story.settings)
-  const [reading] = useState(() => new PassageNavigation())
   const workspace = useRef<HTMLDivElement>(null)
   useBranchReadiness(branch, workspace)
   const [context, setContext] = useState(false)
@@ -51,7 +55,7 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   const [mapOpenedAt, setMapOpenedAt] = useState(0)
   const openMap = () => { setMapOpenedAt(performance.now()); setMap(true) }
   const [details, setDetails] = useState(false)
-  const [side, setSide] = useState(false)
+  const [side, setSide] = useCompanionReturn(companionReturn, workspace)
   const layout = useCollaboratorLayout()
   const fullscreen = [side, layout.presentation === 'full'].every(Boolean)
   const [randomness, setRandomness] = useState(false)
@@ -68,16 +72,36 @@ function ChatWorkspace({ story, branch, onBranch, onOpen }: { story: Story; bran
   const closeTools = () => { setTools(false); focusTools(workspace.current) }
   if (manuscript) return <Suspense fallback={<Loading label="Opening the book…" />}><ManuscriptWorkspace story={story} branchId={branch.id} onClose={() => setManuscript(false)} /></Suspense>
   return <div ref={workspace} data-active-branch={branch.id} className={`chat-workspace ${withDock ? 'with-context' : ''}`}><GenerationControls key={`generation:${branch.id}`} branch={branch} onBranch={onBranch} onReadMessage={readMessage} open={tools} onClose={closeTools} onOpen={() => setTools(true)}><main className="chat-main" inert={fullscreen} aria-hidden={fullscreen}>
-    <ChatHeading story={story} branchName={branch.name} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onManuscript={() => setManuscript(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
+    <ChatHeading story={story} branchName={branch.name} curation={branch.curation} context={context} side={side} tools={tools} onTools={toggleTools} onMap={openMap} onWorkflow={() => setWorkflow(true)} onManuscript={() => setManuscript(true)} onDetails={() => setDetails(true)} onContext={toggleContext} onSide={toggleSide} />
+    <ErrorNotice message={connectionError} />
     {branch.messages.length >= 200 ? <Suspense fallback={<Loading label="Opening your reading position…" />}><WindowedTranscript reader={reading.connect} key={`window:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} /></Suspense> : <Transcript reader={reading.connect} key={`transcript:${branch.id}`} branch={branch} mode={mode} onBranch={onBranch} />}
     <WritingRecovery /><Composer key={`composer:${branch.id}`} branch={branch} mode={mode} transfer={transfer} onTransferred={() => setTransfer(null)} onRandomness={() => setRandomness(true)} />
   </main></GenerationControls>{context && <ContextDock onReadMessage={readMessage} story={story} branch={branch} onClose={() => setContext(false)} />}
     <CollaboratorWindow open={side} layout={layout} story={story} branch={branch} onClose={() => setSide(false)} onInsert={(text) => { setTransfer({ id: crypto.randomUUID(), branchId: branch.id, text }); requestAnimationFrame(() => workspace.current?.querySelector<HTMLTextAreaElement>('[aria-label="Story message"]')?.focus()) }} />
-    {map && <BranchMap branches={story.branches} selected={branch.id} onSelect={onBranch} onClose={() => setMap(false)} openedAt={mapOpenedAt} />}
+    {map && <Suspense fallback={<Loading label="Opening tellings…" />}><BranchMap storyId={story.id} branches={story.branches} selected={branch.id} onSelect={onBranch} onOpen={(branchId, nodeId) => { onOpenPassage(branchId, nodeId); setContext(false) }} onClose={() => setMap(false)} openedAt={mapOpenedAt} /></Suspense>}
     {details && <StoryDetails story={story} branchId={branch.id} onOpen={onOpen} onClose={() => setDetails(false)} />}
     {randomness && <Modal open title="A little room for chance" description="Shape the unexpected. A reply is not automatically a beat, and a roll is only a proposal until its draft is accepted." onClose={() => setRandomness(false)} wide><Suspense fallback={<Loading label="Opening your tables…" />}><Randomness branch={branch} onBranch={onBranch} /></Suspense></Modal>}
     {workflow && <Modal open title="Story workflow" description="Plan a scene, invite independent readers, and choose the right partner for each step." onClose={() => setWorkflow(false)} wide><Suspense fallback={<Loading label="Opening the workflow…" />}><Workflow key={branch.id} branch={branch} onBranch={(id) => { setWorkflow(false); onBranch(id) }} /></Suspense></Modal>}
   </div>
+}
+
+function useCompanionReturn(companionReturn: number, workspace: React.RefObject<HTMLDivElement | null>) {
+  const [sideState, setSideState] = useState({ open: false, returnId: 0 })
+  const side = sideState.returnId === companionReturn ? sideState.open : companionReturn > 0
+  const setSide = (open: boolean) => setSideState({ open, returnId: companionReturn })
+  useEffect(() => {
+    if (!companionReturn) return
+    const focus = () => {
+      const target = workspace.current?.querySelector<HTMLTextAreaElement>('[aria-label="Message to collaborator"]')
+      if (!target || target.disabled) return
+      target.focus(); observer.disconnect()
+    }
+    const observer = new MutationObserver(focus)
+    if (workspace.current) observer.observe(workspace.current, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] })
+    const frame = requestAnimationFrame(focus)
+    return () => { cancelAnimationFrame(frame); observer.disconnect() }
+  }, [companionReturn, workspace])
+  return [side, setSide] as const
 }
 
 function focusTools(workspace: HTMLElement | null) {
