@@ -1,6 +1,6 @@
 # Inspiration decks: implementation contract
 
-Status: weighted decks, the Library editor, preview/draw controls, collection review/export, starters, unsent-input handoff and private-archive recovery are implemented and verified in focused backend/browser checks. The completed whole-release gate is recorded in [v090-validation.md](v090-validation.md).
+Status: weighted decks, the Library editor, preview/draw controls, collection review/export, starters, unsent-input handoff and private-archive recovery are implemented and verified in focused backend/browser checks. The completed whole-release gate is recorded in [v090-validation.md](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md).
 
 ## Using decks
 
@@ -34,4 +34,4 @@ Private archive format **54** adds deck/version, draw and accepted pack-source/o
 
 Workspace archives include all decks and draw history. Story archives include draws associated with their selected Story's paths and the complete version histories of the referenced decks, plus accepted pack originals. Unpublished pack staging stays local. Earlier archive formats upgrade with empty deck groups; no draws or starter decks are invented during recovery.
 
-Measured deck evidence, including exact odds, fresh-workspace collection/archive recovery, frozen generation input, 32 browser checks and inspected layouts, is recorded in [v090-validation.md](v090-validation.md). These are deterministic and simulated-provider checks, not measurements of live writing quality.
+Measured deck evidence, including exact odds, fresh-workspace collection/archive recovery, frozen generation input, 32 browser checks and inspected layouts, is recorded in [v090-validation.md](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md). These are deterministic and simulated-provider checks, not measurements of live writing quality.

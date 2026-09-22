@@ -10,4 +10,4 @@ Publication exports contain selected prose and explicit publication metadata. Au
 
 Private workspace archives preserve Book selections for later preparation after restore. Prepared download snapshots stay installation-local under the existing publication contract; the downloaded HTML itself is portable. No HTML hosting or upload occurs when preparing or downloading a publication.
 
-Measured backend, browser, offline and print verification is recorded in [v090-validation.md](v090-validation.md). Dedicated e-reader behavior and live-model prose quality are separate from HTML acceptance.
+Measured backend, browser, offline and print verification is recorded in [v090-validation.md](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md). Dedicated e-reader behavior and live-model prose quality are separate from HTML acceptance.

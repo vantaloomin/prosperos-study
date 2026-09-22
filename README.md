@@ -67,9 +67,9 @@ Stories and Library material live in the local `data/` folder. Cloud generation 
 
 - [User guide](docs/user-guide.md) — writing, tellings, styles, recipes, Companion, setup and troubleshooting.
 - [Story memory and model-call costs](docs/user-guide.md#keep-the-past-and-what-is-still-to-come) · [Writing styles](docs/user-guide.md#write-in-your-own-style) · [Illustrated agent guides](docs/user-guide.md#agents-and-long-memory-illustrated).
-- [Import compatibility](migration-compatibility.md) · [Inspiration decks and collections](inspiration-compatibility.md) · [HTML publishing](html-publishing.md).
-- [Release notes](releases/v0.9.0.md) · [Changelog](CHANGELOG.md) · [Validation evidence](v090-validation.md).
-- [Development setup and checks](docs/development.md).
+- [Import compatibility](docs/migration-compatibility.md) · [Inspiration decks and collections](docs/inspiration-compatibility.md) · [HTML publishing](docs/html-publishing.md).
+- [Release notes](releases/v0.9.0.md) · [Changelog](CHANGELOG.md) · [Validation evidence](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md).
+- [Development setup and checks](docs/development.md) · [Contributing and file placement](CONTRIBUTING.md).
 
 ## Questions
 

@@ -1,6 +1,6 @@
 # v0.9 migration compatibility
 
-The v0.9 implementation and acceptance gates are complete; measured evidence is in [v090-validation.md](v090-validation.md). Compatibility is limited to the formats and mappings below. Imports run locally, preserve their original bytes, and never execute foreign scripts or fetch referenced URLs.
+The v0.9 implementation and acceptance gates are complete; measured evidence is in [v090-validation.md](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md). Compatibility is limited to the formats and mappings below. Imports run locally, preserve their original bytes, and never execute foreign scripts or fetch referenced URLs.
 
 ## Verified character containers
 
@@ -71,7 +71,7 @@ Each file has a durable result/report and frozen publication choices. An interru
 
 Queues, unfinished staging, browser review drafts and original native archive/bundle files stay on this installation. Accepted **foreign** source bytes and provenance travel with the imported Story or Library versions in private archives and can be downloaded after recovery. Native imports retain their established record-level contracts: backups do not recursively nest old archive files. Download an original native file from the queue when retaining that exact envelope is important. Rejected bytes are not retained, including rejected credential-bearing preset files.
 
-These supported dialects do not establish compatibility with arbitrary historical variants or application databases. See [the encompassing goal](v090-implementation-goal.md) and [measured evidence](v090-validation.md).
+These supported dialects do not establish compatibility with arbitrary historical variants or application databases. See [the encompassing goal](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-implementation-goal.md) and [measured evidence](https://github.com/vantaloomin/prosperos-study/blob/v0.9.0/v090-validation.md).
 
 ## Character and Canon duplicate review
 

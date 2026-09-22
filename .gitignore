@@ -4,6 +4,23 @@
 /design/reference/
 /zz_*/
 
+# Root Markdown is reserved for the public project entry points below.
+# Put maintained guides in docs/ and temporary goals/checkpoints in planning/.
+/*.md
+!/README.md
+!/CHANGELOG.md
+!/CONTRIBUTING.md
+!/ROADMAP.md
+!/SECURITY.md
+
+# Working records and art prompts are local inputs, not public documentation.
+/docs/*-goal.md
+/docs/**/*-goal.md
+/docs/**/v[0-9]*-*.md
+/docs/v[0-9]*-*.md
+/design/**/*-prompt.md
+/design/**/*-prompts.md
+
 # Local agent instructions, skills, conversation state, and tool configuration
 AGENTS.md
 AGENTS.*.md

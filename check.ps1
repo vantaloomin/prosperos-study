@@ -8,6 +8,7 @@ function Invoke-Checked {
 }
 
 $pythonPath = Join-Path $PSScriptRoot '.venv/Scripts/python.exe'
+Invoke-Checked $pythonPath @('scripts/check_repository.py')
 $testBase = Join-Path $PSScriptRoot 'test-results'
 New-Item -ItemType Directory -Force -Path $testBase | Out-Null
 $testPath = Join-Path $testBase ('pytest-' + [guid]::NewGuid().ToString('N'))
